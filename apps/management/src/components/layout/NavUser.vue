@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import {
-  EllipsisVertical as IconDotsVertical,
+  ChevronsUpDown as IconDotsVertical,
   LogOut as IconLogout,
   BellRing as IconNotification,
   UserCircle as IconUserCircle,
 } from '@lucide/vue'
 
+import { computed } from 'vue'
+import { useAvatar } from '@ulticode/auth-ui'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -28,19 +30,24 @@ import {
 
 interface User {
   name: string
+  username?: string
   email: string
   avatar?: string
   role?: string
 }
 
-defineProps<{
+const props = defineProps<{
   user: User
 }>()
 
-const { isMobile } = useSidebar()
 const router = useRouter()
 const { t } = useI18n()
+const { isMobile } = useSidebar()
 const authStore = useAuthStore()
+const { normalizedAvatar } = useAvatar(
+  computed(() => props.user.username || props.user.name),
+  computed(() => props.user.avatar),
+)
 
 function handleAccount() {
   router.push('/account')
@@ -61,53 +68,56 @@ async function handleLogout() {
     <SidebarMenuItem>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <SidebarMenuButton size="lg" tooltip="User Menu" class="h-11">
-            <Avatar class="h-8 w-8" shape="square">
-              <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-              <AvatarFallback> CN </AvatarFallback>
+          <SidebarMenuButton
+            size="lg"
+            :tooltip="t('nav.account')"
+            class="uc-sidebar-user-trigger"
+          >
+            <Avatar class="uc-sidebar-avatar size-8 rounded-lg">
+              <AvatarImage :src="normalizedAvatar" :alt="user.name" />
+              <AvatarFallback class="uc-sidebar-avatar-fallback rounded-lg">{{
+                user.name.slice(0, 2).toUpperCase()
+              }}</AvatarFallback>
             </Avatar>
-            <div class="grid flex-1 text-left text-xs leading-tight">
+            <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
               <div class="flex items-center gap-1.5 min-w-0">
-                <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
-                <span
-                  v-if="user.role"
-                  class="inline-flex items-center px-1.5 py-0.2 text-xs font-mono font-bold uppercase border border-border bg-accent text-muted-foreground tracking-wide shrink-0"
-                >
+                <span class="truncate font-medium">{{ user.name }}</span>
+                <span v-if="user.role" class="shrink-0 rounded px-1 text-xs text-muted-foreground">
                   {{ user.role }}
                 </span>
               </div>
-              <span class="text-muted-foreground truncate mt-0.5 font-mono text-xs">
+              <span class="truncate text-xs text-muted-foreground">
                 {{ user.email }}
               </span>
             </div>
-            <IconDotsVertical
-              class="ml-auto size-4 text-muted-foreground group-hover:text-foreground"
-            />
+            <IconDotsVertical class="ml-auto size-4 text-muted-foreground" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          class="w-(--reka-dropdown-menu-trigger-width) min-w-56"
+          class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
           :side="isMobile ? 'bottom' : 'right'"
-          :side-offset="4"
           align="end"
+          :side-offset="4"
         >
           <DropdownMenuLabel class="p-0">
-            <div class="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
-              <Avatar class="h-8 w-8" shape="square">
-                <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-                <AvatarFallback> CN </AvatarFallback>
+            <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <Avatar class="uc-sidebar-avatar size-8 rounded-lg">
+                <AvatarImage :src="normalizedAvatar" :alt="user.name" />
+                <AvatarFallback class="uc-sidebar-avatar-fallback rounded-lg">{{
+                  user.name.slice(0, 2).toUpperCase()
+                }}</AvatarFallback>
               </Avatar>
-              <div class="grid flex-1 text-left text-xs leading-tight">
-                <div class="flex items-center gap-1.5">
-                  <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
+              <div class="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                <div class="flex min-w-0 items-center gap-1.5">
+                  <span class="truncate font-medium">{{ user.name }}</span>
                   <span
                     v-if="user.role"
-                    class="inline-flex items-center px-1.5 py-0.2 text-xs font-mono font-bold uppercase border border-border bg-accent text-muted-foreground tracking-wide shrink-0"
+                    class="shrink-0 rounded px-1 text-xs text-muted-foreground"
                   >
                     {{ user.role }}
                   </span>
                 </div>
-                <span class="text-muted-foreground truncate mt-0.5 font-mono text-xs">
+                <span class="truncate text-xs text-muted-foreground">
                   {{ user.email }}
                 </span>
               </div>

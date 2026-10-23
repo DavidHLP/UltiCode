@@ -9,6 +9,18 @@ import {
   hasCsrfCookie,
 } from '@ulticode/auth-core'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
+import { apiGet } from '@/utils/request'
+
+async function withProfileAvatar(user: User): Promise<User> {
+  try {
+    const profile = await apiGet<{ avatar?: string | null }>('/users/me', {
+      skipErrorHandler: true,
+    })
+    return profile?.avatar ? { ...user, avatar: profile.avatar } : user
+  } catch {
+    return user
+  }
+}
 
 /**
  * Management's boolean auth view over the shared session policy. The API
@@ -17,7 +29,11 @@ import { authApi, type LoginCredentials, type User } from '@/api/auth'
  */
 export const useAuthStore = defineStore('auth', () => {
   const session = createSessionAuthStore<User>({
-    fetchCurrentUser: () => authApi.getCurrentUser(),
+    fetchCurrentUser: async () => {
+      const response = await authApi.getCurrentUser()
+      if (response?.user) response.user = await withProfileAvatar(response.user)
+      return response
+    },
     login: async (credentials) => {
       return authApi.login(credentials as LoginCredentials)
     },
@@ -51,6 +67,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(credentials: LoginCredentials): Promise<boolean> {
     try {
       await session.login(credentials)
+      // Optional profile 401s may refresh the session after the login lock is released.
+      const user = session.user.value
+      if (user) {
+        const enriched = await withProfileAvatar(user)
+        if (session.user.value === user) session.user.value = enriched
+      }
       await session.loadPermissions()
       return true
     } catch (error) {

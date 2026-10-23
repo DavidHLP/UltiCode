@@ -26,6 +26,7 @@ UltiCode is an online-judge platform with these main surfaces:
 |`services/`|Java / Spring Boot Maven parent/reactor; `platform/` (common, web-security), `api/` (Dubbo contracts), five owner services, two independent workers, and the shared judge runtime|
 | `apps/console/` | Vue 3 user application |
 | `apps/management/` | Vue 3 administrator application |
+| `apps/landing/` | Independently designed public landing page; preserve its own visual identity |
 | `packages/` | Focused frontend packages shared by both applications |
 | `init-db/migrations/` | Canonical Flyway migrations |
 | `docker/` | Runtime infrastructure and judge sandbox |
@@ -36,6 +37,7 @@ Read the nearest guide before editing `services/`, `apps/console/`, `apps/manage
 
 - Preserve the backend flow `controller -> service -> mapper -> entity` and existing domain-module boundaries. Do not introduce a parallel architecture for a local change.
 - Reuse focused packages under `packages/` for shared frontend behavior. Extract duplicated behavior when needed by the task; do not force app-specific behavior into a shared abstraction.
+- Landing is an independent design, excluded from Console/Management UI unification. Preserve its layout, typography, colors, illustrations, animations, and responsive behavior. Do not migrate it to shared design-system components, theme tokens, appearance settings, or theme bootstrap, or redesign it as part of cross-app work, unless the user explicitly requests a Landing design change. Read `apps/landing/AGENTS.md` before editing it.
 - Keep request/response contracts aligned across backend, shared types, and both frontends. Preserve the existing `Result` envelope and established field-name mappings.
 
 ## Working rules

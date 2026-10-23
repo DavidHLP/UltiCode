@@ -2,17 +2,21 @@
 import { Checkbox } from "@ulticode/design-system/ui/checkbox";
 import { FieldLabel } from "@ulticode/design-system/ui/field";
 
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { renderMarkdown } from "@ulticode/markdown-utils";
+import { getStatusLabelI18nKey } from "@ulticode/submission-status";
+import { fetchSubmission, fetchUserSubmissions } from "@/api/submission";
+import type { SubmissionRecord } from "@/types/submission";
+import { useAuthStore } from "@/stores/auth";
+import { isAgentReviewEligible } from "@/views/problems/submissions/agentReviewPolicy";
 import {
   agentApi,
   type AgentCapabilities,
   type AgentConversationTurn,
 } from "@/api/agent";
 import { Button } from "@ulticode/design-system/ui/button";
-import { Badge } from "@ulticode/design-system/ui/badge";
 import { Textarea } from "@ulticode/design-system/ui/textarea";
 import {
   Sheet,
@@ -26,7 +30,8 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const workspace = useAgentConversations();
-const enabled = import.meta.env.VITE_AGENT_REVIEW_ENABLED === "true";
+const auth = useAuthStore();
+const enabled = computed(() => capability.value?.featureEnabled !== false);
 const capability = ref<AgentCapabilities | null>(null);
 const capabilityLoading = ref(false);
 const capabilityError = ref(false);
@@ -35,6 +40,10 @@ const draft = ref("");
 const submitting = ref(false);
 const historyOpen = ref(false);
 const transcript = ref<HTMLElement | null>(null);
+const recentSubmissions = ref<SubmissionRecord[]>([]);
+const submissionsLoading = ref(false);
+const submissionsError = ref(false);
+const submissionsRefresh = ref(0);
 const conversationIdQuery = computed(() => {
   const value = route.query.conversationId;
   return Array.isArray(value) ? value[0] : value;
@@ -45,7 +54,7 @@ const submissionIdQuery = computed(() => {
 });
 const canSend = computed(
   () =>
-    enabled &&
+    enabled.value &&
     capability.value?.analysisAvailable === true &&
     Boolean(workspace.sourceSubmissionId.value) &&
     !workspace.busy.value &&
@@ -96,9 +105,9 @@ function updateRoute(conversationId?: string, submissionId?: string) {
 }
 
 watch(
-  [conversationIdQuery, submissionIdQuery],
+  [conversationIdQuery, submissionIdQuery, enabled],
   ([conversationId, submissionId]) => {
-    if (!enabled) return;
+    if (!enabled.value) return;
     if (validUuid(conversationId)) {
       if (workspace.conversation.value?.conversationId !== conversationId) {
         sourceConsent.value = false;
@@ -138,22 +147,74 @@ watch(
   { deep: true },
 );
 
-onMounted(async () => {
-  if (!enabled) return;
-  capabilityLoading.value = true;
-  const capabilityRequest = agentApi
-    .getCapabilities()
-    .then((value) => {
-      capability.value = value;
-    })
-    .catch(() => {
-      capabilityError.value = true;
-    })
-    .finally(() => {
-      capabilityLoading.value = false;
+watch(
+  enabled,
+  async (active) => {
+    if (!active) return;
+    capabilityLoading.value = true;
+    const capabilityRequest = agentApi
+      .getCapabilities()
+      .then((value) => {
+        capability.value = value;
+      })
+      .catch(() => {
+        capabilityError.value = true;
+      })
+      .finally(() => {
+        capabilityLoading.value = false;
+      });
+    await capabilityRequest;
+    if (!capabilityError.value && capability.value?.featureEnabled !== false) {
+      await workspace.loadConversations(true);
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  [
+    () => auth.user?.id,
+    () => !workspace.sourceSubmissionId.value && !workspace.conversation.value,
+    () => enabled.value && capability.value?.analysisAvailable === true,
+    submissionsRefresh,
+  ],
+  async ([userId, empty, available], _previous, onCleanup) => {
+    let current = true;
+    onCleanup(() => {
+      current = false;
     });
-  await Promise.all([capabilityRequest, workspace.loadConversations(true)]);
-});
+    recentSubmissions.value = [];
+    submissionsError.value = false;
+    submissionsLoading.value = false;
+    if (!userId || !empty || !available) return;
+    submissionsLoading.value = true;
+    try {
+      const page = await fetchUserSubmissions();
+      if (!current) return;
+      // shortcut: inspect only the latest three; use the full submissions page for older results.
+      const details = await Promise.all(
+        page.items.slice(0, 3).map((item) => fetchSubmission(item.id)),
+      );
+      if (current) {
+        recentSubmissions.value = details.filter((item) =>
+          isAgentReviewEligible(item, userId, true),
+        );
+      }
+    } catch {
+      if (current) submissionsError.value = true;
+    } finally {
+      if (current) submissionsLoading.value = false;
+    }
+  },
+  { immediate: true },
+);
+
+function selectSubmission(id: string) {
+  if (submitting.value || !workspace.startNewConversation(id)) return;
+  sourceConsent.value = false;
+  draft.value = "";
+  updateRoute(undefined, id);
+}
 
 async function send() {
   const question = draft.value.trim();
@@ -235,29 +296,29 @@ function formatDate(value: string) {
     class="flex h-dvh min-h-0 overflow-hidden bg-background text-foreground"
   >
     <aside
-      class="hidden w-72 shrink-0 flex-col border-r border-border bg-muted/30 lg:flex"
+      class="hidden w-64 shrink-0 flex-col border-r border-border bg-muted/30 lg:flex"
     >
-      <div
-        class="flex items-center justify-between border-b border-border px-4 py-4"
-      >
+      <div class="flex h-20 shrink-0 items-center border-b border-border px-4">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wide text-primary">
             UltiCode
           </p>
-          <h1 class="mt-1 text-lg font-semibold">
+          <h1 class="mt-1 whitespace-nowrap text-base font-semibold">
             {{ t("agent.workspace.title") }}
           </h1>
         </div>
+      </div>
+      <div class="p-3">
         <Button
           variant="outline"
-          size="sm"
+          class="w-full"
           :disabled="workspace.busy.value || submitting"
           @click="startNew"
         >
           {{ t("agent.workspace.new") }}
         </Button>
       </div>
-      <div class="min-h-0 flex-1 overflow-y-auto p-3">
+      <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
         <div
           class="mb-2 flex items-center justify-between px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground"
         >
@@ -323,66 +384,68 @@ function formatDate(value: string) {
 
     <section class="flex min-w-0 flex-1 flex-col">
       <header
-        class="flex min-h-16 flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 sm:px-6"
+        class="flex min-h-20 shrink-0 items-center border-b border-border px-4 py-4 sm:px-6"
       >
-        <div class="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:flex-1">
-          <Button
-            variant="outline"
-            size="sm"
-            class="lg:hidden"
-            :aria-expanded="historyOpen"
-            @click="historyOpen = !historyOpen"
+        <div
+          class="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3"
+        >
+          <div
+            class="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:flex-1"
           >
-            {{ t("agent.workspace.history") }}
-          </Button>
-          <div class="min-w-0">
-            <h2 class="truncate font-semibold">
-              {{
-                workspace.conversation.value?.title ??
-                t("agent.workspace.emptyTitle")
-              }}
-            </h2>
-            <p class="truncate text-xs text-muted-foreground">
-              <template v-if="workspace.sourceSubmissionId.value"
-                >{{ t("agent.workspace.submission") }} ·
-                {{ workspace.sourceSubmissionId.value }}</template
+            <Button
+              variant="outline"
+              size="sm"
+              class="lg:hidden"
+              :aria-expanded="historyOpen"
+              @click="historyOpen = !historyOpen"
+            >
+              {{ t("agent.workspace.history") }}
+            </Button>
+            <div class="min-w-0">
+              <h2 class="truncate font-semibold">
+                {{
+                  workspace.conversation.value?.title ??
+                  t("agent.workspace.new")
+                }}
+              </h2>
+              <p
+                v-if="workspace.sourceSubmissionId.value"
+                class="truncate text-xs text-muted-foreground"
               >
-              <template v-else>{{ t("agent.workspace.objectHint") }}</template>
-            </p>
+                {{ t("agent.workspace.submission") }} ·
+                {{ workspace.sourceSubmissionId.value }}
+              </p>
+            </div>
           </div>
-        </div>
-        <div class="flex shrink-0 items-center gap-2">
-          <Badge
-            v-if="capability"
-            variant="secondary"
-            class="hidden max-w-md whitespace-normal text-left sm:inline-flex"
-          >
-            {{ t(`agent.sourceModes.${capability.sourceMode}`) }}
-          </Badge>
-          <Button
+          <div
             v-if="workspace.conversation.value"
-            type="button"
-            variant="ghost"
-            size="sm"
-            :disabled="workspace.loadingConversation.value"
-            @click="reloadConversation"
+            class="ml-auto flex shrink-0 items-center gap-2"
           >
-            {{ t("agent.workspace.reload") }}
-          </Button>
-          <Button
-            v-if="workspace.conversation.value"
-            type="button"
-            variant="ghost"
-            size="sm"
-            :disabled="workspace.busy.value || workspace.deleting.value"
-            @click="deleteConversation"
-          >
-            {{
-              workspace.deleting.value
-                ? t("agent.workspace.deleting")
-                : t("agent.workspace.delete")
-            }}
-          </Button>
+            <Button
+              v-if="workspace.conversation.value"
+              type="button"
+              variant="ghost"
+              size="sm"
+              :disabled="workspace.loadingConversation.value"
+              @click="reloadConversation"
+            >
+              {{ t("agent.workspace.reload") }}
+            </Button>
+            <Button
+              v-if="workspace.conversation.value"
+              type="button"
+              variant="ghost"
+              size="sm"
+              :disabled="workspace.busy.value || workspace.deleting.value"
+              @click="deleteConversation"
+            >
+              {{
+                workspace.deleting.value
+                  ? t("agent.workspace.deleting")
+                  : t("agent.workspace.delete")
+              }}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -488,7 +551,7 @@ function formatDate(value: string) {
 
       <div
         ref="transcript"
-        class="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8"
+        class="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6"
       >
         <div
           v-if="workspace.loadingConversation.value"
@@ -499,7 +562,7 @@ function formatDate(value: string) {
         </div>
         <div
           v-else-if="!workspace.conversation.value"
-          class="mx-auto flex h-full max-w-2xl flex-col items-center justify-center text-center"
+          class="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center justify-center py-8 text-center"
         >
           <p class="text-xs font-semibold uppercase tracking-wide text-primary">
             {{ t("agent.workspace.eyebrow") }}
@@ -512,6 +575,73 @@ function formatDate(value: string) {
           >
             {{ emptyDescription }}
           </p>
+          <p
+            v-if="capability"
+            class="mt-4 max-w-xl text-xs leading-relaxed text-muted-foreground"
+          >
+            {{ t(`agent.sourceModes.${capability.sourceMode}`) }}
+          </p>
+          <section
+            v-if="
+              !workspace.sourceSubmissionId.value &&
+              capability?.analysisAvailable
+            "
+            class="mt-8 w-full text-left"
+            :aria-label="t('agent.workspace.recentSubmissions')"
+          >
+            <h3 class="mb-3 text-sm font-medium">
+              {{ t("agent.workspace.recentSubmissions") }}
+            </h3>
+            <p
+              v-if="submissionsLoading"
+              role="status"
+              class="text-sm text-muted-foreground"
+            >
+              {{ t("agent.workspace.loading") }}
+            </p>
+            <div
+              v-else-if="submissionsError"
+              role="alert"
+              class="space-y-3 text-sm"
+            >
+              <p class="text-destructive">
+                {{ t("agent.workspace.submissionsError") }}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                @click="submissionsRefresh++"
+                >{{ t("agent.retry") }}</Button
+              >
+            </div>
+            <div v-else-if="recentSubmissions.length" class="space-y-2">
+              <Button
+                v-for="item in recentSubmissions"
+                :key="item.id"
+                variant="outline"
+                class="h-auto w-full justify-between gap-4 whitespace-normal px-4 py-3 text-left"
+                @click="selectSubmission(item.id)"
+              >
+                <span class="min-w-0">
+                  <span class="block truncate font-medium">{{
+                    item.problem?.title ??
+                    t("agent.workspace.problem", { id: item.problem_id })
+                  }}</span>
+                  <span
+                    class="mt-1 block text-xs font-normal text-muted-foreground"
+                    >{{ item.language }} ·
+                    {{ formatDate(item.created_at) }}</span
+                  >
+                </span>
+                <span class="shrink-0 text-xs font-normal">{{
+                  t(getStatusLabelI18nKey(item.status) ?? item.status)
+                }}</span>
+              </Button>
+            </div>
+            <p v-else class="text-sm text-muted-foreground">
+              {{ t("agent.workspace.noRecentSubmissions") }}
+            </p>
+          </section>
           <Button
             v-if="!workspace.sourceSubmissionId.value"
             as-child
@@ -666,9 +796,19 @@ function formatDate(value: string) {
       </div>
 
       <form
-        class="border-t border-border bg-background px-4 py-4 sm:px-8"
+        v-if="
+          workspace.sourceSubmissionId.value &&
+          !workspace.loadingConversation.value
+        "
+        class="shrink-0 border-t border-border bg-background px-4 pt-4 sm:px-6"
         @submit.prevent="send"
       >
+        <p
+          v-if="workspace.conversation.value && capability"
+          class="mx-auto mb-3 max-w-3xl text-xs leading-relaxed text-muted-foreground"
+        >
+          {{ t(`agent.sourceModes.${capability.sourceMode}`) }}
+        </p>
         <div
           class="mx-auto max-w-3xl rounded-xl border border-border bg-card shadow-sm focus-within:ring-2 focus-within:ring-ring/40"
         >
@@ -693,9 +833,6 @@ function formatDate(value: string) {
             class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-3 py-2"
           >
             <div class="min-w-0 flex-1 space-y-2">
-              <p class="text-xs leading-relaxed text-muted-foreground">
-                {{ t("agent.workspace.retention") }}
-              </p>
               <FieldLabel
                 for="agent-source-consent"
                 v-if="showConsent"
@@ -740,12 +877,14 @@ function formatDate(value: string) {
             </div>
           </div>
         </div>
+      </form>
+      <footer class="shrink-0 px-4 py-4 sm:px-6">
         <p
-          class="mx-auto mt-2 max-w-3xl text-center text-xs text-muted-foreground"
+          class="mx-auto max-w-3xl text-center text-xs leading-relaxed text-muted-foreground"
         >
           {{ t("agent.workspace.disclaimer") }}
         </p>
-      </form>
+      </footer>
     </section>
   </main>
 </template>

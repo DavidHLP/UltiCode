@@ -46,13 +46,12 @@ const planReadbackError = ref(false);
 const requestGeneration = ref(0);
 const loadedThreadId = ref<string | null>(null);
 const authStore = useAuthStore();
-const enabled = import.meta.env.VITE_AGENT_REVIEW_ENABLED === "true";
 const userId = computed(() => authStore.fetchCurrentUserId());
 const eligible = computed(() =>
   isAgentReviewEligible(
     props.submission,
     userId.value,
-    enabled,
+    true,
     props.contestId,
   ),
 );

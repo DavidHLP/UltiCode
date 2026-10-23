@@ -9,6 +9,7 @@
  * then the response replaces both session cookies and the in-memory token.
  */
 import { rawAxios } from './rawAxios';
+import { withBrowserSessionLock } from './browserSessionLock';
 import type { CsrfTokenManager } from './csrf';
 
 export interface RefreshResponse {
@@ -36,28 +37,28 @@ export function createRefreshAccessToken(
 ): () => Promise<RefreshResponse> {
   return async function refreshAccessToken(): Promise<RefreshResponse> {
     if (inFlight) return inFlight;
-    inFlight = (async () => {
-      try {
-        const csrfToken = csrfManager.getToken();
-        if (!csrfToken) {
-          throw new Error('CSRF token is required to refresh the browser session');
-        }
-        const { data } = await rawAxios.post<ResultEnvelope<RefreshResponse>>(
-          '/auth/refresh',
-          undefined,
-          { headers: { 'X-CSRF-Token': csrfToken } },
+    inFlight = withBrowserSessionLock(async () => {
+      const csrfToken = csrfManager.getToken();
+      if (!csrfToken) {
+        throw new Error(
+          'CSRF token is required to refresh the browser session',
         );
-        // rawAxios returns the untouched Result envelope; synchronize the
-        // rotated double-submit cookie value from its nested payload.
-        const inner = data?.data;
-        if (inner && typeof inner.csrfToken === 'string') {
-          csrfManager.refreshFromResponse(inner);
-        }
-        return inner ?? {};
-      } finally {
-        inFlight = null;
       }
-    })();
+      const { data } = await rawAxios.post<ResultEnvelope<RefreshResponse>>(
+        '/auth/refresh',
+        undefined,
+        { headers: { 'X-CSRF-Token': csrfToken } },
+      );
+      // rawAxios returns the untouched Result envelope; synchronize the
+      // rotated double-submit cookie value from its nested payload.
+      const inner = data?.data;
+      if (inner && typeof inner.csrfToken === 'string') {
+        csrfManager.refreshFromResponse(inner);
+      }
+      return inner ?? {};
+    }).finally(() => {
+      inFlight = null;
+    });
     return inFlight;
   };
 }

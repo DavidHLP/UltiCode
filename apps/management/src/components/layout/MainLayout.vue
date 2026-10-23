@@ -6,7 +6,7 @@ import { SidebarInset, SidebarProvider } from '@ulticode/design-system/ui/sideba
 </script>
 
 <template>
-  <SidebarProvider>
+  <SidebarProvider class="uc-app-shell">
     <AppSidebar />
     <SidebarInset>
       <SiteHeader />

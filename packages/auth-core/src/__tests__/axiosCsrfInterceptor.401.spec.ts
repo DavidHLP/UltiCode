@@ -87,6 +87,22 @@ describe("errorInterceptor — 401 auto-refresh (T1 + T2)", () => {
     clearOnAuthFailure();
   });
 
+  it.each([
+    "/auth/login",
+    "/auth/register",
+    "/auth/accounts",
+    "/auth/accounts/switch",
+  ])(
+    "does not refresh or replay a rejected session operation (%s)",
+    async (url) => {
+      const error = make401Error();
+      error.config!.url = url;
+      await expect(errorInterceptor(error)).rejects.toBe(error);
+      expect(rawAxios.post).not.toHaveBeenCalled();
+      expect(rawAxios.request).not.toHaveBeenCalled();
+    },
+  );
+
   it("T1: 401 → refresh 200 → replay 200 via rawAxios (happy path, no onAuthFailure)", async () => {
     vi.mocked(rawAxios.post).mockResolvedValue({
       data: { csrfToken: "new-csrf" },

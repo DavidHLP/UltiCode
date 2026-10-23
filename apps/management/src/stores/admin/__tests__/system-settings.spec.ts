@@ -53,6 +53,7 @@ const allWire = {
   featureNotifications: true,
   featureBookmarks: true,
   featureProblemLists: true,
+  featureAgent: true,
 }
 
 const expectedAllSnake: AllSettings = {
@@ -84,6 +85,7 @@ const expectedAllSnake: AllSettings = {
   feature_notifications: true,
   feature_bookmarks: true,
   feature_problem_lists: true,
+  feature_agent: true,
 }
 
 describe('useSystemSettingsStore', () => {
@@ -181,10 +183,11 @@ describe('useSystemSettingsStore', () => {
       await store.load()
       vi.mocked(apiPatch).mockClear()
 
-      store.patchFeatures({ feature_forum: false })
+      store.patchFeatures({ feature_forum: false, feature_agent: false })
       await store.saveFeatures()
 
       expect(apiPatch).toHaveBeenCalledWith('/admin/settings/features', {
+        featureAgent: false,
         featureContest: true,
         featureForum: false,
         featureSolutions: true,

@@ -103,8 +103,8 @@ function renderTypeBadge(type: string) {
               <component
                 :is="
                   slice.isPublished
-                    ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' })
-                    : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' })
+                    ? badge({ color: 'success', label: t('contests.status.published'), size: 'sm' })
+                    : badge({ color: 'neutral', label: t('contests.status.draft'), size: 'sm' })
                 "
               />
             </p>

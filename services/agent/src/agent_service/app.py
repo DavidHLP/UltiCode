@@ -601,6 +601,21 @@ async def _body(request: Request) -> dict[str, object]:
     return value
 
 
+async def _read_agent_feature():
+    try:
+        admin_url = os.environ.get("ULTICODE_ADMIN_BASE", "http://127.0.0.1:9102")
+        async with httpx.AsyncClient(timeout=3.0) as settings_client:
+            response = await settings_client.get(admin_url.rstrip("/") + "/api/v1/public/features/agent")
+            response.raise_for_status()
+            payload = response.json()
+            enabled = payload["data"]["enabled"]
+            if payload.get("code") != 0 or type(enabled) is not bool:
+                raise ValueError("invalid feature setting")
+            return enabled
+    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        raise AgentError(503, "agent_settings_unavailable", 50300) from None
+
+
 def create_app(
     *, state_path: Path | str | None = None, store: WorkflowStore | None = None,
     app_base_url: str | None = None, auth_base_url: str | None = None,
@@ -697,6 +712,8 @@ def create_app(
     async def unexpected_handler(_: Request, __: Exception):
         return _response({"reason": "upstream_unavailable"}, code=50000, message="upstream_unavailable", status=502)
 
+    app.state.agent_feature_enabled = _read_agent_feature
+
     async def with_session(request: Request, *, unsafe: bool, operation):
         access, csrf = _session_values(request, unsafe=unsafe, trusted_origin=allowed_origin)
         try:
@@ -705,6 +722,8 @@ def create_app(
             )
             async with client:
                 owner = await client.principal()
+                if request.url.path != "/agent/capabilities" and not await app.state.agent_feature_enabled():
+                    raise AgentError(403, "agent_disabled", 40300)
                 return await operation(client, owner)
         except UlticodeServiceError as exc:
             if exc.code in {40100, 40300}:
@@ -1090,6 +1109,14 @@ def create_app(
     @app.get("/agent/capabilities")
     async def capabilities(request: Request):
         async def operation(_: UlticodeClient, __: str):
+            if not await app.state.agent_feature_enabled():
+                return {
+                    "featureEnabled": False,
+                    "analysisAvailable": False,
+                    "persistenceAvailable": False,
+                    "conversationHistoryAvailable": False,
+                    "sourceMode": "metadata",
+                }
             analysis_available = offline_model_factory is not None
             if not analysis_available:
                 try:

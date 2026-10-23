@@ -11,6 +11,8 @@ import {
 } from "@/features/sider/sidebar.data";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { MessageSquare } from "@lucide/vue";
+import { AccountSwitcher } from "@ulticode/auth-ui";
+import { accountSessions } from "@/api/accountSessions";
 import { useI18n } from "vue-i18n";
 import { fetchForumCommunities } from "@/api/forum";
 import type { ForumCommunity } from "@/types/forum";
@@ -28,6 +30,8 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
   useSidebar,
@@ -38,13 +42,23 @@ const props = withDefaults(defineProps<SidebarProps>(), {
 });
 const route = useRoute();
 const authStore = useAuthStore();
-const { setOpenMobile } = useSidebar();
-const { settingsOpen } = useAppearance();
+const { openMobile, setOpenMobile } = useSidebar();
+const { settingsOpen, settingsReturnFocus } = useAppearance();
 const { t } = useI18n();
 
-watch(settingsOpen, (open) => {
-  if (open) setOpenMobile(false);
-});
+watch(
+  settingsOpen,
+  (open) => {
+    if (!open) return;
+    if (openMobile.value) {
+      settingsReturnFocus.value = document.querySelector<HTMLElement>(
+        '[data-sidebar="trigger"]',
+      );
+    }
+    setOpenMobile(false);
+  },
+  { flush: "sync" },
+);
 
 const removeNavigationHook = useRouter().afterEach((_to, _from, failure) => {
   if (
@@ -141,7 +155,14 @@ const currentSidebarData = computed(() => {
 <template>
   <Sidebar v-bind="props" class="uc-sidebar-shell">
     <SidebarHeader class="uc-sidebar-header">
-      <NavUser :user="user" :is-authenticated="isAuthenticated" />
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <AccountSwitcher
+            :client="accountSessions"
+            :account-name="user.name || t('auth.guest.name')"
+          />
+        </SidebarMenuItem>
+      </SidebarMenu>
     </SidebarHeader>
     <SidebarContent class="uc-sidebar-content">
       <!-- Dynamic Sidebar Navigation -->
@@ -163,14 +184,16 @@ const currentSidebarData = computed(() => {
       </div>
 
       <template v-if="isProblemContext">
-        <div class="group-data-[collapsible=icon]:hidden">
+        <div class="contents">
           <SidebarSeparator class="uc-sidebar-separator" />
           <!-- Problem Lists (Only for Problem Context) -->
           <Calendars />
         </div>
       </template>
     </SidebarContent>
-    <SidebarFooter> </SidebarFooter>
+    <SidebarFooter>
+      <NavUser :user="user" :is-authenticated="isAuthenticated" />
+    </SidebarFooter>
     <SidebarRail />
   </Sidebar>
 </template>

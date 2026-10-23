@@ -2,6 +2,7 @@
 import { Button } from "@ulticode/design-system/ui/button";
 import { Video, Lock, Trash2 } from "@lucide/vue";
 import { DataTable, type ColumnDef } from "@/components/common/data-table";
+import { TableHead, TableRow } from "@ulticode/design-system/ui/table";
 import { useI18n } from "vue-i18n";
 import { getDifficultyBadgeClass } from "@ulticode/design-system";
 import type { Problem } from "@/types/problem";
@@ -36,7 +37,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
 
 <template>
   <div
-    class="rounded-xl border bg-card text-card-foreground overflow-hidden bg-card"
+    class="rounded-xl border bg-card text-card-foreground overflow-hidden [&_table]:table-fixed [&_table]:min-w-[30rem]"
   >
     <DataTable
       :data="displayedProblems"
@@ -48,6 +49,24 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
       @load-more="emit('load-more')"
       @row-click="(problem: EnrichedProblem) => emit('row-click', problem)"
     >
+      <template #header>
+        <TableRow>
+          <TableHead
+            v-for="column in columns"
+            :key="column.key"
+            :class="
+              column.key === 'status'
+                ? 'w-[50px] px-2 text-center'
+                : ['px-4', column.headerClass]
+            "
+          >
+            <span :class="column.key === 'status' ? 'sr-only' : undefined">
+              {{ column.header }}
+            </span>
+          </TableHead>
+        </TableRow>
+      </template>
+
       <template #cell-status="{ item: problem }">
         <div class="flex justify-center items-center">
           <component
@@ -63,7 +82,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
       </template>
 
       <template #cell-title="{ item: problem }">
-        <div class="flex items-center gap-2">
+        <div class="flex min-w-0 items-center gap-2">
           <span
             class="truncate font-bold text-foreground transition-colors duration-200 hover:underline hover:decoration-primary"
             >{{ (problem as EnrichedProblem).id }}.
@@ -72,14 +91,14 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
           <a
             v-if="(problem as EnrichedProblem).hasSolution"
             href="#"
-            class="no-underline hover:no-underline text-muted-foreground hover:text-foreground"
+            class="shrink-0 no-underline hover:no-underline text-muted-foreground hover:text-foreground"
             @click.stop
           >
             <Video class="h-4 w-4" />
           </a>
           <Lock
             v-if="(problem as EnrichedProblem).isPremium"
-            class="h-4 w-4 text-status-warning-mark"
+            class="h-4 w-4 shrink-0 text-status-warning-mark"
           />
         </div>
       </template>

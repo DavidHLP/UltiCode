@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from agent_service.app import _response, create_app
 from agent_loop import ModelDecision
 from ulticode_client import UlticodeClient, UlticodeServiceError
+from test_agent_service import enabled_admin_feature
 
 HEADERS = {"cookie": "access_token=access; csrf_token=csrf", "x-csrf-token": "csrf"}
 

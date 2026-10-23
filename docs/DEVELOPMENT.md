@@ -95,9 +95,11 @@ Origin 必须与浏览器地址完全一致。默认不调用外部模型，不�
 
 ### Agent 工作流与业务入口
 
+The `/agent` workspace offers eligible entries from the latest three submissions after checking their detail responses against the existing review policy. Selecting an entry binds the submission without starting analysis. The empty state hides the composer; the bound state shares one content column across its header, transcript, and composer. Source notices appear in the content area, while retention information stays in the conversation navigation.
+
 Console 的入口是共享提交详情中的可收起复盘面板，用于 `/submissions/:id` 和题目页选中的提交。“我的提交”直接进入对应结果；旧 `/personal/agent?threadId=...` 只负责验证线程归属并跳转，无线程时返回个人提交列表。
 
-在前端构建或开发服务器启动时设置 `VITE_AGENT_REVIEW_ENABLED=true` 才显示入口，其他值均关闭。前端开关不启动 Python、不授权费用、不开放 Java 保存。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。
+Agent 对话默认开启，不再读取 `VITE_AGENT_REVIEW_ENABLED`。管理员通过 Management“系统设置 → 功能开关 → Agent 智能体”统一控制，沿用该页的保存流程和管理权限。设置持久化在 Admin 的既有 features 配置中，旧配置缺少字段时默认开启。用户端不提供开关。Agent 每次请求从 Admin 的 `/api/v1/public/features/agent` 读取可用状态；关闭后拒绝新的对话、分析及保存操作，保留已有数据和正在执行的分析。配置读取失败返回 503，不继续调用模型。独立部署可通过 `ULTICODE_ADMIN_BASE` 配置 Admin 地址，默认 `http://127.0.0.1:9102`。此设置不替代模型及持久化授权。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。
 
 打开面板后，认证的 `GET /agent/capabilities` 返回分析、持久化和来源模式。查询失败不影响原提交查看；打开、收起和恢复线程均不自动分析。`metadata` 模式使用提交元数据与授权参考资料；`owner_source` 模式要求用户明确同意源码外发，只读取当前线程绑定的本人源码，限制为 12,000 字符，不持久化源码正文或引用摘录。
 
@@ -179,7 +181,7 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，会被 CI 的
 该提交是改动前的对照与回退来源，不随分支后续推进改变；基线定义不表示 Web v2 已发布，
 也不将前端 package version 改为 `2.0.0`。
 
-升级范围包括 `apps/console/`、`apps/management/`、独立 `apps/landing/` 及其消费的 `packages/`。Landing 页面、样式、双语文案与素材只由 Landing 应用持有；流程区标题使用浏览器平衡换行，避免窄屏中文末行仅剩单字，不缩小标题字号；生产由现有 Console Nginx 在 `/landing/` 提供；应用入口和路由保持独立，主题 bootstrap 与通用 UI 复用共享包。
+共享 UI 升级范围包括 `apps/console/`、`apps/management/` 及其消费的 `packages/`。独立 `apps/landing/` 保留原有页面布局、字体、配色、插画、动效和响应式设计；页面、样式、双语文案与素材只由 Landing 应用持有，不接入共享设计系统、主题 bootstrap 或外观设置。未经用户明确要求，不得以平台 UI 统一或主题升级为由修改 Landing 设计。生产仍由现有 Console Nginx 在 `/landing/` 提供，应用入口和路由保持独立。
 沿用 Vue 3、TypeScript、Vite、Pinia、Vue Router、Tailwind CSS；通用组件统一使用 shadcn-vue；
 依赖的精确版本由根 `pnpm-lock.yaml` 固定，不另建 v2 应用、第二份 lock 或平行共享层。
 安装使用根目录 `pnpm install --frozen-lockfile`，Node.js 满足 `>=22.12.0`；
@@ -198,7 +200,7 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，会被 CI 的
 - 中文/英文文案同步，保留键盘操作、焦点管理和窄屏可用性。UI 行为变化需要对应回归测试，
   关键用户旅程需要单独的浏览器验证，不能用构建成功代替。
 - 保留 Agent 工作区、提交复盘与学习计划的既有资格、授权及降级行为；
-  `VITE_AGENT_REVIEW_ENABLED` 默认关闭，前端开关不代表分析或保存授权。
+  Agent 对话默认开启，仅管理员通过系统设置中的功能开关关闭；它不代表分析或保存授权。
 
 复现前端基线时运行只读门禁，避免 `lint --fix` 或全树格式化改变对照源码：
 
@@ -229,7 +231,19 @@ app 测试排除的共享认证/主题测试必须独立运行；其他共享包
 
 ### 共享 shadcn-vue 与外观设置
 
-`packages/design-system` 是三端通用 UI 的唯一所有者。官方组件位于 `src/components/ui/`，消费者使用 `@ulticode/design-system/ui/<group>`；只有确需单文件的适配才使用已声明的 `ui-files` 子路径。应用内不维护另一份 `components/ui` 或 CLI 配置。业务布局在各应用内组合共享组件，侧栏布局沿用官方 Sidebar Block 的 Provider、Inset、Trigger 与 Breadcrumb 组合，不引入官方示例中的虚构业务数据。
+The Console problemset uses a flat search and filter toolbar above the results. Compact featured collections share the results column, with carousel navigation in the section heading; the daily challenge occupies a wider sticky desktop rail. Search fills the available toolbar width, controls wrap on narrow screens, and tags sit directly below. Expanded desktop navigation owns global category selection; collapsed and mobile layouts expose a compact category menu in the toolbar, synchronized with the problemset route. Problem-list detail keeps its category menu because it filters the current list rather than navigating to the global problemset. Tags remain keyboard-operable toggle buttons with explicit selected states.
+
+Console and Management compose the official sidebar-07 hierarchy through `packages/sidebar-menu`'s `SidebarBranch`: parent rows expand indented child navigation, including problem categories, list collections, and administration groups. Only navigation destinations receive active styling; expansion-only directories stay neutral even when they contain the current destination. A parent that also links to a page is active only on its own page. Icon mode keeps parent buttons accessible and expands the sidebar when a branch is selected; mobile drawers retain their child navigation. List creation and collection management keep their existing handlers and permissions.
+
+Both sidebar headers use `packages/auth-ui`'s `AccountSwitcher` over the Auth account-session endpoints, following the official sidebar-07 top switcher layout. Footer menus contain the current user's personal actions. Adding an account keeps the previous session available, switching reloads app state, and Management filters the menu to administrator accounts. Backend role checks remain authoritative. Shared Web Locks serialize account changes with refresh within one origin; apps sharing credential cookies across different origins require server coordination for atomic concurrent switching.
+
+Both apps enrich the authenticated identity with the App-owned avatar from `GET /users/me` during login and session restoration. A profile lookup failure preserves the authenticated identity. Shared `auth-ui` avatar resolution prefers the stored image URL and generates a deterministic local SVG when no avatar exists; image load failures retain the avatar component's initials fallback.
+
+Console and Management use the same sidebar-07 shell: the standard 16rem sidebar, shared account-switcher brand trigger, matching footer avatars, and a sticky header with a 3.5rem minimum height. Shell spacing, borders, search triggers, and tool sizes belong to `packages/design-system/style.css`; both applications retain their own navigation, search results, and actions. Appearance preferences continue to supply the colors, typography, and radii without app-specific shell overrides.
+
+Both applications default to a zinc neutral base with a blue accent, native system sans-serif typography, a medium 10px radius, comfortable density, subtle menus, and system color mode. `packages/theme` owns these defaults for first paint, runtime initialization, the default preset, and reset. Startup respects the saved appearance density. Existing account-scoped preferences remain authoritative and are not overwritten when defaults change.
+
+`packages/design-system` 是 Console 与 Management 通用 UI 的唯一所有者；Landing 保留独立设计。官方组件位于 `src/components/ui/`，消费者使用 `@ulticode/design-system/ui/<group>`；只有确需单文件的适配才使用已声明的 `ui-files` 子路径。应用内不维护另一份 `components/ui` 或 CLI 配置。业务布局在各应用内组合共享组件，侧栏布局沿用官方 Sidebar Block 的 Provider、Inset、Trigger 与 Breadcrumb 组合，不引入官方示例中的虚构业务数据。
 
 共享 Dialog 默认居中并限制在视口高度内，长表单可滚动；需要固定头尾的弹窗自行使用纵向 flex、`min-h-0` 内容区和内部滚动。CommandDialog 沿用相同的定位和高度边界。AlertDialog 在保留尺寸变体的同时保留视口边距，并允许长确认内容纵向滚动。管理端顶栏在窄屏自然换行；Markdown 编辑器按自身容器宽度切换分栏与上下布局，工具栏操作和双向滚动同步使用底层 textarea 元素。
 
@@ -339,9 +353,9 @@ CLI 的版本与 `shadcn-vue/tailwind.css` 运行样式保持一致。该官方�
 
 外观状态、白名单解析、持久化与 DOM 应用归属 `packages/theme`，设置弹窗归属 `packages/design-system/AppearanceSettings.vue`。最终用户通过界面调整主题色、基础色、图表配色、原生字体栈、圆角、密度、菜单样式及明暗模式，无需 CLI 或构建。预览更新当前界面及 Portal；应用成功才保存，取消或关闭恢复已保存外观，恢复默认直接保存默认值。存储不可用时显示失败，不把内存回退当作持久化成功。状态语义色独立于主题色，设置不能输入任意 CSS、HTML、脚本或布局。
 
-偏好保存在当前浏览器、当前 origin 的 `ulticode-appearance:v1:` 命名空间中，并按经过认证的用户 ID 分区；访客使用独立分区。账号切换关闭预览并加载对应分区。`ulticode-appearance-account` 只用于首屏外观提示，不是认证凭证或授权来源。同源标签页通过 `storage` 事件同步；预览期间不覆盖草稿，取消时恢复最新已保存值。Console 的同源 `/landing/` 入口可共享偏好；独立开发端口或跨域部署不能共享 localStorage。当前没有服务端偏好接口，不提供跨设备账户同步。
+偏好保存在当前浏览器、当前 origin 的 `ulticode-appearance:v1:` 命名空间中，并按经过认证的用户 ID 分区；访客使用独立分区。账号切换关闭预览并加载对应分区。`ulticode-appearance-account` 只用于首屏外观提示，不是认证凭证或授权来源。同源标签页通过 `storage` 事件同步；预览期间不覆盖草稿，取消时恢复最新已保存值。Landing 不读取或应用平台外观偏好，即使通过 Console 的同源 `/landing/` 入口访问，也保持独立设计；独立开发端口或跨域部署不能共享 localStorage。当前没有服务端偏好接口，不提供跨设备账户同步。
 
-修改主题 bootstrap 后同步三端 `public/theme-bootstrap.js`，并运行门禁：
+修改主题 bootstrap 后仅同步 Console 与 Management 的 `public/theme-bootstrap.js`，不为 Landing 生成副本，并运行门禁：
 
 ```bash
 pnpm --dir packages/theme sync:theme-bootstrap

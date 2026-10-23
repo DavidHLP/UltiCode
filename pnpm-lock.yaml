@@ -278,18 +278,6 @@ importers:
 
   apps/landing:
     dependencies:
-      '@lucide/vue':
-        specifier: 1.52.0
-        version: 1.52.0(vue@3.5.43(typescript@6.0.3))
-      '@ulticode/design-system':
-        specifier: workspace:*
-        version: link:../../packages/design-system
-      '@ulticode/theme':
-        specifier: workspace:*
-        version: link:../../packages/theme
-      reka-ui:
-        specifier: ^2.11.0
-        version: 2.11.0(vue@3.5.43(typescript@6.0.3))
       vue:
         specifier: ^3.5.43
         version: 3.5.43(typescript@6.0.3)
@@ -297,9 +285,6 @@ importers:
         specifier: ^11.4.13
         version: 11.4.13(vue@3.5.43(typescript@6.0.3))
     devDependencies:
-      '@tailwindcss/vite':
-        specifier: ^4.3.3
-        version: 4.3.3(vite@8.3.3(@types/node@26.6.4)(jiti@2.7.0)(stylus@0.57.0(supports-color@7.2.0))(terser@5.48.0)(yaml@2.9.1))
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.4
@@ -608,6 +593,9 @@ importers:
       '@tabler/icons-vue':
         specifier: ^3.49.0
         version: 3.49.0(vue@3.5.43(typescript@5.9.3))
+      '@ulticode/auth-core':
+        specifier: workspace:*
+        version: link:../auth-core
       '@ulticode/design-system':
         specifier: workspace:*
         version: link:../design-system

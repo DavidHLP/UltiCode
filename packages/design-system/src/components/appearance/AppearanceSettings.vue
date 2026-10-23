@@ -53,6 +53,7 @@ const props = defineProps<{ locale?: string }>();
 const zh = computed(() => (props.locale ?? "zh-CN").startsWith("zh"));
 const {
   settingsOpen: open,
+  settingsReturnFocus,
   saved,
   account,
   previewing,
@@ -182,10 +183,20 @@ const optionLabels = computed<Record<string, string>>(() =>
 const keys = Object.keys(APPEARANCE_OPTIONS) as AppearanceKey[];
 watch(open, (value) => {
   if (value) {
+    const active = document.activeElement;
+    const triggerId =
+      active instanceof HTMLElement && active.getAttribute("role") === "menuitem"
+        ? active.closest('[role="menu"]')?.getAttribute("aria-labelledby")
+        : null;
     returnFocus =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      settingsReturnFocus.value ??
+      (triggerId ? document.getElementById(triggerId) : null) ??
+      (active instanceof HTMLElement ? active : null);
     draft.value = beginPreview();
-  } else if (previewing.value) cancel();
+  } else {
+    settingsReturnFocus.value = null;
+    if (previewing.value) cancel();
+  }
 });
 function restoreFocus(event: Event) {
   if (!returnFocus?.isConnected) return;
@@ -212,7 +223,7 @@ function save(value = draft.value) {
 <template>
   <Dialog v-model:open="open">
     <DialogContent
-      class="max-h-[90dvh] overflow-y-auto sm:max-w-3xl"
+      class="w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto sm:max-w-3xl"
       data-testid="appearance-dialog"
       @close-auto-focus="restoreFocus"
     >

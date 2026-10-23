@@ -17,10 +17,7 @@ const { availableLocales, setLocale, isCurrentLocale } = useLocale()
 <template>
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
-      <Button
-        variant="ghost"
-        class="flex w-8 items-center justify-center focus-visible:outline-none"
-      >
+      <Button variant="ghost" class="uc-header-icon">
         <Globe class="h-4 w-4" />
         <span class="sr-only">{{ $t('common.actions.toggleLanguage') }}</span>
       </Button>

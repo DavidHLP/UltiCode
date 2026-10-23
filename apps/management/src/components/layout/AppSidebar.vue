@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Button } from '@ulticode/design-system/ui/button'
+import { AccountSwitcher } from '@ulticode/auth-ui'
+import { accountSessions } from '@/api/accountSessions'
 
 import {
   systemPermissionRules,
@@ -22,7 +23,6 @@ import {
   LayoutDashboard as IconDashboard,
   FileText as IconFileDescription,
   CircleHelp as IconHelp,
-  Code2 as IconInnerShadowTop,
   ListChecks as IconListDetails,
   Flag as IconReport,
   Search as IconSearch,
@@ -46,12 +46,9 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
+  SidebarRail,
 } from '@ulticode/design-system/ui/sidebar'
-
-const { toggleSidebar } = useSidebar()
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -68,8 +65,9 @@ const commentCan = { comment: usePermissionMap(commentPermissionRules) }
 
 const user = computed(() => ({
   name: authStore.user?.name || 'Admin',
+  username: authStore.user?.username,
   email: authStore.user?.email || 'admin@ulticode.com',
-  avatar: authStore.user?.avatar || '/avatars/default.jpg',
+  avatar: authStore.user?.avatar || '',
   role: authStore.userRole || 'ADMIN',
 }))
 
@@ -265,24 +263,15 @@ const navSecondary = computed(() => {
 </script>
 
 <template>
-  <Sidebar collapsible="icon">
-    <SidebarHeader>
+  <Sidebar collapsible="icon" class="uc-sidebar-shell">
+    <SidebarHeader class="uc-sidebar-header">
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton
-            :tooltip="t('nav.brandName')"
-            as-child
-            class="data-[slot=sidebar-menu-button]:!p-1.5"
-          >
-            <Button variant="outline" type="button" @click="toggleSidebar">
-              <IconInnerShadowTop class="size-4 text-primary" />
-              <span class="text-base font-semibold text-foreground">{{ t('nav.brandName') }}</span>
-            </Button>
-          </SidebarMenuButton>
+          <AccountSwitcher :client="accountSessions" :account-name="user.name" admin-only />
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
-    <SidebarContent class="gap-0">
+    <SidebarContent class="uc-sidebar-content">
       <NavMain :items="overviewItems" :title="t('nav.overview')" />
       <NavMain :items="contentItems" :title="t('nav.content')" />
       <NavMain :items="userSecurityItems" :title="t('nav.usersAndSecurity')" />
@@ -291,5 +280,6 @@ const navSecondary = computed(() => {
     <SidebarFooter class="p-2">
       <NavUser :user="user" />
     </SidebarFooter>
+    <SidebarRail />
   </Sidebar>
 </template>

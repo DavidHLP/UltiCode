@@ -58,6 +58,31 @@ class CookieCsrfFilterTest {
     }
 
     @Test
+    void savedAccountAloneStillRequiresCsrfForSwitching() throws Exception {
+        Exchange exchange = exchange("POST", "/auth/accounts/switch");
+        exchange.request().setCookies(cookie(CookieCsrfFilter.SAVED_ACCOUNT_COOKIE_PREFIX + "alice", "saved"));
+        apply(exchange);
+        assertThat(exchange.response().getStatus()).isEqualTo(403);
+        assertThat(exchange.reached()).isFalse();
+    }
+
+    @Test
+    void staleAccountHeaderCannotReadOrMutateAnotherAccountsData() throws Exception {
+        var context = org.springframework.security.core.context.SecurityContextHolder.getContext();
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                "bob", null, java.util.List.of()));
+        try {
+            Exchange exchange = exchange("GET", "/app/private");
+            exchange.request().addHeader("X-Session-Account", "alice");
+            apply(exchange);
+            assertThat(exchange.response().getStatus()).isEqualTo(403);
+            assertThat(exchange.reached()).isFalse();
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
     void invalidDoubleSubmitTokenIsRejected() throws Exception {
         Exchange exchange = exchange("PATCH", "/admin/settings");
         exchange.request().setCookies(

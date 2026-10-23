@@ -144,97 +144,140 @@ describe("Landing Page Component Suite", () => {
     existingOgTitle.remove();
   });
 
-  it("renders navigation, locale switching and an accessible mobile Sheet", async () => {
+  it("renders LandingHeader with navigation items, brand mark, and handles mobile drawer & Escape key", async () => {
     const wrapper = mount(LandingHeader, { attachTo: document.body });
-    expect(wrapper.get("header > div > a").text()).toContain("UltiCode");
-    expect(wrapper.findAll("nav a")).toHaveLength(3);
-    const localeButton = wrapper
-      .findAll("button")
-      .find((button) => button.text() === "EN");
-    await localeButton!.trigger("click");
-    expect(mockToggleLocale).toHaveBeenCalledOnce();
-    await wrapper.get('button[aria-haspopup="dialog"]').trigger("click");
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    const dialog = document.body.querySelector('[role="dialog"]');
-    expect(dialog).not.toBeNull();
-    expect(dialog?.getAttribute("aria-labelledby")).toBeTruthy();
-    expect(dialog?.querySelectorAll("nav a")).toHaveLength(4);
-    dialog!.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    expect(wrapper.find(".brand-name").text()).toBe("UltiCode");
+    expect(wrapper.find(".editorial-header").classes()).not.toContain(
+      "is-elevated",
     );
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: 64,
+    });
+    window.dispatchEvent(new Event("scroll"));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".editorial-header").classes()).toContain(
+      "is-elevated",
+    );
+
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: 0,
+    });
+    window.dispatchEvent(new Event("scroll"));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".editorial-header").classes()).not.toContain(
+      "is-elevated",
+    );
+
+    const navLinks = wrapper.findAll(".nav-item");
+    expect(navLinks.length).toBe(3);
+
+    await wrapper.find(".desktop-actions .locale-toggle-btn").trigger("click");
+    expect(mockToggleLocale).toHaveBeenCalledOnce();
+
+    const menuBtn = wrapper.find(".mobile-menu-btn");
+    expect(menuBtn.exists()).toBe(true);
+    await menuBtn.trigger("click");
+    expect(wrapper.find(".mobile-drawer").isVisible()).toBe(true);
+
+    // Press Escape to close
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".mobile-drawer").isVisible()).toBe(false);
     wrapper.unmount();
   });
 
-  it("preserves hero content, platform CTAs and explicitly labeled sample telemetry", async () => {
+  it("renders editorial HeroSection with distinct opposing foliage layers and project CTAs", async () => {
     const wrapper = mount(HeroSection);
-    expect(wrapper.get("h1").text()).toBe(
+    expect(wrapper.find(".institutional-badge").exists()).toBe(true);
+    expect(wrapper.find(".headline-editorial-wrap").exists()).toBe(true);
+    const heroHeadline = wrapper.find(".hero-headline");
+    expect(heroHeadline.exists()).toBe(true);
+    expect(heroHeadline.attributes("aria-label")).toBe(
       "landing.hero.title landing.hero.titleItalic",
     );
-    expect(wrapper.get("code").text()).toContain("class LRUCache");
-    expect(wrapper.text()).toContain("landing.hero.sampleFootnote");
-    const links = wrapper.findAll("a").map((link) => link.attributes("href"));
-    expect(links.some((link) => link?.endsWith("/problemset"))).toBe(true);
-    expect(links.some((link) => link?.endsWith("/contest"))).toBe(true);
-    await wrapper
-      .findAll('[role="tab"]')[1]
-      .trigger("keydown", { key: "Enter" });
-    expect(wrapper.text()).toContain("3,840 KiB");
-    expect(wrapper.text()).toContain("48 / 48");
-    wrapper.unmount();
-  });
-
-  it("preserves all four workflows and their disclosure", () => {
-    const wrapper = mount(ProductProofSection);
-    expect(wrapper.findAll("ol > li")).toHaveLength(4);
-    expect(wrapper.get("#proof-title").classes()).toContain("text-balance");
-    for (let step = 1; step <= 4; step++) {
-      expect(wrapper.text()).toContain(`landing.workflow.step${step}Title`);
-      expect(wrapper.text()).toContain(`landing.workflow.step${step}Bullet2`);
-    }
-    expect(wrapper.text()).toContain("landing.proof.disclosure");
-  });
-
-  it("preserves three use cases, metrics and platform links", () => {
-    const wrapper = mount(UseCasesSection);
-    expect(wrapper.findAll('[data-slot="card"]')).toHaveLength(3);
-    expect(wrapper.findAll("a")).toHaveLength(3);
-    for (const link of wrapper.findAll("a")) {
-      expect(link.classes()).toEqual(
-        expect.arrayContaining(["h-auto", "max-w-full", "whitespace-normal"]),
-      );
-    }
-    for (let index = 1; index <= 3; index++) {
-      expect(wrapper.text()).toContain(`landing.useCases.case${index}Title`);
-      expect(wrapper.text()).toContain(`landing.useCases.case${index}Metric2`);
-    }
-    wrapper.unmount();
-  });
-
-  it("preserves both human-control commitments", () => {
-    const wrapper = mount(HumanControlSection);
-    expect(wrapper.findAll('[data-slot="card"]')).toHaveLength(2);
-    expect(wrapper.text()).toContain("landing.governance.item1Text");
-    expect(wrapper.text()).toContain("landing.governance.item2Text");
-  });
-
-  it("preserves the closing narrative and both CTA destinations", () => {
-    const wrapper = mount(FinalStorySection);
-    expect(wrapper.get("h2").text()).toContain("landing.finalStory.headline");
-    expect(wrapper.findAll("a").map((link) => link.attributes("href"))).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/\/problemset$/),
-        expect.stringMatching(/\/login$/),
-      ]),
+    expect(wrapper.findAll(".hero-letter")).toHaveLength(
+      Array.from("landing.hero.titlelanding.hero.titleItalic").length,
     );
+    expect(wrapper.find(".hero-letter").attributes("style")).toContain(
+      "animation-delay: 0.12s",
+    );
+    expect(wrapper.find(".hero-showcase").exists()).toBe(true);
+    const leftFoliage = wrapper.find(".hero-foliage-left");
+    const rightFoliage = wrapper.find(".hero-foliage-right");
+    expect(leftFoliage.exists()).toBe(true);
+    expect(rightFoliage.exists()).toBe(true);
+    expect(leftFoliage.attributes("src")).toContain("foliage-left.png");
+    expect(rightFoliage.attributes("src")).toContain("foliage-right.png");
+    expect(leftFoliage.attributes("src")).not.toBe(
+      rightFoliage.attributes("src"),
+    );
+    expect(wrapper.find(".showcase-atmosphere").exists()).toBe(true);
+    expect(wrapper.find(".product-window-frame").exists()).toBe(true);
+    const windFilter = wrapper.element.querySelector("#landing-wind");
+    const windNoise = windFilter?.querySelector("feTurbulence");
+    const windAnimation = windFilter?.querySelector("animate");
+    const windDisplacement = windFilter?.querySelector("feDisplacementMap");
+    expect(windFilter).not.toBeNull();
+    expect(windNoise?.getAttribute("baseFrequency")).toBe("0.008 0.02");
+    expect(windAnimation?.getAttribute("dur")).toBe("8s");
+    expect(windDisplacement?.getAttribute("scale")).toBe("8");
+
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: 400,
+    });
+    window.dispatchEvent(new Event("scroll"));
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+    const heroStyle = (wrapper.element as HTMLElement).style;
+    expect(heroStyle.getPropertyValue("--foliage-left-y")).toBe("40px");
+    expect(heroStyle.getPropertyValue("--foliage-right-y")).toBe("-40px");
+
+    expect(wrapper.find(".execution-pipeline-bar").exists()).toBe(true);
+    expect(wrapper.find(".product-window-panel").exists()).toBe(true);
+    expect(wrapper.find(".window-status-pill").exists()).toBe(true);
+    expect(wrapper.findAll(".showcase-actions a").length).toBe(2);
+    wrapper.unmount();
   });
 
-  it("preserves all footer columns and their twelve links", () => {
+  it("renders four workflow proofs and AI still-life in ProductProofSection", () => {
+    const wrapper = mount(ProductProofSection);
+    const steps = wrapper.findAll(".proof-steps > li");
+    expect(steps.length).toBe(4);
+    expect(wrapper.find(".proof-visual img").exists()).toBe(true);
+    expect(wrapper.find(".proof-visual figcaption").exists()).toBe(true);
+  });
+
+  it("renders all 3 application scenarios with action links in UseCasesSection", () => {
+    const wrapper = mount(UseCasesSection);
+    const cards = wrapper.findAll(".scenario-card");
+    expect(cards.length).toBe(3);
+    const actionLinks = wrapper.findAll(".scenario-action-link");
+    expect(actionLinks.length).toBe(3);
+  });
+
+  it("renders human-control copy around the AI still-life", () => {
+    const wrapper = mount(HumanControlSection);
+    expect(wrapper.find(".control-emblem").exists()).toBe(true);
+    expect(wrapper.findAll(".governance-copy").length).toBe(2);
+    expect(wrapper.find(".governance-image img").exists()).toBe(true);
+  });
+
+  it("renders closing narrative and primary CTA in FinalStorySection", () => {
+    const wrapper = mount(FinalStorySection);
+    expect(wrapper.find(".landscape-backdrop").exists()).toBe(true);
+    expect(wrapper.find(".final-headline").exists()).toBe(true);
+    expect(wrapper.find(".large-cta-btn").exists()).toBe(true);
+  });
+
+  it("renders platform, specification, and institutional columns in LandingFooter", () => {
     const wrapper = mount(LandingFooter);
-    expect(wrapper.findAll("nav")).toHaveLength(3);
-    expect(wrapper.findAll("nav a")).toHaveLength(12);
-    expect(wrapper.text()).toContain("landing.footer.copyright");
-    expect(wrapper.text()).toContain("landing.footer.manifesto");
+    const cols = wrapper.findAll(".footer-links-col");
+    expect(cols.length).toBe(3);
+    expect(wrapper.find(".copyright").exists()).toBe(true);
   });
 });

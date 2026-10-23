@@ -1,70 +1,46 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-
+import { useI18n } from 'vue-i18n'
+import { Settings } from '@lucide/vue'
+import { SidebarBranch } from '@ulticode/sidebar-menu'
 import {
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@ulticode/design-system/ui/sidebar'
-
 interface NavItem {
   title: string
   url: string
   icon?: Component
-  /**
-   * Optional click handler. When set, takes precedence over navigation:
-   * the link's default behaviour is prevented and the handler is invoked.
-   * Useful for actions that don't correspond to a real route, e.g. opening
-   * the global command palette from the sidebar's search shortcut.
-   */
   onClick?: (event: MouseEvent) => void
 }
-
-defineProps<{
-  items: NavItem[]
-}>()
-
+defineProps<{ items: NavItem[] }>()
 const route = useRoute()
-
-function isActive(url: string): boolean {
-  return route.path === url
-}
+const { t } = useI18n()
+const isActive = (url: string) => route.path === url
 </script>
 
 <template>
-  <SidebarGroup>
-    <SidebarGroupContent>
-      <SidebarMenu>
-        <SidebarMenuItem v-for="item in items" :key="item.title">
-          <SidebarMenuButton
-            :tooltip="item.title"
-            :aria-label="item.title"
-            :is-active="isActive(item.url)"
-            as-child
-            :class="[
-              isActive(item.url)
-                ? 'border-l-4 border-primary bg-primary/8 text-foreground font-bold pl-2'
-                : 'border-l-4 border-transparent',
-            ]"
+  <SidebarGroup v-if="items.length">
+    <SidebarBranch
+      :title="t('nav.system')"
+      :icon="Settings"
+      :contains-active="items.some((item) => isActive(item.url))"
+    >
+      <SidebarMenuSubItem v-for="item in items" :key="item.title">
+        <SidebarMenuSubButton :is-active="isActive(item.url)" as-child>
+          <button v-if="item.onClick" type="button" @click="item.onClick($event)">
+            <component :is="item.icon" v-if="item.icon" /><span>{{ item.title }}</span>
+          </button>
+          <RouterLink v-else-if="item.url.startsWith('/')" :to="item.url"
+            ><component :is="item.icon" v-if="item.icon" /><span>{{ item.title }}</span></RouterLink
           >
-            <a v-if="item.onClick" href="#" role="button" @click.prevent="item.onClick($event)">
-              <component :is="item.icon" v-if="item.icon" />
-              <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
-            </a>
-            <RouterLink v-else-if="item.url.startsWith('/')" :to="item.url">
-              <component :is="item.icon" v-if="item.icon" />
-              <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
-            </RouterLink>
-            <a v-else :href="item.url">
-              <component :is="item.icon" v-if="item.icon" />
-              <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
-            </a>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    </SidebarGroupContent>
+          <a v-else :href="item.url"
+            ><component :is="item.icon" v-if="item.icon" /><span>{{ item.title }}</span></a
+          >
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    </SidebarBranch>
   </SidebarGroup>
 </template>

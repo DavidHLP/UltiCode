@@ -7,7 +7,10 @@ import SidebarNav from "../SidebarNav.vue";
 import { fetchForumCommunities } from "@/api/forum";
 
 const settingsOpen = ref(false);
+const settingsReturnFocus = ref<HTMLElement | null>(null);
+const openMobile = ref(false);
 const sidebarState = ref("expanded");
+const isMobile = ref(false);
 const route = reactive<{ path: string; query: Record<string, string> }>({
   path: "/problemset",
   query: {},
@@ -19,12 +22,18 @@ const { closeMobile, removeHook, afterEach } = vi.hoisted(() => ({
 }));
 
 vi.mock("@ulticode/theme", () => ({
-  useAppearance: () => ({ settingsOpen }),
+  useAppearance: () => ({ settingsOpen, settingsReturnFocus }),
 }));
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({ isAuthenticated: false, user: null }),
 }));
 vi.mock("@/api/forum", () => ({ fetchForumCommunities: vi.fn() }));
+vi.mock("@/api/accountSessions", () => ({ accountSessions: {} }));
+vi.mock("@ulticode/auth-ui", () => ({
+  AccountSwitcher: {
+    template: '<div data-test="account-switcher"><slot name="trigger" /></div>',
+  },
+}));
 vi.mock("vue-i18n", async (original) => ({
   ...(await original<typeof import("vue-i18n")>()),
   useI18n: () => ({ t: (key: string) => key }),
@@ -34,19 +43,40 @@ vi.mock("vue-router", async (original) => ({
   useRoute: () => route,
   useRouter: () => ({ afterEach }),
 }));
-vi.mock("@ulticode/design-system/ui/sidebar", () => {
+vi.mock("@ulticode/design-system/ui/sidebar", async () => {
+  const { Primitive } = await import("reka-ui");
   const component = { template: "<div><slot /></div>" };
   return {
-    useSidebar: () => ({ setOpenMobile: closeMobile, state: sidebarState }),
+    useSidebar: () => ({
+      setOpenMobile: closeMobile,
+      openMobile,
+      state: sidebarState,
+      isMobile,
+      setOpen: (value: boolean) => {
+        sidebarState.value = value ? "expanded" : "collapsed";
+      },
+    }),
     SidebarGroup: component,
     SidebarMenu: component,
-    SidebarMenuButton: component,
+    SidebarMenuButton: {
+      components: { Primitive },
+      props: ["isActive", "asChild", "tooltip"],
+      template:
+        '<Primitive as="button" :as-child="asChild" :data-active="isActive || undefined"><slot /></Primitive>',
+    },
     SidebarMenuItem: component,
     SidebarMenuSub: component,
+    SidebarMenuSubItem: component,
+    SidebarMenuSubButton: {
+      components: { Primitive },
+      props: ["isActive", "asChild"],
+      template:
+        '<Primitive as="button" :as-child="asChild" :data-active="isActive || undefined"><slot /></Primitive>',
+    },
     Sidebar: component,
     SidebarContent: component,
-    SidebarFooter: component,
-    SidebarHeader: component,
+    SidebarFooter: { template: "<footer><slot /></footer>" },
+    SidebarHeader: { template: "<header><slot /></header>" },
     SidebarRail: component,
     SidebarSeparator: component,
   };
@@ -61,7 +91,10 @@ function mountSidebar() {
 describe("AppSidebar mobile overlays", () => {
   beforeEach(() => {
     settingsOpen.value = false;
+    settingsReturnFocus.value = null;
+    openMobile.value = false;
     sidebarState.value = "expanded";
+    isMobile.value = false;
     route.path = "/problemset";
     route.query = {};
     vi.clearAllMocks();
@@ -96,7 +129,7 @@ describe("AppSidebar mobile overlays", () => {
       });
       try {
         expect(
-          wrapper.findAll('a[data-active="true"]').map((node) => node.text()),
+          wrapper.findAll('[data-active="true"]').map((node) => node.text()),
         ).toEqual([expected]);
       } finally {
         wrapper.unmount();
@@ -104,7 +137,47 @@ describe("AppSidebar mobile overlays", () => {
     },
   );
 
-  it("keeps collapsed group links available without clipped headings", async () => {
+  it.each([
+    ["/forum/c", "/forum/c", "Community"],
+    ["/forum/c", "/forum/c/general", "General"],
+    [undefined, "/forum/c/general", "General"],
+  ])(
+    "selects only the destination and keeps its directory neutral (%s, %s)",
+    (url, path, expected) => {
+      route.path = path;
+      const wrapper = mount(SidebarNav, {
+        props: {
+          sections: [
+            {
+              name: "Categories",
+              items: [
+                {
+                  title: "Community",
+                  url,
+                  children: [{ title: "General", url: "/forum/c/general" }],
+                },
+              ],
+            },
+          ],
+        },
+        global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+      });
+      try {
+        expect(
+          wrapper.findAll('[data-active="true"]').map((node) => node.text()),
+        ).toEqual([expected]);
+        expect(
+          wrapper
+            .get('button[aria-label="Categories"]')
+            .attributes("data-active"),
+        ).toBeUndefined();
+      } finally {
+        wrapper.unmount();
+      }
+    },
+  );
+
+  it("opens a collapsed branch without replacing its focused trigger", async () => {
     const wrapper = mount(SidebarNav, {
       attachTo: document.body,
       props: {
@@ -119,30 +192,53 @@ describe("AppSidebar mobile overlays", () => {
       global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
     });
     try {
-      await wrapper.get(".uc-sidebar-section-trigger").trigger("click");
       sidebarState.value = "collapsed";
       await nextTick();
-      expect(wrapper.get(".uc-sidebar-section-trigger").isVisible()).toBe(
-        false,
-      );
+      const trigger = wrapper.get('button[aria-label="Categories"]');
+      (trigger.element as HTMLButtonElement).focus();
+      expect(wrapper.findAll("a")).toHaveLength(0);
+      await trigger.trigger("click");
+      await nextTick();
+      expect(sidebarState.value).toBe("expanded");
+      expect(wrapper.get("a").text()).toBe("General");
+      expect(document.activeElement).toBe(trigger.element);
+      await trigger.trigger("click");
+      expect(trigger.attributes("aria-expanded")).toBe("false");
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
+  it("keeps branch children usable in the mobile drawer when desktop is collapsed", async () => {
+    sidebarState.value = "collapsed";
+    isMobile.value = true;
+    const wrapper = mount(SidebarNav, {
+      props: {
+        sections: [
+          {
+            name: "Categories",
+            items: [{ title: "General", url: "/forum/c/general" }],
+          },
+        ],
+      },
+      global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+    });
+    try {
+      expect(wrapper.get("a").text()).toBe("General");
+      await wrapper.get('button[aria-label="Categories"]').trigger("click");
       expect(
         wrapper
-          .findAll("a")
-          .some((link) => link.isVisible() && link.text() === "General"),
-      ).toBe(true);
-      sidebarState.value = "expanded";
-      await nextTick();
-      expect(wrapper.get(".uc-sidebar-section-trigger").isVisible()).toBe(true);
-      expect(
-        wrapper.get(".uc-sidebar-section-trigger").attributes("data-state"),
-      ).toBe("closed");
+          .get('button[aria-label="Categories"]')
+          .attributes("aria-expanded"),
+      ).toBe("false");
+      expect(sidebarState.value).toBe("collapsed");
     } finally {
       wrapper.unmount();
     }
   });
 
   it.each([false, true])(
-    "inherits the active row foreground for icons (collapsible: %s)",
+    "highlights the destination icon without highlighting its directory (collapsible: %s)",
     async (collapsible) => {
       const wrapper = mount(SidebarNav, {
         props: {
@@ -167,10 +263,17 @@ describe("AppSidebar mobile overlays", () => {
           sidebarState.value = state;
           await nextTick();
           const icon = wrapper
-            .findAll('[data-test="nav-icon"]')
+            .findAll(
+              state === "expanded"
+                ? 'a [data-test="nav-icon"]'
+                : 'button[aria-label="Navigation"] [data-test="nav-icon"]',
+            )
             .find((node) => node.isVisible());
-          expect(icon?.classes()).toContain("text-inherit");
+          expect(icon?.classes()).toContain(
+            state === "expanded" ? "text-inherit" : "text-muted-foreground",
+          );
           expect(icon?.classes()).not.toContain("text-primary");
+          expect(wrapper.findAll('button[data-active="true"]')).toHaveLength(0);
         }
         route.path = "/forum";
         await nextTick();
@@ -215,6 +318,26 @@ describe("AppSidebar mobile overlays", () => {
     }
   });
 
+  it("places account switching in the header and personal actions in the footer", () => {
+    const wrapper = mountSidebar();
+    try {
+      expect(
+        wrapper.get("header").find('[data-test="account-switcher"]').exists(),
+      ).toBe(true);
+      expect(
+        wrapper.get("header").findComponent({ name: "NavUser" }).exists(),
+      ).toBe(false);
+      expect(
+        wrapper.get("footer").findComponent({ name: "NavUser" }).exists(),
+      ).toBe(true);
+      expect(
+        wrapper.get("footer").find('[data-test="account-switcher"]').exists(),
+      ).toBe(false);
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
   it("shows a retry when forum categories fail to load", async () => {
     route.path = "/forum";
     vi.mocked(fetchForumCommunities).mockRejectedValueOnce(
@@ -225,13 +348,39 @@ describe("AppSidebar mobile overlays", () => {
     try {
       await flushPromises();
       expect(wrapper.text()).toContain("forum.list.communitiesLoadFailed");
-      await wrapper.get("button").trigger("click");
+      await wrapper.get('[role="status"] button').trigger("click");
       await flushPromises();
       expect(fetchForumCommunities).toHaveBeenCalledTimes(2);
       expect(wrapper.text()).not.toContain("forum.list.communitiesLoadFailed");
     } finally {
       wrapper.unmount();
       errorSpy.mockRestore();
+    }
+  });
+
+  it("hands off the mobile opener before closing its drawer", () => {
+    const trigger = document.createElement("button");
+    trigger.dataset.sidebar = "trigger";
+    document.body.append(trigger);
+    openMobile.value = true;
+    const wrapper = mountSidebar();
+    try {
+      settingsOpen.value = true;
+      expect(settingsReturnFocus.value).toBe(trigger);
+      expect(closeMobile).toHaveBeenCalledWith(false);
+    } finally {
+      wrapper.unmount();
+      trigger.remove();
+    }
+  });
+
+  it("does not override desktop appearance focus", () => {
+    const wrapper = mountSidebar();
+    try {
+      settingsOpen.value = true;
+      expect(settingsReturnFocus.value).toBeNull();
+    } finally {
+      wrapper.unmount();
     }
   });
 

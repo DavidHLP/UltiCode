@@ -13,6 +13,7 @@ import java.security.MessageDigest;
 import java.util.regex.Pattern;
 import org.springframework.lang.NonNull;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Double-submit CSRF enforcement for browser requests authenticated by UltiCode cookies.
@@ -23,6 +24,7 @@ public final class CookieCsrfFilter extends OncePerRequestFilter {
     public static final String ACCESS_TOKEN_COOKIE = "access_token";
     public static final String REFRESH_TOKEN_COOKIE = "refresh_token";
     public static final String CSRF_TOKEN_COOKIE = "csrf_token";
+    public static final String SAVED_ACCOUNT_COOKIE_PREFIX = "saved_account_";
     public static final String CSRF_HEADER = "X-CSRF-Token";
     private static final Pattern SAFE_TRACE_ID = Pattern.compile("[A-Za-z0-9-]{1,128}");
 
@@ -31,6 +33,13 @@ public final class CookieCsrfFilter extends OncePerRequestFilter {
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
+        String expectedAccount = request.getHeader("X-Session-Account");
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (expectedAccount != null && authentication != null && authentication.isAuthenticated()
+                && !expectedAccount.equals(authentication.getName())) {
+            writeError(response, "Session account changed");
+            return;
+        }
         if (isSafeMethod(request.getMethod()) || !hasCredentialCookie(request.getCookies())) {
             filterChain.doFilter(request, response);
             return;
@@ -59,7 +68,14 @@ public final class CookieCsrfFilter extends OncePerRequestFilter {
     }
 
     private static boolean hasCredentialCookie(Cookie[] cookies) {
-        return hasCookieValue(cookies, ACCESS_TOKEN_COOKIE) || hasCookieValue(cookies, REFRESH_TOKEN_COOKIE);
+        if (hasCookieValue(cookies, ACCESS_TOKEN_COOKIE) || hasCookieValue(cookies, REFRESH_TOKEN_COOKIE)) return true;
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie != null && cookie.getName().startsWith(SAVED_ACCOUNT_COOKIE_PREFIX)
+                        && cookie.getValue() != null && !cookie.getValue().isBlank()) return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasCookieValue(Cookie[] cookies, String name) {

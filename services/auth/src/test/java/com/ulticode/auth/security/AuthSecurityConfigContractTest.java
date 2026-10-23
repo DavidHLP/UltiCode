@@ -15,7 +15,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AuthSecurityConfigContractTest.SecurityProbeController.class)
-@Import({AuthSecurityConfig.class, AuthAuthenticationEntryPoint.class, AuthJwtFilterConfiguration.class})
+@Import({AuthSecurityConfig.class, AuthAuthenticationEntryPoint.class, AuthJwtFilterConfiguration.class,
+        AuthSecurityConfigContractTest.SecurityProbeController.class})
 class AuthSecurityConfigContractTest {
 
     @Autowired
@@ -33,6 +34,16 @@ class AuthSecurityConfigContractTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void savedAccountSwitchRequiresDoubleSubmitCsrfWithoutAnActiveAccessToken() throws Exception {
+        var saved = new jakarta.servlet.http.Cookie("saved_account_YWxpY2U", "saved");
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/auth/accounts/switch")
+                .cookie(saved)).andExpect(status().isForbidden());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/auth/accounts/switch")
+                .cookie(saved, new jakarta.servlet.http.Cookie("csrf_token", "csrf"))
+                .header("X-CSRF-Token", "csrf")).andExpect(status().isOk());
+    }
+
     @RestController
     static class SecurityProbeController {
 
@@ -40,5 +51,7 @@ class AuthSecurityConfigContractTest {
         String probe() {
             return "reached-controller";
         }
+        @org.springframework.web.bind.annotation.PostMapping("/auth/accounts/switch")
+        String switchProbe() { return "reached-controller"; }
     }
 }

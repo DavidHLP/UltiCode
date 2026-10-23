@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import { applyThemeToDOM } from "./applyThemeToDOM";
 import { getThemeStorage } from "./storage";
 import { THEME_STORAGE_KEY, parseThemeMode, type ThemeMode } from "./ThemeMode";
@@ -19,6 +19,7 @@ const current = ref<Appearance>({ ...DEFAULT_APPEARANCE });
 const account = ref<string | number | null>(null);
 const previewing = ref(false);
 const settingsOpen = ref(false);
+const settingsReturnFocus = shallowRef<HTMLElement | null>(null);
 const persistenceError = ref(false);
 let initialized = false;
 let mediaQuery: MediaQueryList | null = null;
@@ -176,6 +177,7 @@ export function useAppearance() {
     previewing,
     persistenceError,
     settingsOpen,
+    settingsReturnFocus,
     beginPreview: beginAppearancePreview,
     preview: previewAppearance,
     cancel: cancelAppearancePreview,
@@ -190,6 +192,7 @@ export function resetAppearanceForTest(): void {
     window.removeEventListener("storage", onStorage);
   initialized = false;
   settingsOpen.value = false;
+  settingsReturnFocus.value = null;
   account.value = null;
   previewing.value = false;
   persistenceError.value = false;

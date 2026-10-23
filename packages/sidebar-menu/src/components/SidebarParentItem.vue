@@ -114,7 +114,6 @@ const rowBase = "flex-1 justify-start";
           variant="ghost"
           type="button"
           data-sidebar="menu-button"
-          :data-active="active || undefined"
           :class="rowBase"
           :aria-label="isOpen ? 'collapse section' : 'expand section'"
         >

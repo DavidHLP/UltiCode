@@ -437,11 +437,18 @@ export function useProblemLayout(contestId: Ref<string | null>) {
   );
 
   function initLayout() {
+    const tabParam = route.params.tab;
+    let tabName = Array.isArray(tabParam) ? tabParam[0] : tabParam;
+    // These panels have their own mobile tabs, not a problem-info header.
+    // Initializing the desktop header must not overwrite their deep links.
+    const preservePanelRoute = ["code", "testcases", "testresults"].includes(
+      tabName ?? "",
+    );
+    if (preservePanelRoute) isUpdatingFromRoute.value = true;
+
     const initialConfig = getLeetLayoutConfig(t, isContest.value);
     headerStore.initData(initialConfig.groups, initialConfig.layout);
 
-    const tabParam = route.params.tab;
-    let tabName = Array.isArray(tabParam) ? tabParam[0] : tabParam;
     // In contest mode the solutions tab is not rendered, so any
     // ?tab=solutions deep link should resolve to the description tab.
     if (isContest.value && tabName === "solutions") {
@@ -455,6 +462,11 @@ export function useProblemLayout(contestId: Ref<string | null>) {
       lastTab.value = tabName;
     } else {
       lastTab.value = "description";
+    }
+    if (preservePanelRoute) {
+      nextTick(() => {
+        isUpdatingFromRoute.value = false;
+      });
     }
   }
 

@@ -14,7 +14,8 @@
  * - `guest`         – no valid session (not logged in)
  * - `error`         – check failed (network error, etc.)
  */
-export type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'guest' | 'error';
+export type AuthStatus =
+  "idle" | "loading" | "authenticated" | "guest" | "error";
 
 /** Credential pair passed to the login endpoint. */
 export interface LoginCredentials {
@@ -91,4 +92,11 @@ export interface AuthState {
   status: AuthStatus;
   user: User | null;
   error: Error | null;
+}
+export interface SignedInAccount {
+  id: string;
+  name: string;
+  email: string | null;
+  role: string;
+  current: boolean;
 }

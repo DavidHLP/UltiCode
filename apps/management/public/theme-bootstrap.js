@@ -33,7 +33,7 @@
     density: ['comfortable', 'compact'], menu: ['subtle', 'solid'],
     mode: ['light', 'dark', 'system'],
   }
-  var DEFAULTS = { accent: 'neutral', base: 'neutral', chart: 'default', font: 'system', radius: 'medium', density: 'comfortable', menu: 'subtle', mode: 'system' }
+  var DEFAULTS = { accent: 'blue', base: 'zinc', chart: 'default', font: 'system', radius: 'medium', density: 'comfortable', menu: 'subtle', mode: 'system' }
 
   function applyAppearance() {
     var payload = null

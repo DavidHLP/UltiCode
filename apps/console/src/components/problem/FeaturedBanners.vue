@@ -3,7 +3,14 @@ import { Button } from "@ulticode/design-system/ui/button";
 
 import { Card, CardContent } from "@ulticode/design-system/ui/card";
 import type { ProblemList } from "@/types/problem-list";
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+  ref,
+  watch,
+} from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import { RouterLink } from "vue-router";
 import {
@@ -39,12 +46,12 @@ const { t } = useI18n();
 const problemListsStore = useProblemListsStore();
 
 const CARD_BASE =
-  "rounded-xl border bg-card text-card-foreground relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-float-hover)] h-full rounded-lg group";
-const CARD_CONTENT_BASE = "p-5 relative z-10 flex flex-col h-full";
+  "relative h-full overflow-hidden rounded-lg border bg-card py-0 text-card-foreground transition-shadow duration-200 hover:shadow-[var(--shadow-float-hover)] group-focus-visible:ring-2 group-focus-visible:ring-inset group-focus-visible:ring-ring";
+const CARD_CONTENT_BASE = "relative z-10 flex h-full flex-col p-3";
 const ICON_BASE =
-  "w-12 h-12 rounded-md flex items-center justify-center transition-all duration-200 group-hover:scale-105 border";
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border";
 const BADGE_BASE =
-  "inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs rounded-md text-xs font-bold border uppercase tracking-widest";
+  "shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-medium";
 const GLOW_BASE =
   "absolute rounded-full blur-3xl transition-all duration-500 group-hover:scale-110";
 
@@ -147,9 +154,9 @@ const scrollByCard = (direction: "left" | "right") => {
 const updateVisibleCount = () => {
   if (!scrollContainer.value) return;
   const width = scrollContainer.value.clientWidth;
-  if (width >= 1024) {
+  if (width >= 800) {
     visibleCount.value = 3;
-  } else if (width >= 640) {
+  } else if (width >= 520) {
     visibleCount.value = 2;
   } else {
     visibleCount.value = 1;
@@ -224,43 +231,72 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative group/carousel">
-    <!-- Navigation Arrow Left -->
-    <Button
-      variant="outline"
-      v-show="needsScroll && visibleCount > 1 && showLeftArrow"
-      @click="scrollByCard('left')"
-      class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 hidden group-hover/carousel:flex group-focus-within/carousel:flex items-center justify-center group-hover/carousel:opacity-100 group-focus-within/carousel:opacity-100 focus-visible:outline-none"
-    >
-      <ChevronLeft class="w-5 h-5 text-foreground" />
-    </Button>
+  <section
+    class="min-w-0 space-y-3"
+    :aria-label="t('problem.banners.collections')"
+  >
+    <div class="flex h-8 items-center justify-between gap-3">
+      <h2 class="flex items-center gap-2 text-sm font-semibold">
+        {{ t("problem.banners.collections") }}
+        <span
+          v-if="displayBanners.length"
+          class="text-xs font-normal tabular-nums text-muted-foreground"
+        >
+          {{ displayBanners.length }}
+        </span>
+      </h2>
+      <div v-if="needsScroll" class="flex items-center gap-1">
+        <Button
+          variant="outline"
+          size="icon"
+          class="h-8 w-8"
+          :disabled="!showLeftArrow"
+          :aria-label="t('problem.banners.previousCollections')"
+          @click="scrollByCard('left')"
+        >
+          <ChevronLeft class="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          class="h-8 w-8"
+          :disabled="!showRightArrow"
+          :aria-label="t('problem.banners.nextCollections')"
+          @click="scrollByCard('right')"
+        >
+          <ChevronRight class="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
 
     <div
       ref="scrollContainer"
-      class="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent snap-x snap-mandatory"
+      tabindex="0"
+      role="region"
+      :aria-label="t('problem.banners.collections')"
+      class="collections-scroll flex snap-x snap-mandatory gap-4 overflow-x-auto rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <template v-if="isLoading">
         <Card
           v-for="i in 3"
           :key="i"
-          class="flex-shrink-0 relative overflow-hidden h-[200px]"
+          class="relative h-32 shrink-0 overflow-hidden py-0"
           :style="bannerStyle"
         >
           <CardContent
-            class="p-5 animate-pulse space-y-4 relative z-10 h-full flex flex-col"
+            class="relative z-10 flex h-full animate-pulse flex-col gap-2 p-3"
           >
             <div class="flex items-start justify-between">
               <div
-                class="h-12 w-12 rounded-md bg-accent border border-input/60"
+                class="h-7 w-7 rounded-md border border-input/60 bg-accent"
               ></div>
               <div class="h-5 w-14 rounded-md bg-accent"></div>
             </div>
-            <div class="space-y-3 flex-1">
-              <div class="h-5 w-2/3 rounded-md bg-accent"></div>
+            <div class="flex-1 space-y-1">
+              <div class="h-4 w-2/3 rounded-md bg-accent"></div>
               <div class="h-3 w-full rounded-md bg-accent"></div>
-              <div class="h-3 w-4/5 rounded-md bg-accent"></div>
             </div>
-            <div class="flex items-center justify-between pt-2">
+            <div class="flex items-center justify-between">
               <div class="h-3 w-20 rounded-md bg-accent"></div>
               <div class="h-3 w-16 rounded-md bg-accent"></div>
             </div>
@@ -270,14 +306,14 @@ onBeforeUnmount(() => {
 
       <template v-else-if="displayBanners.length === 0">
         <div
-          class="rounded-xl border bg-card text-card-foreground col-span-full flex-shrink-0 w-full flex flex-col items-center justify-center py-16 rounded-lg border-dashed text-center px-6"
+          class="flex h-32 w-full shrink-0 flex-col items-center justify-center rounded-lg border border-dashed bg-card px-6 text-center text-card-foreground"
         >
           <div
-            class="flex h-14 w-14 items-center justify-center rounded-md bg-accent border border-input mb-4 shadow-md"
+            class="mb-2 flex h-7 w-7 items-center justify-center rounded-md border border-input bg-accent"
           >
-            <Sparkles class="h-7 w-7 text-muted-foreground/60" />
+            <Sparkles class="h-4 w-4 text-muted-foreground/60" />
           </div>
-          <p class="text-base font-bold text-foreground tracking-tight">
+          <p class="text-sm font-semibold text-foreground">
             {{
               problemListsStore.loadError
                 ? t("problem.banners.unableToLoad")
@@ -285,7 +321,7 @@ onBeforeUnmount(() => {
             }}
           </p>
           <p
-            class="text-xs text-muted-foreground mt-2 max-w-[280px] leading-relaxed"
+            class="mt-1 max-w-[280px] text-xs leading-relaxed text-muted-foreground"
           >
             {{
               problemListsStore.loadError
@@ -301,7 +337,7 @@ onBeforeUnmount(() => {
           v-for="banner in displayBanners"
           :key="banner.id"
           :to="`/problemset/list/${banner.id}`"
-          class="group block flex-shrink-0 snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          class="group block h-32 shrink-0 snap-start rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           :style="bannerStyle"
         >
           <Card :class="[CARD_BASE, banner.theme.card]">
@@ -315,38 +351,37 @@ onBeforeUnmount(() => {
             ></div>
 
             <CardContent :class="CARD_CONTENT_BASE">
-              <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-2">
                 <div :class="[ICON_BASE, banner.theme.icon]">
-                  <component :is="banner.icon" class="w-5 h-5" />
+                  <component :is="banner.icon" class="h-4 w-4" />
                 </div>
+                <h3
+                  class="min-w-0 flex-1 truncate text-sm font-semibold transition-colors group-hover:text-primary"
+                  :title="banner.name"
+                >
+                  {{ banner.name }}
+                </h3>
                 <div :class="[BADGE_BASE, banner.theme.badge]">
                   {{ banner.tag }}
                 </div>
               </div>
 
-              <div class="flex-1">
-                <h3
-                  class="font-bold text-lg mb-1 transition-colors group-hover:text-primary"
-                >
-                  {{ banner.name }}
-                </h3>
-                <p
-                  class="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-4"
-                >
-                  {{ banner.summary }}
-                </p>
-              </div>
+              <p
+                class="mt-2 line-clamp-2 flex-1 text-xs leading-4 text-muted-foreground"
+              >
+                {{ banner.summary }}
+              </p>
 
-              <div class="flex items-center justify-between">
+              <div class="mt-2 flex items-center justify-between gap-2">
                 <div
-                  class="text-xs font-mono font-medium text-muted-foreground flex items-center gap-1"
+                  class="flex items-center gap-1 text-xs text-muted-foreground"
                 >
                   <Sparkles class="w-3 h-3" :class="banner.theme.sparkle" />
                   <span class="tabular-nums">{{ banner.problemCount }}</span>
                   {{ t("problem.banners.questions") }}
                 </div>
                 <div
-                  class="flex items-center gap-1 text-xs font-mono font-semibold text-primary opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0"
+                  class="flex items-center gap-1 text-xs font-medium text-primary"
                 >
                   {{ t("problem.banners.viewList") }}
                   <ArrowRight class="w-3.5 h-3.5" />
@@ -357,15 +392,15 @@ onBeforeUnmount(() => {
         </RouterLink>
       </template>
     </div>
-
-    <!-- Navigation Arrow Right -->
-    <Button
-      variant="outline"
-      v-show="needsScroll && visibleCount > 1 && showRightArrow"
-      @click="scrollByCard('right')"
-      class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 hidden group-hover/carousel:flex group-focus-within/carousel:flex items-center justify-center group-hover/carousel:opacity-100 group-focus-within/carousel:opacity-100 focus-visible:outline-none"
-    >
-      <ChevronRight class="w-5 h-5 text-foreground" />
-    </Button>
-  </div>
+  </section>
 </template>
+
+<style scoped>
+.collections-scroll {
+  scrollbar-width: none;
+}
+
+.collections-scroll::-webkit-scrollbar {
+  display: none;
+}
+</style>

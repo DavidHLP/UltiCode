@@ -26,11 +26,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div
-    class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-  >
+  <div class="flex min-w-0 flex-wrap items-center gap-3">
     <!-- Left: Search -->
-    <div class="relative w-full max-w-md">
+    <div class="relative min-w-0 basis-64 flex-1">
       <Search
         class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
       />
@@ -38,15 +36,22 @@ const emit = defineEmits<{
         :model-value="modelValue"
         @update:model-value="(v) => emit('update:modelValue', v as string)"
         :placeholder="placeholder || 'Search...'"
+        :aria-label="placeholder || 'Search...'"
         class="data-table-toolbar-search"
       />
     </div>
 
     <!-- Right: Actions -->
     <div
-      v-if="$slots.filters || $slots.actions || showClear"
-      class="flex w-full items-center gap-2 overflow-x-auto pb-1 lg:w-auto lg:pb-0"
+      v-if="
+        $slots['before-filters'] ||
+        $slots.filters ||
+        $slots.actions ||
+        showClear
+      "
+      class="flex max-w-full flex-wrap items-center gap-2"
     >
+      <slot name="before-filters" />
       <DropdownMenu v-if="$slots.filters">
         <DropdownMenuTrigger as-child>
           <Button

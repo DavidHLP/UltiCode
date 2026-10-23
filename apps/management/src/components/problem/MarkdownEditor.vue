@@ -387,6 +387,14 @@ onUnmounted(() => {
   margin-bottom: 0.75rem;
 }
 
+.preview-content :deep(ul) {
+  list-style-type: disc;
+}
+
+.preview-content :deep(ol) {
+  list-style-type: decimal;
+}
+
 .preview-content :deep(li) {
   margin-bottom: 0.25rem;
 }

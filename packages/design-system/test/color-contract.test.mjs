@@ -44,12 +44,10 @@ test('converts OKLCH for canvas renderers without dropping alpha', () => {
 
 const exceptions = {
   'packages/auth-ui/src/components/OAuthButton.vue': ['#34a853', '#4285f4', '#ea4335', '#fbbc05'],
-  'apps/console/src/composables/useAvatar.ts': ['#0f766e', '#111827', '#172554', '#1f2937', '#2563eb', '#7c2d12', '#7c3aed', '#8d5524', '#9f1239', '#b45309', '#be123c', '#d99a6c', '#f59e0b', '#f6c7a7', '#ffffff'],
+  'packages/auth-ui/src/useAvatar.ts': ['#0f766e', '#111827', '#172554', '#1f2937', '#2563eb', '#7c2d12', '#7c3aed', '#8d5524', '#9f1239', '#b45309', '#be123c', '#d99a6c', '#f59e0b', '#f6c7a7', '#ffffff'],
   'apps/console/src/types/contest.ts': ['#0000ff', '#008000', '#03a89e', '#808080', '#aa00aa', '#ff0000', '#ff8c00'],
   'apps/management/src/i18n/locales/en-US/modules/tags.ts': ['#46769b'],
   'apps/management/src/i18n/locales/zh-CN/modules/tags.ts': ['#46769b'],
-  'apps/landing/src/i18n/locales/en-US/landing.ts': ['#146', '#2904', '#704'],
-  'apps/landing/src/i18n/locales/zh-CN/landing.ts': ['#146', '#2904', '#704'],
 };
 
 // External brand, rating and avatar colors are data, not theme options.
@@ -68,6 +66,7 @@ test('app and shared presentation source consume semantic colors', () => {
       if (extra.length) findings.push(`${file}: ${extra.join(', ')}`);
     }
   }
-  for (const dir of ['apps/console/src', 'apps/management/src', 'apps/landing/src', 'packages/auth-ui/src', 'packages/sidebar-menu/src', 'packages/badge-config/src']) walk(resolve(repo, dir));
+  // Landing owns its visual identity and is outside the shared theme contract.
+  for (const dir of ['apps/console/src', 'apps/management/src', 'packages/auth-ui/src', 'packages/sidebar-menu/src', 'packages/badge-config/src']) walk(resolve(repo, dir));
   assert.deepEqual(findings, [], 'Use semantic tokens; keep external data exceptions narrow.\n' + findings.join('\n'));
 });

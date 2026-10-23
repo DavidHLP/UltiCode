@@ -135,6 +135,9 @@ sys.exit(2)
 
 def call(root, bindir, state, log, *args, **overrides):
     env = os.environ.copy()
+    # Each case supplies its own writer identity, independent of the CI host.
+    for key in GITHUB_WRITER:
+        env.pop(key, None)
     env.update({"PATH": str(bindir) + os.pathsep + env["PATH"], "DOCKER_BIN": str(bindir / "docker"),
                 "COSIGN_BIN": str(bindir / "cosign"), "REGISTRY_STATE": str(state), "CALL_LOG": str(log),
                 "EVIDENCE_ROOT": str(root)})

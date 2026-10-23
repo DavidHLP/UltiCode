@@ -36,6 +36,6 @@
   },
   "dependencies": {
     "@ulticode/design-system": "workspace:*",
-    "@lucide/vue": "1.52.0"
+    "@lucide/vue": "1.59.0"
   }
 }

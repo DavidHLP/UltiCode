@@ -148,7 +148,19 @@ promoter_spec = importlib.util.spec_from_file_location("promoter", ROOT / "scrip
 promoter = importlib.util.module_from_spec(promoter_spec)
 promoter_spec.loader.exec_module(promoter)
 promoter.validate_buildkit_predicate(modern_fixture[4]["predicate"], SOURCE_SHA, "./apps/console/Dockerfile")
+
+
+def forge_primary_vcs(predicate, key, value):
+    # Matching redundant fields must not bypass the trusted repo/SHA/path inputs.
+    predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"][key] = value
+    predicate["invocation"]["parameters"]["root"]["request"]["args"][f"vcs:{key}"] = value
+
+
 for mutate in (
+    lambda p: forge_primary_vcs(p, "source", "https://github.com/other/repo"),
+    lambda p: forge_primary_vcs(p, "revision", "e" * 40),
+    lambda p: forge_primary_vcs(p, "localdir:dockerfile", "elsewhere"),
+    lambda p: p["invocation"]["configSource"].update(entryPoint="elsewhere/Dockerfile"),
     lambda p: p["invocation"]["parameters"].update(compatibilityVersion=31),
     lambda p: p["invocation"]["parameters"]["root"]["configSource"].update(path="elsewhere/Dockerfile"),
     lambda p: p["invocation"]["parameters"]["root"]["request"]["args"].update({"vcs:revision": "e" * 40}),

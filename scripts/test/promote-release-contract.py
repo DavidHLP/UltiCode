@@ -120,6 +120,11 @@ if args[0] == "verify-attestation":
     if os.environ.get("COSIGN_FAIL") == "wrong-subject": subject=subject+"/other"
     if os.environ.get("COSIGN_FAIL") == "wrong-source" and kind == "slsaprovenance":
         predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]["revision"]="d"*40
+    if os.environ.get("COSIGN_FAIL") == "wrong-materials" and kind == "slsaprovenance":
+        predicate["materials"]=[{"uri":"https://github.com/other/repo", "digest":{"sha1":"e"*40}}]
+    if os.environ.get("COSIGN_FAIL") == "wrong-build-args" and kind == "slsaprovenance":
+        predicate["invocation"]["parameters"]["args"]["SERVICE_MODULE"]="other"
+        predicate["invocation"]["parameters"]["root"]["request"]["args"]["SERVICE_MODULE"]="other"
     if os.environ.get("COSIGN_FAIL") == "wrong-predicate" and kind == "spdxjson": predicate["name"]="not-candidate"
     predicate_type="https://spdx.dev/Document" if kind == "spdxjson" else "https://slsa.dev/provenance/v0.2"
     statement={"_type":"https://in-toto.io/Statement/v0.1","predicateType":predicate_type,
@@ -155,6 +160,7 @@ def assert_reject_without_write(root, bindir, state, log, mutate=None, *args, **
     assert result.returncode != 0, result.stdout + result.stderr
     assert not any("imagetools create" in line for line in log.read_text().splitlines()), log.read_text()
     assert not (root / "release-manifest.txt").exists()
+    return result
 
 
 def main():
@@ -320,6 +326,12 @@ def main():
             parameters["root"] = {"configSource": {"path": "Dockerfile"}, "request": {
                 "args": {**parameters["args"], **{f"vcs:{key}": value for key, value in vcs.items()}}}}
             path.write_text(json.dumps(proof))
+        # Valid v30 structure does not permit signed materials/build args to
+        # differ from the extracted candidate evidence, even if root agrees.
+        for mode in ("wrong-materials", "wrong-build-args"):
+            rejected = assert_reject_without_write(root, bindir, state, log, None, COSIGN_FAIL=mode)
+            assert "verified slsaprovenance predicate differs from candidate evidence" in rejected.stderr
+            assert "verify-attestation" in log.read_text()
         # All-nine happy path creates tags then writes a complete nine-entry manifest.
         state.write_text("{}"); log.write_text("")
         result = call(root, bindir, state, log, "--execute", **GITHUB_WRITER)

@@ -25,7 +25,7 @@ test('formats only changed app files and passes filenames without shell evaluati
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, CALL_LOG: log, ...env },
     });
     assert.equal(run({ tool_name: 'Write', tool_input: { file_path: names[0] } }).status, 0);
-    assert.equal(run({ tool_name: 'apply_patch', tool_input: `*** Update File: ${names[1]}\n*** Add File: missing.vue\n*** Update File: outside.vue\n*** Update File: apps/console/escape.vue\n` }).status, 0);
+    assert.equal(run({ tool_name: 'apply_patch', tool_input: { command: `*** Update File: ${names[1]}\n*** Add File: missing.vue\n*** Update File: outside.vue\n*** Update File: apps/console/escape.vue\n` } }).status, 0);
     const calls = readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
     assert.deepEqual(calls, [
       { cwd: join(root, 'apps/console'), args: ['exec', 'prettier', '--write', '--ignore-unknown', '--', 'a $(touch injected).vue'] },

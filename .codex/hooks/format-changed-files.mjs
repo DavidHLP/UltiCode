@@ -9,7 +9,7 @@ const toolInput = input.tool_input;
 const files = [];
 
 if (input.tool_name === 'apply_patch') {
-  const patch = typeof toolInput === 'string' ? toolInput : toolInput?.input ?? toolInput?.patch ?? '';
+  const patch = typeof toolInput === 'string' ? toolInput : toolInput?.command ?? '';
   for (const match of patch.matchAll(/^\*\*\* (?:Add File|Update File|Move to): (.+)$/gm)) {
     files.push(match[1]);
   }

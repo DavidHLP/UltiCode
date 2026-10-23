@@ -35,11 +35,11 @@
   },
   "peerDependencies": {
     "reka-ui": "^2.9.0",
-    "vue": "^3.5.43"
+    "vue": "^3.5.44"
   },
   "dependencies": {
     "@internationalized/date": "^3.11.0",
-    "@lucide/vue": "1.52.0",
+    "@lucide/vue": "1.59.0",
     "@ulticode/theme": "workspace:*",
     "@unovis/ts": "^1.7.1",
     "@unovis/vue": "^1.7.1",
@@ -57,12 +57,12 @@
   },
   "devDependencies": {
     "shadcn-vue": "2.8.2",
-    "@vitejs/plugin-vue": "^6.0.9",
+    "@vitejs/plugin-vue": "^6.0.10",
     "@vue/tsconfig": "^0.9.1",
     "shadcn-vue": "2.8.2",
     "typescript": "~5.9.3",
     "vite": "^8.3.4",
-    "vue": "^3.5.43",
+    "vue": "^3.5.44",
     "vue-tsc": "^3.3.13"
   }
 }

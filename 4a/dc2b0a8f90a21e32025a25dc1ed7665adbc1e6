@@ -1,0 +1,26 @@
+docs/DEVELOPMENT.md
+  s_c22ff167170ae1::t_2f99d2f9b2ec4e 590
+  s_c22ff167170ae1::t_28b7879d267115 591
+.codex/hooks/format-changed-files.mjs
+  s_c22ff167170ae1::t_28b7879d267115 1-34
+.codex/hooks.json
+  s_c22ff167170ae1::t_28b7879d267115 5,9-10
+.codex/hooks/format-changed-files.test.mjs
+  s_c22ff167170ae1::t_28b7879d267115 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4adc2b0a8f90a21e32025a25dc1ed7665adbc1e6",
+  "prompts": {},
+  "sessions": {
+    "s_c22ff167170ae1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a167a9-65ac-7f23-a035-24a5b0676bde",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

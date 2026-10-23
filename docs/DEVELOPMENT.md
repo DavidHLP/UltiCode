@@ -587,6 +587,8 @@ Claude 使用 `paths`；OMP 扩展使用 `globs`，其 `paths` 字段当前不�
 
 需要格式检查时，使用仓库已有工具并限定到改动文件。注意应用的 `lint`、`format` 脚本会修改文件；只读检查可选 `lint:check` 或格式器的检查模式。检查具体 package.json 后再运行，避免把全目录自动修复当作例行步骤。
 
+The Codex `PostToolUse` hook reads changed paths from stdin after `Write`, `Edit`, and `apply_patch`. It runs each application's Prettier only for existing files inside `apps/console` or `apps/management`, passing filenames as separate arguments without shell interpolation. Review and trust a changed hook in `/hooks`. Run `node --test .codex/hooks/format-changed-files.test.mjs` to verify input parsing, path boundaries, and formatter failure propagation.
+
 ### 执行策略的边界
 
 Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚本、包装器、绝对路径或选项位置。未命中不代表授权或安全；不要通过改写命令绕过审批。普通本地操作不额外设置 `prompt`，也不添加宽泛的 `allow`。

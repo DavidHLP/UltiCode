@@ -1,0 +1,44 @@
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const input = JSON.parse(readFileSync(0, 'utf8'));
+const toolInput = input.tool_input;
+const files = [];
+
+if (input.tool_name === 'apply_patch') {
+  const result = input.tool_response;
+  const output = typeof result === 'string' ? result : result?.output ?? result?.stdout;
+  // shortcut: recognizes Codex's current success receipt, update if that output contract changes.
+  if (typeof output !== 'string' || !output.startsWith('Success. Updated the following files:\n')) process.exit(0);
+  const patch = typeof toolInput === 'string' ? toolInput : toolInput?.command ?? '';
+  for (const match of patch.matchAll(/^\*\*\* (?:Add File|Update File|Move to): (.+)$/gm)) {
+    files.push(match[1]);
+  }
+} else if (['Write', 'Edit'].includes(input.tool_name) && toolInput?.file_path) {
+  files.push(toolInput.file_path);
+}
+
+const appFiles = { console: [], management: [] };
+for (const filename of new Set(files)) {
+  const path = resolve(input.cwd ?? root, filename);
+  if (!existsSync(path) || !statSync(path).isFile()) continue;
+  const file = realpathSync(path);
+  for (const app of Object.keys(appFiles)) {
+    const appRoot = resolve(root, 'apps', app);
+    const local = relative(appRoot, file);
+    if (isAbsolute(local) || local === '..' || local.startsWith(`..${sep}`)) continue;
+    appFiles[app].push(local);
+    break;
+  }
+}
+
+for (const [app, paths] of Object.entries(appFiles)) {
+  if (paths.length === 0) continue;
+  execFileSync('pnpm', ['exec', 'prettier', '--write', '--ignore-unknown', '--', ...paths], {
+    cwd: resolve(root, 'apps', app),
+    stdio: 'inherit',
+  });
+}

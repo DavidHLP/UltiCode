@@ -1,0 +1,34 @@
+packages/auth-core/src/browserSessionLock.ts
+  s_a817d6a0710b87::t_7de0b23c0f6d8c 7
+apps/console/src/components/__tests__/shadcnConsumerContract.spec.ts
+  s_a817d6a0710b87::t_7de0b23c0f6d8c 66,68-70
+apps/console/src/views/contest/ContestRankingsView.vue
+  s_a817d6a0710b87::t_7de0b23c0f6d8c 4,8,168-190
+apps/management/src/components/theme-color-contract.test.ts
+  s_a817d6a0710b87::t_7de0b23c0f6d8c 57,61-63
+apps/console/src/views/contest/components/__tests__/GlobalRanking.spec.ts
+  s_a817d6a0710b87::t_7de0b23c0f6d8c 103
+apps/console/src/views/contest/components/__tests__/PastContests.spec.ts
+  s_a817d6a0710b87::t_7de0b23c0f6d8c 21,30-33,79,89-98,100-103
+  s_a817d6a0710b87::t_28018d85e60630 99
+apps/console/src/components/problem/FeaturedBanners.vue
+  s_a817d6a0710b87::t_7de0b23c0f6d8c 54
+pnpm-workspace.yaml
+  s_a817d6a0710b87::t_7de0b23c0f6d8c 11-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c6d36dbe615d9a8e37494727119de0f22043b841",
+  "prompts": {},
+  "sessions": {
+    "s_a817d6a0710b87": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a166cd-159e-73b0-a5ca-846dd55e155c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

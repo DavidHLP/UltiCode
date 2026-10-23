@@ -29,7 +29,7 @@ def maven_version(service):
     prop = service.get("maven_version_property")
     if not prop:
         return None
-    return "1.0.3" if prop in {"service.version.auth", "service.version.app"} else "1.0.2"
+    return "1.0.3"
 
 
 def seed(base):

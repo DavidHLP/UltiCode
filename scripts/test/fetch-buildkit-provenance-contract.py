@@ -19,7 +19,7 @@ IMAGE_DIGEST = "a" * 64
 REPOSITORY = "DavidHLP/UltiCode/console"
 
 
-def fixture(subject=...):
+def fixture(subject=..., modern=False):
     # Synthetic OCI index -> attestation manifest -> in-toto layer chain.
     statement = {"_type": MODULE.STATEMENT_TYPE, "predicateType": MODULE.PROVENANCE,
                 "subject": [] if subject is ... else subject, "predicate": {
@@ -34,6 +34,12 @@ def fixture(subject=...):
                         "vcs": {"source": "git@github.com:DavidHLP/UltiCode.git", "revision": SOURCE_SHA,
                                 "localdir:dockerfile": "apps/console"},
                         "source": {"infos": [{"filename": "Dockerfile", "language": "Dockerfile", "data": "Rk9P"}]}}}}}
+    if modern:
+        parameters = statement["predicate"]["invocation"]["parameters"]
+        vcs = statement["predicate"]["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]
+        parameters["compatibilityVersion"] = 30
+        parameters["root"] = {"configSource": {"path": "Dockerfile"}, "request": {
+            "args": {**parameters["args"], **{f"vcs:{key}": value for key, value in vcs.items()}}}}
     blob = json.dumps(statement).encode()
     layer_digest = "sha256:" + hashlib.sha256(blob).hexdigest()
     image_desc = {"digest": "sha256:" + "c" * 64}
@@ -136,4 +142,43 @@ try:
     raise AssertionError("accepted non-v0.2 nested invocation parameters")
 except ValueError:
     pass
-print("BuildKit v0.2 OCI provenance extraction and source contract: PASS")
+modern_fixture = fixture(modern=True)
+assert run(SOURCE_SHA, modern_fixture) == (True, modern_fixture[4]["predicate"])
+promoter_spec = importlib.util.spec_from_file_location("promoter", ROOT / "scripts/runbooks/promote-release.py")
+promoter = importlib.util.module_from_spec(promoter_spec)
+promoter_spec.loader.exec_module(promoter)
+promoter.validate_buildkit_predicate(modern_fixture[4]["predicate"], SOURCE_SHA, "./apps/console/Dockerfile")
+
+
+def forge_primary_vcs(predicate, key, value):
+    # Matching redundant fields must not bypass the trusted repo/SHA/path inputs.
+    predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"][key] = value
+    predicate["invocation"]["parameters"]["root"]["request"]["args"][f"vcs:{key}"] = value
+
+
+for mutate in (
+    lambda p: forge_primary_vcs(p, "source", "https://github.com/other/repo"),
+    lambda p: forge_primary_vcs(p, "revision", "e" * 40),
+    lambda p: forge_primary_vcs(p, "localdir:dockerfile", "elsewhere"),
+    lambda p: p["invocation"]["configSource"].update(entryPoint="elsewhere/Dockerfile"),
+    lambda p: p["invocation"]["parameters"].update(compatibilityVersion=31),
+    lambda p: p["invocation"]["parameters"]["root"]["configSource"].update(path="elsewhere/Dockerfile"),
+    lambda p: p["invocation"]["parameters"]["root"]["request"]["args"].update({"vcs:revision": "e" * 40}),
+    lambda p: p["invocation"]["parameters"]["root"]["request"]["args"].update({"vcs:source": "https://github.com/other/repo"}),
+    lambda p: p["invocation"]["parameters"]["root"]["request"]["args"].update({"vcs:localdir:dockerfile": "elsewhere"}),
+    lambda p: p["invocation"]["parameters"]["root"]["request"]["args"].update(SERVICE_MODULE="other"),
+    lambda p: p["invocation"]["parameters"]["root"].pop("request"),
+):
+    invalid = copy.deepcopy(modern_fixture[4]["predicate"])
+    mutate(invalid)
+    for validator in (
+        lambda: MODULE.validate_predicate(invalid, SOURCE_SHA, "DavidHLP/UltiCode", "./apps/console/Dockerfile"),
+        lambda: promoter.validate_buildkit_predicate(invalid, SOURCE_SHA, "./apps/console/Dockerfile"),
+    ):
+        try:
+            validator()
+        except (ValueError, promoter.Reject):
+            pass
+        else:
+            raise AssertionError("accepted inconsistent compatibility v30 recipe/VCS metadata")
+print("BuildKit v0.2 OCI provenance extraction and source contract (legacy and compatibility v30): PASS")

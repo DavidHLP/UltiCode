@@ -90,6 +90,19 @@ def validate_trivy(report: object, ref: str) -> None:
         fail("Trivy report must contain at least one os-pkgs result")
 
 
+def valid_local_root(parameters: dict, vcs: dict, args: dict) -> bool:
+    """Validate BuildKit compatibility v30's redundant local recipe metadata."""
+    if "root" not in parameters:
+        return True
+    root = parameters["root"]
+    return (parameters.get("compatibilityVersion") == 30
+            and isinstance(root, dict)
+            and root.get("configSource") == {"path": "Dockerfile"}
+            and isinstance(root.get("request"), dict)
+            and root["request"].get("args") == {
+                **args, **{f"vcs:{key}": value for key, value in vcs.items()}})
+
+
 def validate_buildkit_predicate(predicate: object, source_sha: str, dockerfile: str) -> None:
     expected_sources = {
         "git@github.com:DavidHLP/UltiCode.git",
@@ -112,7 +125,7 @@ def validate_buildkit_predicate(predicate: object, source_sha: str, dockerfile: 
             and invocation["configSource"].get("entryPoint") == "Dockerfile"
             and isinstance(parameters.get("frontend"), str) and bool(parameters["frontend"])
             and isinstance(args, dict)
-            and "root" not in parameters
+            and valid_local_root(parameters, vcs, args)
             and not any(key.startswith("vcs:") for key in args)
             and isinstance(locals_, list) and bool(locals_)
             and all(isinstance(local, dict) and isinstance(local.get("name"), str) and local["name"] for local in locals_)

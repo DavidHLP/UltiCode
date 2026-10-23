@@ -1,12 +1,21 @@
 package com.ulticode.modules.admin.dto.settings;
 
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Per-feature on/off flags controlling which modules are visible to end users.
  */
 @Data
 public class FeatureTogglesVO {
+    private boolean featureAgent = true;
+    @JsonIgnore
+    private boolean featureAgentSpecified;
+
+    public void setFeatureAgent(boolean enabled) {
+        featureAgent = enabled;
+        featureAgentSpecified = true;
+    }
 
     private boolean featureContest;
     private boolean featureForum;

@@ -5,11 +5,15 @@ import App from "./App.vue";
 import router from "./router";
 import i18n from "./i18n";
 import "./style.css";
-import "./assets/markdown.css";
 
 // Import PWA registration (this registers the service worker)
 import "@/pwa-register";
-import { initTheme, applyTypographyDensity } from "@ulticode/theme";
+import {
+  initTheme,
+  DEFAULT_APPEARANCE,
+  applyTypographyDensity,
+  useAppearance,
+} from "@ulticode/theme";
 import { bootstrapApp } from "@ulticode/app-bootstrap";
 import { setOnAuthFailure } from "@ulticode/auth-core";
 
@@ -19,14 +23,15 @@ import { setOnAuthFailure } from "@ulticode/auth-core";
  * The startup ordering invariant (theme → Pinia/i18n → auth-failure handler →
  * auth init → router → mount) is owned by the shared `bootstrapApp` module so
  * Console and Management cannot diverge; this entry file is the Console
- * adapter and supplies only Console-specific policy: the comfortable density,
+ * adapter uses shared appearance preferences and supplies Console policy:
  * the AuthContext pre-auth wiring, the single auth-failure owner, and the
  * document-language pre-mount hook.
  */
 bootstrapApp({
-  density: "comfortable",
+  density: DEFAULT_APPEARANCE.density,
   initTheme,
-  applyTypographyDensity,
+  applyTypographyDensity: () =>
+    applyTypographyDensity(useAppearance().settings.value.density),
   rootComponent: App,
   preAuthPlugins: [createPinia(), i18n],
   async preAuthInit() {
@@ -34,9 +39,8 @@ bootstrapApp({
     // handling and the session-expired redirect. Use the imported router
     // instance directly — useRouter() relies on inject() which only works
     // during setup, not in async callbacks.
-    const { initializeAuthContext, onSessionExpired } = await import(
-      "@/contexts/AuthContext"
-    );
+    const { initializeAuthContext, onSessionExpired } =
+      await import("@/contexts/AuthContext");
     initializeAuthContext();
     onSessionExpired(() => {
       const currentRoute = router.currentRoute.value;

@@ -29,7 +29,7 @@ export default {
   },
   docs: {
     title: '项目文档',
-    description: '浏览仓库 docs/ 目录下的架构、运维、安全指南。',
-    openFolder: '打开 docs/',
+    description: '通过仓库文档地图查阅架构、开发与运维指南。',
+    openFolder: '打开文档',
   },
 }

@@ -42,7 +42,7 @@ for release_service in "${release_services[@]}"; do
   # names in one submission), so selectability is the documented name set.
   grep -Eq "(^|[[:space:]])${release_service}([[:space:]]|$)" "$CD_DEPLOY" \
     || fail "cd-deploy omits backend service $release_service"
-  grep -Fq "\"$release_service\"" "$CD_ROLLBACK" \
+  grep -Fq "$release_service" <("$ROOT_DIR/scripts/deploy/service-selection.sh" list) \
     || fail "cd-rollback omits backend service $release_service"
   grep -Fq "      $release_service " "$HOST_HEALTH" \
     || fail "host-health omits backend service $release_service"
@@ -69,18 +69,19 @@ grep -Fq "default: ''" "$HOST_DEPLOY" \
 [ -x "$ROOT_DIR/scripts/runbooks/image-reference-policy.sh" ] || fail "image policy is not executable"
 grep -Fq 'Validate release and deployment integrity before mutation' "$HOST_DEPLOY" \
   || fail "host-deploy does not preflight before mutation"
-grep -Fq 'deployment-integrity.sh preflight' "$HOST_DEPLOY" \
+grep -Fq 'deployment-integrity.sh preflight' "$ROOT_DIR/scripts/deploy/deploy.sh" \
   || fail "host-deploy does not validate deployment integrity"
-grep -Fq 'docker/docker-compose.prod.yml config --quiet' "$HOST_DEPLOY" \
+grep -Fq 'docker/docker-compose.prod.yml config --quiet' "$ROOT_DIR/scripts/deploy/deploy.sh" \
   || fail "host-deploy does not validate merged Compose configuration"
-grep -Fq 'deployment-integrity.sh check-rollback' "$HOST_DEPLOY" \
+grep -Fq 'deployment-integrity.sh check-rollback' "$ROOT_DIR/scripts/deploy/deploy.sh" \
   || fail "host-deploy does not gate schema-compatible rollback"
-grep -Fq 'DEPLOYMENT_STATUS=PENDING_HEALTH' "$HOST_DEPLOY" \
+grep -Fq 'DEPLOYMENT_STATUS=PENDING_HEALTH' "$ROOT_DIR/scripts/deploy/deploy.sh" \
   || fail "host-deploy does not record pending health state"
-preflight_line="$(grep -n 'Validate release and deployment integrity before mutation' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
-migration_line="$(grep -n 'Run ordered owner database migrations' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
-config_line="$(grep -n 'docker/docker-compose.prod.yml config --quiet' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
-[[ "$preflight_line" -lt "$migration_line" && "$config_line" -lt "$migration_line" ]] \
+preflight_line="$(grep -n 'validate-release-and-deployment-integrity-before-mutation' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
+migration_line="$(grep -n 'run-ordered-owner-database-migrations' "$HOST_DEPLOY" | head -1 | cut -d: -f1)"
+config_line="$(grep -n 'docker/docker-compose.prod.yml config --quiet' "$ROOT_DIR/scripts/deploy/deploy.sh" | head -1 | cut -d: -f1)"
+migration_script_line="$(grep -n 'owner-migration-manifest.sh migrate' "$ROOT_DIR/scripts/deploy/deploy.sh" | head -1 | cut -d: -f1)"
+[[ "$preflight_line" -lt "$migration_line" && "$config_line" -lt "$migration_script_line" ]] \
   || fail "deployment config preflight occurs after migration mutation"
 grep -Fq 'flyway/flyway@sha256:' "$ROOT_DIR/scripts/runbooks/owner-migration-manifest.sh" \
   || fail "owner migration runbook uses a mutable Flyway image"
@@ -218,11 +219,11 @@ printf 'atomic health-state update: PASS\n'
 
 grep -Fq 'curl-host-https 9443 -' "$HOST_HEALTH" \
   || fail "console health does not verify HTTPS"
-grep -Fq 'SYSTEM HEALTH FAILED' "$HOST_HEALTH" \
+grep -Fq 'SYSTEM HEALTH FAILED' "$ROOT_DIR/scripts/deploy/health.sh" \
   || fail "host-health has no system-level failure summary"
-grep -Fq 'SYSTEM HEALTH PASS' "$HOST_HEALTH" \
+grep -Fq 'SYSTEM HEALTH PASS' "$ROOT_DIR/scripts/deploy/health.sh" \
   || fail "host-health has no system-level success summary"
-grep -Fq 'deployment-integrity.sh mark-health' "$HOST_HEALTH" \
+grep -Fq 'deployment-integrity.sh mark-health' "$ROOT_DIR/scripts/deploy/health.sh" \
   || fail "host-health does not persist descriptor health"
 printf 'host-health system summary and descriptor wiring: PASS\n'
 

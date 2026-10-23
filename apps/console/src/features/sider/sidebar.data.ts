@@ -3,14 +3,11 @@ import {
   Flame,
   LayoutGrid,
   TrendingUp,
-  Cpu,
   Globe,
   Home,
   Trophy,
   History,
   MessageSquare,
-  Briefcase,
-  DollarSign,
   FileText,
   HelpCircle,
   User,
@@ -23,6 +20,7 @@ import {
 
 export interface SidebarItem {
   title: string;
+  label?: string;
   url?: string;
   icon?: Component;
   isActive?: boolean;
@@ -75,28 +73,7 @@ export const forumSidebarData: SidebarSection[] = [
   {
     name: "sidebar.forum.categories",
     collapsible: true,
-    items: [
-      {
-        title: "sidebar.forum.interviewExperience",
-        url: "/forum/c/interview",
-        icon: MessageSquare,
-      },
-      {
-        title: "sidebar.forum.career",
-        url: "/forum/c/career",
-        icon: Briefcase,
-      },
-      {
-        title: "sidebar.forum.compensation",
-        url: "/forum/c/compensation",
-        icon: DollarSign,
-      },
-      {
-        title: "sidebar.forum.technology",
-        url: "/forum/c/technology",
-        icon: Cpu,
-      },
-    ],
+    items: [],
   },
   {
     name: "sidebar.forum.resources",
@@ -211,9 +188,7 @@ export const personalSidebarData: SidebarSection[] = [
         url: "/personal/submissions",
         icon: History,
       },
-      ...(import.meta.env.VITE_AGENT_REVIEW_ENABLED === "true"
-        ? [{ title: "sidebar.personal.agent", url: "/agent", icon: MessageSquare }]
-        : []),
+      { title: "sidebar.personal.agent", url: "/agent", icon: MessageSquare },
       {
         title: "sidebar.personal.solutions",
         url: "/personal/solutions",

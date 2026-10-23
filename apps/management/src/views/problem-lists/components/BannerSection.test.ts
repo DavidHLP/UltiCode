@@ -43,9 +43,9 @@ vi.mock('@/api/admin/problem-lists', () => ({
   },
 }))
 
-vi.mock('@/components/ui/form')
-vi.mock('@/components/ui/input')
-vi.mock('@/components/ui/select')
+vi.mock('@ulticode/design-system/ui/form')
+vi.mock('@ulticode/design-system/ui/input')
+vi.mock('@ulticode/design-system/ui/select')
 
 describe('BannerSection', () => {
   const mockProblemList: ProblemListDetail = {

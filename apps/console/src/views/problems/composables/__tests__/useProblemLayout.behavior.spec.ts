@@ -5,13 +5,12 @@
  * memory router + pinia + i18n stub for the behaviours that are
  * reliable to assert through observables (headerStore state).
  *
- * URL rewrite and store→URL push behaviours are intentionally covered
- * by the source-string suite: vue-router memory history and watcher
- * ordering make them fragile to assert through the public router API.
+ * URL synchronization also waits for router promises so initialization
+ * cannot silently replace deep-linked mobile panels with Description.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { defineComponent, h, nextTick, computed } from "vue";
-import { mount, type VueWrapper } from "@vue/test-utils";
+import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import {
   createMemoryHistory,
   createRouter,
@@ -108,6 +107,49 @@ function layoutApi(wrapper: VueWrapper) {
 describe("useProblemLayout — contest context (behavioural)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+  });
+
+  it.each(["code", "testcases", "testresults"])(
+    "preserves the %s panel deep link during layout initialization",
+    async (tab) => {
+      const path = `/problems/two-sum/${tab}?contestId=contest-1`;
+      const { router, wrapper, headerStore } = await mountLayout(path);
+      layoutApi(wrapper).initLayout();
+      await flushPromises();
+
+      expect(router.currentRoute.value.fullPath).toBe(path);
+      expect(headerStore.activeHeaderByGroup["problem-info"]).toBe(1);
+      wrapper.unmount();
+    },
+  );
+
+  it("resumes header navigation after preserving a panel deep link", async () => {
+    const { router, wrapper, headerStore } = await mountLayout(
+      "/problems/two-sum/code?contestId=contest-1",
+    );
+    layoutApi(wrapper).initLayout();
+    await flushPromises();
+
+    headerStore.setActiveHeader("problem-info", 3);
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe(
+      "/problems/two-sum/submissions?contestId=contest-1",
+    );
+    wrapper.unmount();
+  });
+
+  it("still redirects a hidden contest Solutions deep link to Description", async () => {
+    const { router, wrapper } = await mountLayout(
+      "/problems/two-sum/solutions?contestId=contest-1",
+    );
+    layoutApi(wrapper).initLayout();
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe(
+      "/problems/two-sum/description?contestId=contest-1",
+    );
+    wrapper.unmount();
   });
 
   it("omits the Solutions header from the problem-info group on a contest problem", async () => {

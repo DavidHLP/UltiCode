@@ -65,6 +65,18 @@ cat > "$fake_bin/cosign" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'cosign %s\n' "$*" >> "$FAKE_LOG"
+identity="${!#}"
+for ((i=1; i<$#; i++)); do
+  if [[ "${!i}" == "--certificate-identity" ]]; then
+    next=$((i + 1)); identity="${!next}"; break
+  fi
+done
+if [[ "${1:-}" == "verify" && "$identity" != "${FAKE_SIGNATURE_IDENTITY:-https://github.com/example/ulticode/.github/workflows/docker-publish.yml@refs/heads/main}" ]]; then
+  exit 1
+fi
+if [[ "${1:-}" == "verify-attestation" && "$identity" != "${FAKE_ATTESTATION_IDENTITY:-https://github.com/example/ulticode/.github/workflows/docker-publish.yml@refs/heads/main}" ]]; then
+  exit 1
+fi
 EOF
 cat > "$fake_bin/trivy" <<'EOF'
 #!/usr/bin/env bash
@@ -81,6 +93,16 @@ grep -Fq 'cosign verify-attestation' "$fake_log" \
   || fail "verify did not require signed attestations"
 grep -Fq 'trivy image --exit-code 1' "$fake_log" \
   || fail "verify did not require the vulnerability scan"
+
+: > "$fake_log"
+if FAKE_SIGNATURE_IDENTITY='https://attacker.example/identity' \
+  FAKE_LOG="$fake_log" IMAGE_REF_LIST="$valid_refs" \
+  COSIGN_CERT_IDENTITY='https://github.com/example/ulticode/.github/workflows/docker-publish.yml@refs/heads/main' \
+  COSIGN_CERT_ISSUER='https://token.actions.githubusercontent.com' \
+  DOCKER_BIN="$fake_bin/docker" COSIGN_BIN="$fake_bin/cosign" TRIVY_BIN="$fake_bin/trivy" \
+  "$POLICY" verify >/dev/null 2>&1; then
+  fail "signature from an unapproved identity was accepted"
+fi
 
 contains docker/docker-compose.prod.yml 'image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6'
 contains docker/docker-compose.prod.yml 'image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf'
@@ -122,6 +144,9 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 workflow = Path(sys.argv[1]).read_text()
+assert 'workflow_call: {}' in workflow and '\n  push:' not in workflow, 'publisher must run only as a reusable workflow'
+assert 'Retrieve BuildKit provenance for pushed digest' in workflow
+assert 'jq -n --arg source' not in workflow, 'publisher must not fabricate provenance'
 step = re.search(r'      - name: Normalize image repository\n        id: normalize\n        run: echo "image_name=\$\{GITHUB_REPOSITORY,,\}" >> "\$GITHUB_OUTPUT"\n', workflow)
 assert step, 'publish must normalize image repository before metadata'
 assert step.start() < workflow.index('      - name: Extract image labels')
@@ -178,7 +203,10 @@ for entry in '_docker.yml:verify' 'docker-publish.yml:publish'; do
   not_contains ".github/workflows/$workflow" 'no-cache: true'
   not_contains ".github/workflows/$workflow" 'continue-on-error:'
 done
-contains .github/workflows/docker-publish.yml 'provenance: mode=max'
+contains .github/workflows/docker-publish.yml 'provenance: mode=max,version=v0.2'
+contains .github/workflows/docker-publish.yml 'PROVENANCE_PATH: ${{ runner.temp }}/${{ matrix.service.name }}.provenance.json'
+contains .github/workflows/docker-publish.yml 'persist-credentials: false'
+contains .github/workflows/_docker.yml 'persist-credentials: false'
 contains .github/workflows/docker-publish.yml 'aquasecurity/trivy-action@'
 contains .github/workflows/docker-publish.yml 'sigstore/cosign-installer@'
 contains .github/workflows/docker-publish.yml 'cosign sign --yes'
@@ -187,7 +215,7 @@ contains .github/workflows/docker-publish.yml 'steps.build.outputs.digest'
 not_contains .github/workflows/docker-publish.yml 'type=raw,value=latest'
 
 contains .github/actions/host-deploy/action.yml 'image_refs:'
-contains .github/actions/host-deploy/action.yml 'image-reference-policy.sh verify'
+contains .github/actions/host-deploy/action.yml 'deploy.sh'
 not_contains .github/actions/host-deploy/action.yml 'image_tag'
 not_contains .github/actions/host-deploy/action.yml 'service_tags'
 contains .github/workflows/cd-deploy.yml 'image_refs:'

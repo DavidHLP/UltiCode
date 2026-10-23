@@ -17,10 +17,12 @@ source "$ROOT_DIR/scripts/test/lib/contract-harness.sh"
 
 [[ -x "$WRAPPER" ]] || fail "scripts/dev/test.sh is not executable"
 
+grep -Fqx '        run: bash scripts/test/zero-infra-validation-contract.sh --static-only' \
+  "$ROOT_DIR/.github/workflows/ci.yml" \
+  || fail 'ci.yml must run the lightweight static contract in its governance gate'
 for workflow in _backend.yml _frontend.yml; do
-  grep -Fqx '        run: bash scripts/test/zero-infra-validation-contract.sh --static-only' \
-    "$ROOT_DIR/.github/workflows/$workflow" \
-    || fail "$workflow must select --static-only for its lightweight CI job"
+  ! grep -Fq 'zero-infra-validation-contract.sh' "$ROOT_DIR/.github/workflows/$workflow" \
+    || fail "$workflow must not duplicate the shared governance gate"
 done
 grep -Fq 'bash scripts/dev/architecture-contract-test.sh --list-qualified dynamic' \
   "$ROOT_DIR/.github/workflows/_backend.yml" \
@@ -280,8 +282,15 @@ grep -Fq 'Usage:' <<<"$invalid_output" \
   || fail "invalid mode did not print usage text"
 printf 'invalid mode contract: PASS (exit 2 + usage)\n'
 
+# System directories may already contain Node. Expose only the commands needed
+# to load the wrapper and print usage so the missing-toolchain case is portable.
+MISSING_TOOLCHAIN_BIN="$TEST_DIR/missing-toolchain-bin"
+mkdir -p "$MISSING_TOOLCHAIN_BIN"
+for command in bash dirname cat; do
+  ln -s "$(command -v "$command")" "$MISSING_TOOLCHAIN_BIN/$command"
+done
 set +e
-missing_toolchain_output="$(env PATH=/usr/bin:/bin bash "$WRAPPER" static 2>&1)"
+missing_toolchain_output="$(env PATH="$MISSING_TOOLCHAIN_BIN" bash "$WRAPPER" static 2>&1)"
 missing_toolchain_status=$?
 set -e
 [[ "$missing_toolchain_status" -eq 2 ]] \

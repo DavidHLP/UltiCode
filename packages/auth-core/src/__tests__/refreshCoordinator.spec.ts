@@ -15,6 +15,7 @@ vi.mock("../rawAxios", () => ({
 
 // Imported AFTER vi.mock so the mocked module is in place.
 import { rawAxios } from "../rawAxios";
+import { withBrowserSessionLock } from "../browserSessionLock";
 
 /**
  * T3: concurrent dedup — multiple concurrent 401s share a single
@@ -36,6 +37,42 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
     csrf.setToken("current-token");
   });
 
+  it("waits for the refresh response and CSRF update before switching accounts", async () => {
+    let tail: Promise<unknown> = Promise.resolve();
+    const request = vi.fn((_name: string, action: () => Promise<unknown>) => {
+      const next = tail.then(action);
+      tail = next.catch(() => {});
+      return next;
+    });
+    vi.stubGlobal("navigator", { locks: { request } });
+    let finish!: (value: unknown) => void;
+    vi.mocked(rawAxios.post).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    try {
+      const refresh = createRefreshAccessToken(csrf)();
+      let switched = false;
+      const switching = withBrowserSessionLock(async () => {
+        expect(csrf.getToken()).toBe("rotated");
+        switched = true;
+      });
+      await vi.waitFor(() => expect(rawAxios.post).toHaveBeenCalledOnce());
+      expect(switched).toBe(false);
+      finish({ data: { code: 0, data: { csrfToken: "rotated" } } });
+      await Promise.all([refresh, switching]);
+      expect(switched).toBe(true);
+      expect(request.mock.calls.map((call) => call[0])).toEqual([
+        "ulticode-browser-session",
+        "ulticode-browser-session",
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("T3: shares a single in-flight refresh across N concurrent calls", async () => {
     // 50ms setTimeout in mock — proves all callers see the SAME promise,
     // not microtask-resolved separate calls.
@@ -45,8 +82,7 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
       () =>
         new Promise((resolve) => {
           setTimeout(
-            () =>
-              resolve({ data: { code: 0, data: { csrfToken: "new" } } }),
+            () => resolve({ data: { code: 0, data: { csrfToken: "new" } } }),
             50,
           );
         }),
@@ -60,15 +96,15 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
     await Promise.all([p1, p2, p3]);
 
     expect(rawAxios.post).toHaveBeenCalledTimes(1);
-    expect(rawAxios.post).toHaveBeenCalledWith(
-      "/auth/refresh",
-      undefined,
-      { headers: { "X-CSRF-Token": "current-token" } },
-    );
+    expect(rawAxios.post).toHaveBeenCalledWith("/auth/refresh", undefined, {
+      headers: { "X-CSRF-Token": "current-token" },
+    });
   });
 
   it("T3b: clears in-flight after completion so the next 401 can refresh again", async () => {
-  vi.mocked(rawAxios.post).mockResolvedValue({ data: { code: 0, data: { csrfToken: "x" } } });
+    vi.mocked(rawAxios.post).mockResolvedValue({
+      data: { code: 0, data: { csrfToken: "x" } },
+    });
 
     const refresh = createRefreshAccessToken(csrf);
     await refresh();
@@ -91,7 +127,7 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
   });
 
   it("T4b: does not clear csrfManager when refresh response has no csrfToken", async () => {
-  vi.mocked(rawAxios.post).mockResolvedValue({ data: { code: 0, data: {} } });
+    vi.mocked(rawAxios.post).mockResolvedValue({ data: { code: 0, data: {} } });
     csrf.setToken("keep-me");
     const refresh = createRefreshAccessToken(csrf);
 
@@ -108,11 +144,9 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
 
     await createRefreshAccessToken(fromCookie)();
 
-    expect(rawAxios.post).toHaveBeenCalledWith(
-      "/auth/refresh",
-      undefined,
-      { headers: { "X-CSRF-Token": "cookie-token" } },
-    );
+    expect(rawAxios.post).toHaveBeenCalledWith("/auth/refresh", undefined, {
+      headers: { "X-CSRF-Token": "cookie-token" },
+    });
   });
 
   it("T4d: fails before refresh when neither memory nor cookie has a CSRF token", async () => {
@@ -147,7 +181,11 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
     // (where the bug looked) but the real token nested under data.data.
     // The manager must pick up the nested one, proving the top level is ignored.
     vi.mocked(rawAxios.post).mockResolvedValueOnce({
-      data: { code: 0, csrfToken: "decoy-top-level", data: { csrfToken: "real-nested" } },
+      data: {
+        code: 0,
+        csrfToken: "decoy-top-level",
+        data: { csrfToken: "real-nested" },
+      },
     });
     csrf.setToken("stale");
     const refresh = createRefreshAccessToken(csrf);
@@ -172,7 +210,9 @@ describe("refreshCoordinator — T3 concurrent dedup + T4 CSRF sync", () => {
   });
 
   it("T5b: returns a Promise (not a value) so multiple callers can await", () => {
-  vi.mocked(rawAxios.post).mockResolvedValue({ data: { code: 0, data: { csrfToken: "x" } } });
+    vi.mocked(rawAxios.post).mockResolvedValue({
+      data: { code: 0, data: { csrfToken: "x" } },
+    });
     const refresh = createRefreshAccessToken(csrf);
     const result = refresh();
     expect(result).toBeInstanceOf(Promise);

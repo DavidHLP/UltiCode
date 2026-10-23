@@ -3,17 +3,18 @@ import { computed, h, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconCheck,
-  IconDotsVertical,
-  IconFlag,
-  IconMessage,
-  IconRefresh,
-  IconTrash,
-  IconUser,
-} from '@tabler/icons-vue'
-import { badge } from '@/components/ui/terminal'
+  Check as IconCheck,
+  EllipsisVertical as IconDotsVertical,
+  Flag as IconFlag,
+  MessageSquare as IconMessage,
+  RefreshCw as IconRefresh,
+  Trash as IconTrash,
+  User as IconUser,
+} from '@lucide/vue'
+
+import { badge } from '@ulticode/badge-config'
 import { formatDateByLocale } from '@/i18n/utils'
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import DataTable from '@/components/table/DataTable.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { createSelectionColumn } from '@/components/table/selectionColumn'
@@ -23,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@ulticode/design-system/ui/dropdown-menu'
 import { useCommentsStore } from '@/stores/admin/comments'
 import type { Comment } from '@/api/admin/comments'
 
@@ -107,10 +108,10 @@ function renderStatusBadge(comment: Comment, t: (key: string) => string) {
 }
 
 const columns: ColumnDef<Comment>[] = [
-    ...createSelectionColumn<Comment>(t, {
-      checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
-    }),
+  ...createSelectionColumn<Comment>(t, {
+    checkboxClass:
+      'border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary',
+  }),
   {
     id: 'row_num',
     header: () => '#',
@@ -118,7 +119,11 @@ const columns: ColumnDef<Comment>[] = [
       const pageIndex = table.getState().pagination.pageIndex
       const pageSize = table.getState().pagination.pageSize
       const rowNum = pageIndex * pageSize + row.index + 1
-      return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+      return h(
+        'span',
+        { class: 'text-xs tabular-nums text-muted-foreground' },
+        String(rowNum).padStart(2, '0'),
+      )
     },
     enableSorting: false,
     enableHiding: false,
@@ -128,7 +133,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+        { class: 'font-mono text-xs uppercase tracking-widest text-muted-foreground' },
         t('comments.columns.comment'),
       ),
     cell: ({ row }) => {
@@ -140,16 +145,15 @@ const columns: ColumnDef<Comment>[] = [
         h(
           'div',
           {
-            class:
-              'text-sm text-[var(--foreground)] leading-relaxed flex flex-wrap items-center gap-y-1',
+            class: 'text-sm text-foreground leading-relaxed flex flex-wrap items-center gap-y-1',
           },
           renderInlineContent(truncated),
         ),
-        h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--foreground-muted)]' }, [
+        h('div', { class: 'flex items-center gap-1.5 text-xs text-muted-foreground' }, [
           h(IconUser, { class: 'h-3 w-3' }),
           h(
             'span',
-            { class: 'font-data' },
+            { class: 'font-mono' },
             comment.author?.username || t('forum.overview.unknown'),
           ),
         ]),
@@ -161,14 +165,14 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+        { class: 'font-mono text-xs uppercase tracking-widest text-muted-foreground' },
         t('comments.columns.created'),
       ),
     cell: ({ row }) => {
       const date = new Date(row.getValue('createdAt') as string)
       return h(
         'span',
-        { class: 'font-data text-xs text-[var(--foreground-muted)] tabular-nums' },
+        { class: 'font-mono text-xs text-muted-foreground tabular-nums' },
         formatDateByLocale(date),
       )
     },
@@ -178,7 +182,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+        { class: 'font-mono text-xs uppercase tracking-widest text-muted-foreground' },
         t('comments.columns.status'),
       ),
     cell: ({ row }) => {
@@ -191,7 +195,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+        { class: 'font-mono text-xs uppercase tracking-widest text-muted-foreground' },
         t('common.actions.label'),
       ),
     cell: ({ row }) => {
@@ -213,13 +217,12 @@ const columns: ColumnDef<Comment>[] = [
                     {
                       variant: 'ghost',
                       size: 'icon',
-                      class:
-                        'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
+                      class: 'h-8 w-8 p-0 hover:bg-accent dark:hover:bg-foreground',
                     },
                     {
                       default: () => [
                         h('span', { class: 'sr-only' }, t('common.open')),
-                        h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--foreground-muted)]' }),
+                        h(IconDotsVertical, { class: 'h-4 w-4 text-muted-foreground' }),
                       ],
                     },
                   ),
@@ -229,7 +232,7 @@ const columns: ColumnDef<Comment>[] = [
               DropdownMenuContent,
               {
                 align: 'end',
-                class: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
+                class: 'border-border dark:border-foreground',
               },
               {
                 default: () => [
@@ -238,17 +241,13 @@ const columns: ColumnDef<Comment>[] = [
                         DropdownMenuItem,
                         {
                           onClick: () => unflagComment(comment),
-                          class: 'font-data text-xs cursor-pointer',
+                          class: 'font-mono text-xs cursor-pointer',
                         },
                         {
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconCheck, { class: 'h-4 w-4 text-foreground-strong' }),
-                              h(
-                                'span',
-                                { class: 'text-foreground-strong' },
-                                t('comments.actions.unflag'),
-                              ),
+                              h(IconCheck, { class: 'h-4 w-4 text-foreground' }),
+                              h('span', { class: 'text-foreground' }, t('comments.actions.unflag')),
                             ]),
                         },
                       )
@@ -256,38 +255,30 @@ const columns: ColumnDef<Comment>[] = [
                         DropdownMenuItem,
                         {
                           onClick: () => openFlagDialog(comment),
-                          class: 'font-data text-xs cursor-pointer',
+                          class: 'font-mono text-xs cursor-pointer',
                         },
                         {
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconFlag, { class: 'h-4 w-4 text-foreground-strong' }),
-                              h(
-                                'span',
-                                { class: 'text-foreground-strong' },
-                                t('comments.actions.flag'),
-                              ),
+                              h(IconFlag, { class: 'h-4 w-4 text-foreground' }),
+                              h('span', { class: 'text-foreground' }, t('comments.actions.flag')),
                             ]),
                         },
                       ),
                   h(DropdownMenuSeparator, {
-                    class: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
+                    class: 'bg-border dark:bg-foreground',
                   }),
                   h(
                     DropdownMenuItem,
                     {
                       onClick: () => confirmDelete(comment),
-                      class: 'font-data text-xs cursor-pointer',
+                      class: 'font-mono text-xs cursor-pointer',
                     },
                     {
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconTrash, { class: 'h-4 w-4 text-foreground-strong' }),
-                          h(
-                            'span',
-                            { class: 'text-foreground-strong' },
-                            t('comments.actions.delete'),
-                          ),
+                          h(IconTrash, { class: 'h-4 w-4 text-foreground' }),
+                          h('span', { class: 'text-foreground' }, t('comments.actions.delete')),
                         ]),
                     },
                   ),
@@ -304,25 +295,25 @@ const columns: ColumnDef<Comment>[] = [
 
 <template>
   <div class="space-y-4">
-    <!-- Terminal Header -->
-    <div class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]">
+    <!-- Page header -->
+    <div class="border border-border dark:border-border bg-card">
       <!-- Title Row -->
       <div
-        class="px-4 py-3 flex items-center justify-between border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
+        class="px-4 py-3 flex items-center justify-between border-b border-border dark:border-border"
       >
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
-            <span class="terminal-cursor" />
+            <span class="hidden" />
           </div>
-          <IconMessage class="h-4 w-4 text-[var(--status-info-mark)]" />
-          <h3 class="text-sm font-medium text-[var(--foreground)]">
+          <IconMessage class="h-4 w-4 text-status-info-mark" />
+          <h3 class="text-sm font-medium text-foreground">
             {{ t('forum.comments.postComments') }}
           </h3>
         </div>
         <Button
-          variant="terminal"
+          variant="outline"
           size="icon"
-          class="h-7 w-7 p-0 border-[var(--border-subtle)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+          class="w-7 p-0"
           @click="loadComments"
           :title="t('common.refresh')"
         >
@@ -331,30 +322,24 @@ const columns: ColumnDef<Comment>[] = [
       </div>
 
       <!-- Stats Ticker -->
-      <div class="px-4 py-2 flex items-center gap-4 bg-[var(--surface-sunken)]">
+      <div class="px-4 py-2 flex items-center gap-4 bg-muted">
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('comments.stats.total') }}:</span
           >
-          <span class="font-data text-xs text-[var(--foreground-strong)] tabular-nums">{{
-            stats.total
-          }}</span>
+          <span class="font-mono text-xs text-foreground tabular-nums">{{ stats.total }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('comments.stats.flagged') }}:</span
           >
-          <span class="font-data text-xs text-[var(--foreground-strong)] tabular-nums">{{
-            stats.flagged
-          }}</span>
+          <span class="font-mono text-xs text-foreground tabular-nums">{{ stats.flagged }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--foreground-muted)]"
+          <span class="text-sm font-medium text-muted-foreground"
             >{{ t('comments.stats.deleted') }}:</span
           >
-          <span class="font-data text-xs text-[var(--foreground-strong)] tabular-nums">{{
-            stats.deleted
-          }}</span>
+          <span class="font-mono text-xs text-foreground tabular-nums">{{ stats.deleted }}</span>
         </div>
       </div>
     </div>
@@ -366,24 +351,19 @@ const columns: ColumnDef<Comment>[] = [
       :row-count="total"
       :loading="loading"
       @update:pagination="tablePagination = $event"
-      class="terminal-table"
+      class="w-full text-sm"
     />
 
     <!-- Error state - Terminal Style -->
     <div
       v-if="error"
-      class="flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+      class="flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
     >
       <div class="flex items-center gap-3">
-        <span class="font-data text-sm text-[var(--foreground-strong)]">&gt; ERROR:</span>
-        <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+        <span class="font-mono text-sm text-foreground">&gt; ERROR:</span>
+        <span class="text-sm text-foreground">{{ error }}</span>
       </div>
-      <Button
-        variant="terminal"
-        size="sm"
-        class="font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
-        @click="loadComments"
-      >
+      <Button variant="outline" size="sm" @click="loadComments">
         {{ t('common.retry') }}
       </Button>
     </div>
@@ -391,14 +371,12 @@ const columns: ColumnDef<Comment>[] = [
     <!-- Empty state - Terminal Style -->
     <div
       v-if="!loading && data.length === 0 && !error"
-      class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-8 text-center bg-[var(--card)]"
+      class="border border-border dark:border-border p-8 text-center bg-card"
     >
-      <div
-        class="w-10 h-10 border border-[var(--border-subtle)] flex items-center justify-center mx-auto mb-3"
-      >
-        <IconMessage class="h-5 w-5 text-[var(--foreground-muted)]" />
+      <div class="w-10 h-10 border border-border flex items-center justify-center mx-auto mb-3">
+        <IconMessage class="h-5 w-5 text-muted-foreground" />
       </div>
-      <p class="font-data text-xs text-[var(--foreground-muted)]">
+      <p class="font-mono text-xs text-muted-foreground">
         &gt; {{ t('forum.comments.noCommentsFound') }}
       </p>
     </div>

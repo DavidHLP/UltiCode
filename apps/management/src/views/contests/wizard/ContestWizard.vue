@@ -8,11 +8,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Stepper, StepperItem, StepperTrigger, StepperSeparator } from '@/components/ui/stepper'
+} from '@ulticode/design-system/ui/dialog'
+import { Button } from '@ulticode/design-system/ui/button'
+import {
+  Stepper,
+  StepperItem,
+  StepperTrigger,
+  StepperSeparator,
+} from '@ulticode/design-system/ui/stepper'
 import { toast } from 'vue-sonner'
-import { IconLoader, IconArrowLeft, IconArrowRight, IconCheck } from '@tabler/icons-vue'
+import {
+  Loader as IconLoader,
+  ArrowLeft as IconArrowLeft,
+  ArrowRight as IconArrowRight,
+  Check as IconCheck,
+} from '@lucide/vue'
 
 import StepBasicInfo from './StepBasicInfo.vue'
 import StepScoringRule from './StepScoringRule.vue'
@@ -113,56 +123,53 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <Dialog :open="props.open" @update:open="emit('update:open', $event)">
-    <DialogContent
-      class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0 border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]"
-    >
+    <DialogContent class="w-[calc(100%-2rem)] sm:max-w-3xl p-0 gap-0">
       <!-- Header - Terminal Style -->
-      <DialogHeader
-        class="px-6 py-4 border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
-      >
+      <DialogHeader class="px-6 py-4">
         <div class="flex items-center gap-3">
-          <DialogTitle class="font-data text-sm uppercase tracking-wider">
+          <DialogTitle>
             {{ t('contests.wizard.createContest') }}
           </DialogTitle>
         </div>
-        <DialogDescription class="text-muted-foreground text-sm">
+        <DialogDescription>
           {{ t('contests.wizard.description') }}
         </DialogDescription>
       </DialogHeader>
 
-      <div class="flex-1 overflow-y-auto px-6 py-4">
+      <div class="px-6 py-4">
         <!-- Stepper Header - Terminal Style -->
         <div class="mb-8">
-          <Stepper v-model="currentStep" class="flex w-full items-start gap-2">
+          <Stepper
+            v-model="currentStep"
+            class="grid w-full grid-cols-2 items-start gap-x-4 gap-y-3 sm:flex sm:gap-2"
+          >
             <StepperItem
               v-for="step in steps"
               :key="step.step"
               :step="step.step"
-              class="relative flex flex-col items-center justify-center gap-2"
+              class="relative flex min-w-0 flex-col items-center justify-center gap-2 sm:flex-1"
             >
               <StepperTrigger
                 :class="[
-                  'h-8 w-8 border-2 text-xs font-data font-semibold flex items-center justify-center',
-                  'border-[var(--border-subtle)] text-[var(--foreground-muted)]',
-                  'data-[state=active]:border-[var(--primary)] data-[state=active]:text-[var(--primary)] data-[state=active]:bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]',
-                  'data-[state=completed]:border-[var(--status-success-mark)] data-[state=completed]:text-foreground-strong data-[state=completed]:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]',
+                  'h-8 w-8 border-2 text-xs font-mono font-semibold flex items-center justify-center',
+                  'border-border text-muted-foreground',
+                  'data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]',
+                  'data-[state=completed]:border-status-success-mark data-[state=completed]:text-foreground data-[state=completed]:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]',
                 ]"
               >
                 {{ step.step }}
               </StepperTrigger>
               <span
                 :class="[
-                  'text-xs font-data uppercase tracking-wider',
-                  currentStep === step.step
-                    ? 'text-[var(--primary)]'
-                    : 'text-[var(--foreground-muted)]',
+                  'text-xs font-mono uppercase tracking-wider',
+                  currentStep === step.step ? 'text-primary' : 'text-muted-foreground',
                 ]"
               >
                 {{ t(`contests.wizard.${step.title.toLowerCase()}`, step.title) }}
               </span>
               <StepperSeparator
                 v-if="step.step !== steps.length"
-                class="absolute left-[calc(50%+20px)] top-4 w-[calc(100%-40px)] h-0.5 bg-[var(--border-subtle)] data-[state=completed]:bg-[var(--status-success-mark)]"
+                class="absolute left-[calc(50%+20px)] top-4 hidden w-[calc(100%-40px)] h-0.5 sm:block"
               />
             </StepperItem>
           </Stepper>
@@ -184,11 +191,7 @@ async function handleSubmit(): Promise<void> {
             :slice="scoringRuleSlice"
             @select="setScoringRuleId"
           />
-          <StepSchedule
-            v-show="currentStep === 3"
-            :slice="scheduleSlice"
-            @patch="patchSchedule"
-          />
+          <StepSchedule v-show="currentStep === 3" :slice="scheduleSlice" @patch="patchSchedule" />
           <StepProblems
             v-show="currentStep === 4"
             :slice="problemsSlice"
@@ -201,14 +204,11 @@ async function handleSubmit(): Promise<void> {
       </div>
 
       <!-- Footer - Terminal Style -->
-      <DialogFooter
-        class="px-6 py-4 border-t border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
-      >
+      <DialogFooter class="mx-0 mb-0 px-6 py-4">
         <Button
           type="button"
-          variant="terminal"
+          variant="outline"
           size="sm"
-          class="font-data text-xs border-[var(--border-subtle)]"
           @click="prevStep"
           :disabled="currentStep === 1 || submitting"
         >
@@ -218,9 +218,8 @@ async function handleSubmit(): Promise<void> {
         <Button
           v-if="currentStep < steps.length"
           type="button"
-          variant="terminal"
+          variant="outline"
           size="sm"
-          class="font-data text-xs border-[var(--primary)] text-[var(--primary)] hover:bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]"
           @click="nextStep"
           :disabled="!isStepValid"
         >
@@ -230,9 +229,8 @@ async function handleSubmit(): Promise<void> {
         <Button
           v-else
           type="button"
-          variant="terminal"
+          variant="outline"
           size="sm"
-          class="font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
           @click="handleSubmit"
           :disabled="!isStepValid || submitting"
         >

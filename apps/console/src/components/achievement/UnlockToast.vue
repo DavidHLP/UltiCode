@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { Trophy, X, Sparkles } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import { cn } from "@/lib/utils";
 
 const props = defineProps<{
@@ -46,7 +46,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
     "var(--status-warning-mark)",
     "var(--status-error-mark)",
     "var(--status-info-mark)",
-    "var(--accent-primary)",
+    "var(--primary)",
     "var(--status-success-mark)",
   ][Math.floor(Math.random() * 5)],
 }));
@@ -64,7 +64,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
     >
       <div
         v-if="visible"
-        class="fixed bottom-4 right-4 z-50 max-w-sm overflow-hidden rounded-none border border-[var(--status-warning-mark)] bg-surface-elevated shadow-float"
+        class="fixed bottom-4 right-4 z-50 max-w-sm overflow-hidden rounded-lg border border-status-warning-mark bg-card shadow-md"
       >
         <!-- Confetti -->
         <div
@@ -91,7 +91,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
           <div class="flex items-start gap-3">
             <!-- Icon -->
             <div
-              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--status-warning-mark)] bg-status-warning-surface shadow-float"
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-status-warning-mark bg-status-warning-surface shadow-md"
             >
               <Trophy class="h-6 w-6 text-status-warning-mark" />
             </div>
@@ -104,14 +104,14 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
                   Achievement Unlocked!
                 </span>
               </div>
-              <h4 class="font-bold text-foreground-strong">
+              <h4 class="font-bold text-foreground">
                 {{ badgeName }}
               </h4>
               <p class="text-sm text-muted-foreground">
                 {{ badgeDescription }}
               </p>
               <span
-                class="inline-block rounded-full border border-status-warning-mark bg-status-warning-surface px-2 py-0.5 text-xs font-medium text-foreground-strong"
+                class="inline-block rounded-full border border-status-warning-mark bg-status-warning-surface px-2 py-0.5 text-xs font-medium text-foreground"
               >
                 +{{ points }} points
               </span>
@@ -121,7 +121,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
             <Button
               variant="ghost"
               size="icon"
-              class="h-8 w-8 shrink-0"
+              class="w-8 shrink-0"
               @click="close"
             >
               <X class="h-4 w-4" />

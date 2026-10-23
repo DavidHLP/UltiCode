@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { FieldLabel } from '@ulticode/design-system/ui/field'
+
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IconArrowRight, IconLoader2 } from '@tabler/icons-vue'
+import { ArrowRight as IconArrowRight, Loader2 as IconLoader2 } from '@lucide/vue'
+
 import { useUsersStore } from '@/stores/admin/users'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Checkbox } from '@ulticode/design-system/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -13,14 +16,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from '@ulticode/design-system/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
 
 const { t } = useI18n()
 
@@ -86,19 +90,13 @@ async function handleSubmit() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent
-      class="sm:max-w-[560px] border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] rounded-none p-0 gap-0"
-    >
-      <!-- Terminal Header -->
-      <DialogHeader class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] p-4">
+    <DialogContent class="sm:max-w-[560px] p-0 gap-0">
+      <!-- Page header -->
+      <DialogHeader class="p-4">
         <div class="flex items-center gap-3">
-          <DialogTitle class="text-lg font-medium tracking-tight">{{
-            t('users.createUser')
-          }}</DialogTitle>
+          <DialogTitle>{{ t('users.createUser') }}</DialogTitle>
         </div>
-        <DialogDescription class="terminal-comment mt-1">{{
-          t('users.createDescription')
-        }}</DialogDescription>
+        <DialogDescription class="mt-1">{{ t('users.createDescription') }}</DialogDescription>
       </DialogHeader>
 
       <!-- Form -->
@@ -106,50 +104,49 @@ async function handleSubmit() {
         <!-- Error Banner -->
         <div
           v-if="error"
-          class="mx-4 mt-4 p-3 border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] flex items-center gap-2"
+          class="mx-4 mt-4 p-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] flex items-center gap-2"
         >
-          <span class="font-data text-xs text-[var(--foreground-strong)]">> ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+          <span class="font-mono text-xs text-foreground">> ERROR:</span>
+          <span class="text-sm text-foreground">{{ error }}</span>
         </div>
 
         <div class="max-h-[50vh] overflow-y-auto p-4 space-y-6">
           <!-- Section: General Information -->
           <div>
-            <div class="terminal-comment mb-3">{{ t('users.form.sections.general') }}</div>
+            <div class="text-sm text-muted-foreground mb-3">
+              {{ t('users.form.sections.general') }}
+            </div>
             <div class="space-y-4">
               <div class="space-y-1.5">
-                <label class="terminal-label block">{{ t('users.form.fullName') }}</label>
+                <FieldLabel class="block">{{ t('users.form.fullName') }}</FieldLabel>
                 <Input
                   v-model="form.name"
                   type="text"
                   required
                   :disabled="loading"
-                  class="terminal-input h-9"
                   :placeholder="t('users.form.fullNamePlaceholder')"
                 />
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1.5">
-                  <label class="terminal-label block">{{ t('users.form.username') }}</label>
+                  <FieldLabel class="block">{{ t('users.form.username') }}</FieldLabel>
                   <Input
                     v-model="form.username"
                     type="text"
                     required
                     :disabled="loading"
-                    class="terminal-input h-9 font-data"
                     :placeholder="t('users.form.usernamePlaceholder')"
                   />
                 </div>
 
                 <div class="space-y-1.5">
-                  <label class="terminal-label block">{{ t('users.form.email') }}</label>
+                  <FieldLabel class="block">{{ t('users.form.email') }}</FieldLabel>
                   <Input
                     v-model="form.email"
                     type="email"
                     required
                     :disabled="loading"
-                    class="terminal-input h-9 font-data"
                     :placeholder="t('users.form.emailPlaceholder')"
                   />
                 </div>
@@ -158,66 +155,55 @@ async function handleSubmit() {
           </div>
 
           <!-- Double-line Separator -->
-          <div class="terminal-separator" />
+          <div class="border-t border-border" />
 
           <!-- Section: Security & Access -->
           <div>
-            <div class="terminal-comment mb-3">{{ t('users.form.sections.securityAccess') }}</div>
+            <div class="text-sm text-muted-foreground mb-3">
+              {{ t('users.form.sections.securityAccess') }}
+            </div>
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1.5">
-                  <label class="terminal-label block">{{ t('users.form.password') }}</label>
-                  <Input
-                    v-model="form.password"
-                    type="password"
-                    required
-                    :disabled="loading"
-                    class="terminal-input h-9 font-data"
-                  />
+                  <FieldLabel class="block">{{ t('users.form.password') }}</FieldLabel>
+                  <Input v-model="form.password" type="password" required :disabled="loading" />
                 </div>
 
                 <div class="space-y-1.5">
-                  <label class="terminal-label block">{{ t('users.form.role') }}</label>
+                  <FieldLabel class="block">{{ t('users.form.role') }}</FieldLabel>
                   <Select v-model="form.role" :disabled="loading">
-                    <SelectTrigger class="terminal-input h-9 font-data">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USER" class="font-data">{{
-                        t('users.filters.role.USER')
-                      }}</SelectItem>
-                      <SelectItem value="MODERATOR" class="font-data">{{
-                        t('users.filters.role.MODERATOR')
-                      }}</SelectItem>
-                      <SelectItem value="ADMIN" class="font-data">{{
-                        t('users.filters.role.ADMIN')
-                      }}</SelectItem>
-                      <SelectItem value="SUPER_ADMIN" class="font-data">{{
-                        t('users.filters.role.SUPER_ADMIN')
-                      }}</SelectItem>
+                      <SelectGroup
+                        ><SelectItem value="USER">{{ t('users.filters.role.USER') }}</SelectItem>
+                        <SelectItem value="MODERATOR">{{
+                          t('users.filters.role.MODERATOR')
+                        }}</SelectItem>
+                        <SelectItem value="ADMIN">{{ t('users.filters.role.ADMIN') }}</SelectItem>
+                        <SelectItem value="SUPER_ADMIN">{{
+                          t('users.filters.role.SUPER_ADMIN')
+                        }}</SelectItem></SelectGroup
+                      >
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div class="space-y-1.5">
-                <label class="terminal-label block">{{ t('users.form.status') }}</label>
+                <FieldLabel class="block">{{ t('users.form.status') }}</FieldLabel>
                 <div
-                  class="flex items-center gap-3 h-9 px-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
+                  class="flex items-center gap-3 h-9 px-3 border border-border dark:border-foreground bg-muted"
                 >
-                  <Checkbox
-                    id="create-isActive"
-                    v-model="form.isActive"
-                    :disabled="loading"
-                    class="border-[var(--foreground-muted)] data-[state=checked]:bg-[var(--status-success-mark)] data-[state=checked]:border-[var(--status-success-mark)]"
-                  />
-                  <label for="create-isActive" class="font-data text-xs cursor-pointer">
+                  <Checkbox id="create-isActive" v-model="form.isActive" :disabled="loading" />
+                  <FieldLabel for="create-isActive" class="cursor-pointer">
                     {{
                       form.isActive
                         ? t('users.filters.status.active')
                         : t('users.filters.status.inactive')
                     }}
-                  </label>
+                  </FieldLabel>
                 </div>
               </div>
             </div>
@@ -225,23 +211,11 @@ async function handleSubmit() {
         </div>
 
         <!-- Footer -->
-        <DialogFooter
-          class="border-t border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] p-4 gap-3"
-        >
-          <Button
-            type="button"
-            variant="terminal"
-            class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
-            @click="emit('update:open', false)"
-          >
+        <DialogFooter class="p-4 gap-3">
+          <Button type="button" variant="outline" @click="emit('update:open', false)">
             {{ t('common.cancel') }}
           </Button>
-          <Button
-            type="submit"
-            variant="terminal"
-            :disabled="loading"
-            class="font-data text-xs bg-[var(--primary)] hover:bg-[var(--primary)]/90"
-          >
+          <Button type="submit" variant="outline" :disabled="loading">
             <IconLoader2 v-if="loading" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
             <IconArrowRight v-else class="h-3.5 w-3.5 mr-1.5" />
             {{ loading ? t('users.form.creating') : t('users.form.createUser') }}

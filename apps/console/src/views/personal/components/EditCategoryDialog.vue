@@ -7,10 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Label } from "@ulticode/design-system/ui/label";
 
 const props = defineProps<{
   open: boolean;
@@ -43,23 +43,20 @@ function handleSubmit() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="sm:max-w-md rounded-none">
+    <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle class="text-2xl font-black tracking-tight">{{
+        <DialogTitle>{{
           t("personal.problemLists.dialogs.renameCategory")
         }}</DialogTitle>
       </DialogHeader>
       <div class="space-y-4 py-4">
         <div class="space-y-2">
-          <Label
-            for="edit-category-name"
-            class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-            >{{ t("personal.problemLists.dialogs.newName") }}</Label
-          >
+          <Label for="edit-category-name">{{
+            t("personal.problemLists.dialogs.newName")
+          }}</Label>
           <Input
             id="edit-category-name"
             v-model="form.name"
-            class="h-11 rounded-none"
             @keydown.enter="handleSubmit"
           />
         </div>
@@ -69,14 +66,13 @@ function handleSubmit() {
           variant="outline"
           @click="emit('update:open', false)"
           :disabled="loading"
-          class="rounded-full"
         >
           {{ t("common.actions.cancel") }}
         </Button>
         <Button
           @click="handleSubmit"
           :disabled="loading || !form.name.trim()"
-          class="rounded-full px-8"
+          class="px-8"
         >
           {{ loading ? t("common.status.saving") : t("common.actions.save") }}
         </Button>

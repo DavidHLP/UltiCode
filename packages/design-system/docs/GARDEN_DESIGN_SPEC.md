@@ -1,11 +1,11 @@
 # UltiCode Garden Design System
 
-Canonical visual language extracted from `apps/console/src/views/landing/`
-(LandingView, HeroSection, ProductProofSection, UseCasesSection,
-HumanControlSection, FinalStorySection, LandingHeader, LandingFooter).
-As of this document, these values are the project-wide design contract:
-every console view, every management view, and every shared package renders
-through them. Implementation lives in:
+Canonical visual reference from the standalone `apps/landing/src/views/landing/`
+components (LandingView, HeroSection, ProductProofSection, UseCasesSection,
+HumanControlSection, FinalStorySection, LandingHeader, LandingFooter). Landing
+owns its page, styles, copy, assets, and typography and does not import the shared
+theme or design system. Other apps consume their own compatible shared tokens.
+Implementation of the shared contracts lives in:
 
 - `packages/design-system/style.css` (color / radius / shadow tokens, light + dark)
 - `packages/theme/src/typography.css` (font families, sizes, type roles)
@@ -16,16 +16,16 @@ through them. Implementation lives in:
 Raw bridge scale (historical variable names `--solarized-*` are kept for
 compatibility; the values below replace Solarized):
 
-| Token | Value | Role |
-| --- | --- | --- |
+| Token                | Value     | Role                                  |
+| -------------------- | --------- | ------------------------------------- |
 | `--solarized-base03` | `#1c2412` | deepest olive ink; dark canvas anchor |
-| `--solarized-base02` | `#26301b` | dark elevated surface |
-| `--solarized-base01` | `#545c45` | brand olive; muted text on light |
-| `--solarized-base00` | `#6a7259` | control borders, inputs, focus ring |
-| `--solarized-base0`  | `#838f81` | dim sage-gray text |
-| `--solarized-base1`  | `#a2afa9` | sage |
-| `--solarized-base2`  | `#eae8d8` | parchment highlight tint |
-| `--solarized-base3`  | `#e3e1d1` | parchment page background |
+| `--solarized-base02` | `#26301b` | dark elevated surface                 |
+| `--solarized-base01` | `#545c45` | brand olive; muted text on light      |
+| `--solarized-base00` | `#6a7259` | control borders, inputs, focus ring   |
+| `--solarized-base0`  | `#838f81` | dim sage-gray text                    |
+| `--solarized-base1`  | `#a2afa9` | sage                                  |
+| `--solarized-base2`  | `#eae8d8` | parchment highlight tint              |
+| `--solarized-base3`  | `#e3e1d1` | parchment page background             |
 
 Semantic light mappings:
 
@@ -61,15 +61,15 @@ Derived dark variant consistent with the landing mood:
 
 ### 3.1 Locale metric profiles
 
-The shared locale lifecycle writes `html[lang]`; the following profile values
-are selected by that one attribute and apply to both frontends. The palette,
-radius semantics, and app density remain shared so language adaptation changes
-fit and readability without creating a second product theme.
+The shared Console/Management locale lifecycle writes `html[lang]`; the following
+profile values are selected by that attribute for those apps. Standalone Landing
+owns equivalent locale metrics in its own stylesheet and does not consume this
+package.
 
-| Locale | Page gutter | Section gap | Control gap | Control height | Panel padding |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `zh-CN` | 1rem | 1.25rem | 0.375rem | 2.5rem | 0.625rem / 0.875rem |
-| `en-US` | 1.25rem | 1.5rem | 0.5rem | 2.25rem | 0.5rem / 0.75rem |
+| Locale  | Page gutter | Section gap | Control gap | Control height |       Panel padding |
+| ------- | ----------: | ----------: | ----------: | -------------: | ------------------: |
+| `zh-CN` |        1rem |     1.25rem |    0.375rem |         2.5rem | 0.625rem / 0.875rem |
+| `en-US` |     1.25rem |      1.5rem |      0.5rem |        2.25rem |    0.5rem / 0.75rem |
 
 The values are exposed as `--uc-layout-*` and `--uc-component-*` variables in
 `packages/design-system/style.css`; `.uc-page-main`, `.uc-page-container`,
@@ -77,7 +77,8 @@ The values are exposed as `--uc-layout-*` and `--uc-component-*` variables in
 
 ## 4. Typography
 
-Landing fonts become the global contract:
+These font stacks are the shared Console/Management typography contract. The
+standalone Landing application owns equivalent font tokens locally:
 
 - `zh-CN` display/headings: `"Noto Serif SC", "Songti SC", "SimSun", "Instrument Serif", "Newsreader", Georgia, serif`; UI/body: `"Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Inter", system-ui, ...`
 - `en-US` display/headings: `"Instrument Serif", "Newsreader", Georgia, "Noto Serif SC", serif`; UI/body: `"Inter", system-ui, ... "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`
@@ -88,11 +89,10 @@ Landing fonts become the global contract:
 - Page titles and section titles use the display serif via
   `--uc-font-display`.
 
-`zh-CN` uses 1.65/1.35/1.45 normal/tight/snug leading and removes label
-tracking for CJK rhythm. `en-US` uses 1.5/1.25/1.35 leading with the standard
-short-label tracking and tighter display tracking. Locale switching updates
-the same `html lang` marker before and during app rendering; no component owns
-a second language-specific stylesheet.
+The shared theme profiles use 1.65/1.35/1.45 normal/tight/snug leading for
+`zh-CN` and 1.5/1.25/1.35 for `en-US`; Landing defines matching metrics in its
+own stylesheet. Console/Management locale switching uses the shared lifecycle;
+Landing updates its own document language and persists its own preference.
 
 Font loading is centralized in `packages/theme/src/typography.css`
 (jsDelivr @fontsource imports); app `index.html` Google Fonts links mirror it.

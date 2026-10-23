@@ -2,9 +2,9 @@
 import { ref } from 'vue'
 import { useFieldArray } from 'vee-validate'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { IconPlus, IconTrash } from '@tabler/icons-vue'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Plus as IconPlus, Trash as IconTrash } from '@lucide/vue'
 
 const props = defineProps<{
   name: string
@@ -35,9 +35,9 @@ defineExpose({ addConstraint, deleteConstraint })
     <!-- Empty state -->
     <div
       v-if="fields.length === 0"
-      class="flex flex-col items-center justify-center py-6 px-4 border border-dashed border-[var(--border)] bg-muted/5 rounded-none"
+      class="flex flex-col items-center justify-center py-6 px-4 border border-dashed border-border bg-muted/5 rounded-lg"
     >
-      <p class="text-xs text-[var(--foreground-muted)] font-mono text-center">
+      <p class="text-xs text-muted-foreground font-mono text-center">
         {{ t('problems.descriptionForm.constraintsSection.emptyDescription') }}
       </p>
     </div>
@@ -47,15 +47,14 @@ defineExpose({ addConstraint, deleteConstraint })
       <Input
         :name="`${name}[${index}]`"
         v-model="field.value"
-        variant="terminal"
         :placeholder="t('problems.descriptionForm.constraintsSection.placeholder')"
-        class="flex-1 font-mono text-sm"
+        class="flex-1"
       />
       <Button
         type="button"
-        variant="terminal_danger"
+        variant="destructive"
         size="icon"
-        class="h-9 w-9 shrink-0"
+        class="w-9 shrink-0"
         @click="deleteConstraint(index)"
       >
         <IconTrash class="h-4 w-4" />
@@ -63,7 +62,7 @@ defineExpose({ addConstraint, deleteConstraint })
     </div>
 
     <!-- Add button -->
-    <Button type="button" variant="terminal" size="terminal" class="w-full" @click="addConstraint">
+    <Button type="button" variant="outline" size="default" class="w-full" @click="addConstraint">
       <IconPlus class="h-4 w-4 mr-2" />
       {{ t('problems.descriptionForm.constraintsSection.addNew') }}
     </Button>

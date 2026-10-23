@@ -176,6 +176,7 @@ export default {
       performance: '性能统计',
       account: '账户信息',
       permissions: '角色与权限',
+      banInformation: '封禁信息',
     },
   },
 

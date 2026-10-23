@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from "@ulticode/design-system/ui/button";
+
 import { useAuthStore } from "@/stores/auth";
 import { computed, ref, watch } from "vue";
 import type { SolutionFeedItem } from "@/types/solution";
@@ -24,12 +26,21 @@ const selectedSolution = ref<SolutionFeedItem | null>(null);
 const isLoading = ref(true);
 const isLoadingDetail = ref(false);
 const feed = ref<Awaited<ReturnType<typeof fetchSolutionFeed>> | null>(null);
+let detailRequestId = 0;
 
 watch(
   () => props.problemId,
-  async (id) => {
+  async (id, _previousId, onCleanup) => {
+    let isCurrentRequest = true;
+    onCleanup(() => {
+      isCurrentRequest = false;
+    });
+    detailRequestId += 1;
+    selectedSolution.value = null;
+    isLoadingDetail.value = false;
+    feed.value = null;
     if (!id) {
-      feed.value = null;
+      isLoading.value = false;
       return;
     }
     isLoading.value = true;
@@ -38,14 +49,18 @@ watch(
       problemId: id,
       userId,
     });
+    if (!isCurrentRequest) return;
     try {
-      feed.value = await fetchSolutionFeed(id);
+      const nextFeed = await fetchSolutionFeed(id);
+      if (!isCurrentRequest) return;
+      feed.value = nextFeed;
       await problemHooks.emit("problem:solutions:load:after", {
         problemId: id,
         userId,
-        feed: feed.value,
+        feed: nextFeed,
       });
     } catch (error) {
+      if (!isCurrentRequest) return;
       handleError(error, {
         fallbackMessage: "problem.solutions.error.loadFailed",
         logToConsole: true,
@@ -59,7 +74,7 @@ watch(
         error,
       });
     } finally {
-      isLoading.value = false;
+      if (isCurrentRequest) isLoading.value = false;
     }
   },
   { immediate: true },
@@ -78,7 +93,7 @@ const fallbackSolution = computed<SolutionFeedItem>(() => ({
     name: t("personal.profile.displayName"),
     username: "editorial",
     role: "System Note",
-    avatarColor: "var(--foreground-muted)",
+    avatarColor: "var(--muted-foreground)",
   },
   tags: [],
   stats: {
@@ -104,12 +119,15 @@ const fallbackSolution = computed<SolutionFeedItem>(() => ({
 }));
 
 const handleSelect = async (item: SolutionFeedItem) => {
+  const requestId = ++detailRequestId;
   isLoadingDetail.value = true;
   try {
     const detail = await fetchSolution(item.id);
+    if (requestId !== detailRequestId) return;
     selectedSolution.value = detail;
     emit("select", detail);
   } catch (error) {
+    if (requestId !== detailRequestId) return;
     handleError(error, {
       fallbackMessage: "problem.solutions.error.loadDetailFailed",
       logToConsole: true,
@@ -118,12 +136,14 @@ const handleSelect = async (item: SolutionFeedItem) => {
     selectedSolution.value = item;
     emit("select", item);
   } finally {
-    isLoadingDetail.value = false;
+    if (requestId === detailRequestId) isLoadingDetail.value = false;
   }
 };
 
 const resetSelectedSolution = () => {
+  detailRequestId += 1;
   selectedSolution.value = null;
+  isLoadingDetail.value = false;
 };
 
 const handleSolutionDeleted = (id: string) => {
@@ -133,20 +153,24 @@ const handleSolutionDeleted = (id: string) => {
     items: feed.value.items.filter((item) => item.id !== id),
     total: Math.max(0, feed.value.total - 1),
   };
-  selectedSolution.value = null;
+  resetSelectedSolution();
 };
 </script>
 
 <template>
   <div v-if="feed?.items?.length" class="space-y-4">
-    <div v-if="selectedSolution || isLoadingDetail" class="space-y-4 px-5 py-4">
-      <button
+    <div
+      v-if="selectedSolution || isLoadingDetail"
+      class="min-w-0 space-y-4 px-3 sm:px-5 py-4"
+    >
+      <Button
+        variant="ghost"
         type="button"
-        class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+        class="inline-flex items-center gap-1 transition"
         @click="resetSelectedSolution"
       >
         &larr; {{ t("problem.solutions.returnToList") }}
-      </button>
+      </Button>
       <div v-if="isLoadingDetail" class="text-sm text-muted-foreground">
         {{ t("problem.solutions.loadingDetail") }}
       </div>

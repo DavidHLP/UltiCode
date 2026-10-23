@@ -18,9 +18,12 @@ const { t } = useI18n();
 <template>
   <aside class="hidden w-[312px] flex-none space-y-4 lg:block">
     <!-- Community Info (when viewing specific community) -->
-    <div v-if="community" class="terminal-card overflow-hidden shadow-sm">
+    <div
+      v-if="community"
+      class="rounded-xl border bg-card text-card-foreground overflow-hidden shadow-sm"
+    >
       <div
-        class="terminal-card-header p-4 font-medium"
+        class="flex items-center gap-2 px-4 py-3 font-semibold p-4 font-medium"
         :style="{
           borderLeftColor: community.color || 'var(--status-special-mark)',
           borderLeftWidth: '4px',
@@ -33,7 +36,7 @@ const { t } = useI18n();
 
         <!-- Stats -->
         <div class="mt-4 space-y-2">
-          <div class="flex justify-between text-xs font-data">
+          <div class="flex justify-between text-xs font-mono">
             <span class="text-muted-foreground">{{
               t("forum.sidebar.members")
             }}</span>
@@ -41,17 +44,17 @@ const { t } = useI18n();
               community.members?.toLocaleString()
             }}</span>
           </div>
-          <div class="flex justify-between text-xs font-data">
+          <div class="flex justify-between text-xs font-mono">
             <span class="text-muted-foreground">{{
               t("forum.sidebar.online")
             }}</span>
-            <span class="font-bold tabular-nums text-[var(--foreground-strong)]">{{
+            <span class="font-bold tabular-nums text-foreground">{{
               community.online?.toLocaleString()
             }}</span>
           </div>
           <div
             v-if="community.postsToday"
-            class="flex justify-between text-xs font-data"
+            class="flex justify-between text-xs font-mono"
           >
             <span class="text-muted-foreground">{{
               t("forum.sidebar.postsToday")
@@ -62,7 +65,7 @@ const { t } = useI18n();
           </div>
           <div
             v-if="community.postsWeek"
-            class="flex justify-between text-xs font-data"
+            class="flex justify-between text-xs font-mono"
           >
             <span class="text-muted-foreground">{{
               t("forum.sidebar.postsWeek")
@@ -76,16 +79,16 @@ const { t } = useI18n();
         <!-- Rules -->
         <div
           v-if="rules && rules.length > 0"
-          class="mt-4 border-t border-border-control/40 pt-4"
+          class="mt-4 border-t border-input/40 pt-4"
         >
           <h3
-            class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-data"
+            class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-mono"
           >
             {{ t("forum.sidebar.communityRules") }}
           </h3>
           <ol class="space-y-2 text-xs">
             <li v-for="rule in rules" :key="rule.id">
-              <strong class="font-data font-bold text-foreground"
+              <strong class="font-mono font-bold text-foreground"
                 >{{ rule.sortOrder }}. {{ rule.title }}</strong
               >
               <p class="text-muted-foreground mt-0.5">{{ rule.body }}</p>
@@ -96,10 +99,10 @@ const { t } = useI18n();
         <!-- Links -->
         <div
           v-if="links && links.length > 0"
-          class="mt-4 border-t border-border-control/40 pt-4"
+          class="mt-4 border-t border-input/40 pt-4"
         >
           <h3
-            class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-data"
+            class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-mono"
           >
             {{ t("forum.sidebar.resources") }}
           </h3>
@@ -109,7 +112,7 @@ const { t } = useI18n();
                 :href="link.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-[var(--primary)] hover:underline flex items-center gap-1 font-data"
+                class="text-primary hover:underline flex items-center gap-1 font-mono"
               >
                 <span>{{ link.label }}</span>
               </a>
@@ -120,8 +123,11 @@ const { t } = useI18n();
     </div>
 
     <!-- Default sidebar (when viewing all posts) -->
-    <div v-else class="terminal-card overflow-hidden shadow-sm">
-      <div class="terminal-card-header">
+    <div
+      v-else
+      class="rounded-xl border bg-card text-card-foreground overflow-hidden shadow-sm"
+    >
+      <div class="flex items-center gap-2 px-4 py-3 font-semibold">
         {{ t("forum.sidebar.aboutCommunity") }}
       </div>
       <div class="p-4 text-sm text-muted-foreground leading-relaxed">

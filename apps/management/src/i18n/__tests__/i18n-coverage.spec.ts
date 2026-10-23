@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createI18n } from 'vue-i18n'
 import { join } from 'path'
 import zhCN from '../locales/zh-CN'
 import { flattenObject, runI18nCheck } from '@ulticode/i18n-completeness'
@@ -6,6 +7,57 @@ import { flattenObject, runI18nCheck } from '@ulticode/i18n-completeness'
 type TranslationObject = Record<string, unknown>
 
 describe('i18n coverage', () => {
+  it('distinguishes filtered, global and current-page moderation statistics in both locales', async () => {
+    const enUS = (await import('../locales/en-US')).default
+    const i18n = createI18n({
+      legacy: false,
+      locale: 'en-US',
+      messages: { 'zh-CN': zhCN, 'en-US': enUS },
+    })
+    const labels = [
+      ['filteredTotal', 'Filtered total', '筛选总计'],
+      ['globalPending', 'All pending', '全部待处理'],
+      ['globalUnderReview', 'All under review', '全部审核中'],
+      ['globalResolved', 'All resolved', '全部已解决'],
+      ['pendingOnPage', 'Pending on this page', '本页待处理'],
+    ] as const
+    for (const [key, en, zh] of labels) {
+      i18n.global.locale.value = 'en-US'
+      expect(i18n.global.t(`moderation.terminal.${key}`)).toBe(en)
+      i18n.global.locale.value = 'zh-CN'
+      expect(i18n.global.t(`moderation.terminal.${key}`)).toBe(zh)
+    }
+  })
+
+  it('labels solution subset counts as current-page statistics in both locales', async () => {
+    const enUS = (await import('../locales/en-US')).default
+    const i18n = createI18n({
+      legacy: false,
+      locale: 'en-US',
+      messages: { 'zh-CN': zhCN, 'en-US': enUS },
+    })
+
+    expect(i18n.global.t('solutions.terminal.flagged')).toBe('Flagged on this page')
+    expect(i18n.global.t('solutions.terminal.published')).toBe('Published on this page')
+    i18n.global.locale.value = 'zh-CN'
+    expect(i18n.global.t('solutions.terminal.flagged')).toBe('本页已标记')
+    expect(i18n.global.t('solutions.terminal.published')).toBe('本页已发布')
+  })
+
+  it('renders literal email template variable syntax in both locales', async () => {
+    const enUS = (await import('../locales/en-US')).default
+    const i18n = createI18n({
+      legacy: false,
+      locale: 'zh-CN',
+      messages: { 'zh-CN': zhCN, 'en-US': enUS },
+    })
+
+    for (const locale of ['zh-CN', 'en-US'] as const) {
+      i18n.global.locale.value = locale
+      expect(i18n.global.t('system.email.form.variablesHelp')).toContain('{{variable}}')
+    }
+  })
+
   it('zh-CN and en-US should have the same key count', async () => {
     const enUS = (await import('../locales/en-US')).default as unknown as TranslationObject
     const zhKeys = flattenObject(zhCN as unknown as TranslationObject)

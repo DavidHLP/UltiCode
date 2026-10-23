@@ -16,10 +16,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run Gitleaks
         run: |
           docker run --rm \
             -v "$PWD:/repo:ro" \
-            zricethezav/gitleaks:v8.24.2 \
+            zricethezav/gitleaks@sha256:b5918eb91b8d2473cec722f066abb4352e4ffdc4ec9f4283ec143aba9ec9ebc4 \
             dir /repo --config=/repo/.gitleaks.toml --redact --no-banner

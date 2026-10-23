@@ -8,7 +8,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar'
+} from '@ulticode/design-system/ui/sidebar'
 import NavMain from './NavMain.vue'
 import NavDocuments from './NavDocuments.vue'
 import NavSecondary from './NavSecondary.vue'

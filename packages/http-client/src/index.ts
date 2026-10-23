@@ -30,16 +30,11 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios'
-import {
-  type CsrfTokenManager,
-} from '@ulticode/auth-core/src/csrf'
-import {
-  createCsrfAxiosInterceptor,
-} from '@ulticode/auth-core/src/axiosCsrfInterceptor'
-import {
-  createRefreshAccessToken,
-} from '@ulticode/auth-core/src/refreshCoordinator'
+import { type CsrfTokenManager } from '@ulticode/auth-core/src/csrf'
+import { createCsrfAxiosInterceptor } from '@ulticode/auth-core/src/axiosCsrfInterceptor'
+import { createRefreshAccessToken } from '@ulticode/auth-core/src/refreshCoordinator'
 import { RequestAttemptRegistry, type RequestAttempt } from './request-attempt'
+import { parseCookies } from '@ulticode/auth-core'
 
 // ---------------------------------------------------------------------------
 // Locale header — the host app injects the active locale via a callback so
@@ -99,7 +94,9 @@ export interface ApiErrorResponse {
 }
 
 /** Convert transport response data to the package-owned error response shape. */
-function toApiErrorResponse(response?: AxiosResponse): ApiErrorResponse | undefined {
+function toApiErrorResponse(
+  response?: AxiosResponse,
+): ApiErrorResponse | undefined {
   if (!response) return undefined
   const data = response.data
   return {
@@ -133,7 +130,9 @@ export class ApiError extends Error {
     const axiosError = axios.isAxiosError(error) ? error : undefined
     const data = axiosError?.response?.data
     const message =
-      (isApiErrorData(data) && typeof data.message === 'string' ? data.message : undefined) ||
+      (isApiErrorData(data) && typeof data.message === 'string'
+        ? data.message
+        : undefined) ||
       (error instanceof Error ? error.message : undefined) ||
       'Request failed'
     const code = axiosError?.response?.status || 0
@@ -205,7 +204,10 @@ interface RequestMetadata {
   callerSignal?: AbortSignal
 }
 
-interface ConfigWithMetadata extends Omit<InternalAxiosRequestConfig, 'headers'> {
+interface ConfigWithMetadata extends Omit<
+  InternalAxiosRequestConfig,
+  'headers'
+> {
   headers: AxiosRequestHeaders
   retry?: number
   retryDelay?: number
@@ -224,7 +226,10 @@ function getRequestKey(config: InternalAxiosRequestConfig): string {
   return `${method}_${url}_${JSON.stringify(params)}_${JSON.stringify(data)}`
 }
 
-function shouldDeduplicate(config: InternalAxiosRequestConfig, policy: DedupPolicy): boolean {
+function shouldDeduplicate(
+  config: InternalAxiosRequestConfig,
+  policy: DedupPolicy,
+): boolean {
   if (policy === 'none') return false
   if (NON_DEDUPLICABLE_URLS.has(config.url || '')) return false
   if (policy === 'all-non-auth') return true
@@ -242,11 +247,23 @@ export interface HttpClient {
   /** `GET /path` returning the unwrapped `data` field of the `Result<T>` envelope. */
   apiGet: <T = unknown>(path: string, init?: RequestConfig) => Promise<T>
   /** `POST /path`. */
-  apiPost: <T = unknown>(path: string, body?: unknown, init?: RequestConfig) => Promise<T>
+  apiPost: <T = unknown>(
+    path: string,
+    body?: unknown,
+    init?: RequestConfig,
+  ) => Promise<T>
   /** `PATCH /path`. */
-  apiPatch: <T = unknown>(path: string, body?: unknown, init?: RequestConfig) => Promise<T>
+  apiPatch: <T = unknown>(
+    path: string,
+    body?: unknown,
+    init?: RequestConfig,
+  ) => Promise<T>
   /** `PUT /path`. */
-  apiPut: <T = unknown>(path: string, body?: unknown, init?: RequestConfig) => Promise<T>
+  apiPut: <T = unknown>(
+    path: string,
+    body?: unknown,
+    init?: RequestConfig,
+  ) => Promise<T>
   /** `DELETE /path`. */
   apiDelete: <T = unknown>(path: string, init?: RequestConfig) => Promise<T>
   /** Multipart upload with progress tracking. */
@@ -257,7 +274,11 @@ export interface HttpClient {
     init?: RequestConfig,
   ) => Promise<T>
   /** Browser-side file download via a hidden `<a download>` element. */
-  apiDownload: (path: string, filename?: string, init?: RequestConfig) => Promise<void>
+  apiDownload: (
+    path: string,
+    filename?: string,
+    init?: RequestConfig,
+  ) => Promise<void>
   /** Build an `AbortController` consumers can use to cancel in-flight requests. */
   createAbortController: () => AbortController
 }
@@ -269,6 +290,23 @@ export interface HttpClient {
  * instances (useful for testing).
  */
 export function createHttpClient(config: HttpClientConfig): HttpClient {
+  const accountCookie = () =>
+    typeof document === 'undefined'
+      ? undefined
+      : parseCookies(document.cookie).get('session_account')
+  let expectedAccount = accountCookie()
+  let hasAccountCookie = Boolean(expectedAccount)
+  function assertSessionAccount(): void {
+    const current = accountCookie()
+    if (
+      expectedAccount &&
+      (current || hasAccountCookie) &&
+      current !== expectedAccount
+    ) {
+      if (typeof window !== 'undefined') window.location.reload()
+      throw new axios.CanceledError('Session account changed')
+    }
+  }
   const dedupPolicy = config.dedupPolicy ?? 'non-auth-readonly'
   const canceledMessage = config.canceledMessage ?? 'Request canceled'
   let isAuthErrorHandling = false
@@ -310,6 +348,8 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
 
   service.interceptors.request.use(
     (req: ConfigWithMetadata) => {
+      assertSessionAccount()
+      if (expectedAccount) req.headers['X-Session-Account'] = expectedAccount
       const previousMetadata = req._metadata
       const metadata: RequestMetadata = previousMetadata ?? {
         requestId: req.requestId || generateRequestId(),
@@ -336,7 +376,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       req._attempt = attempt
       req.signal = attempt.signal
 
-      if (isDevelopment) {
+      if (isDevelopment && !req.url?.startsWith('/auth/')) {
         // eslint-disable-next-line no-console
         console.debug('[API Request]', {
           baseURL: req.baseURL,
@@ -355,9 +395,22 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   service.interceptors.response.use(
     (response: AxiosResponse) => {
       const cfg = response.config as ConfigWithMetadata
+      const body = response.data?.code === 0 ? response.data.data : undefined
+      const sessionChange =
+        /^\/auth\/(login|register|accounts(?:\/switch)?)$/.test(cfg.url ?? '')
+      if (
+        (sessionChange || !expectedAccount) &&
+        typeof body?.user?.id === 'string'
+      ) {
+        expectedAccount = body.user.id
+        hasAccountCookie = Boolean(accountCookie())
+      } else if (cfg.url === '/auth/logout' && response.data?.code === 0) {
+        expectedAccount = undefined
+      }
+      assertSessionAccount()
       const metadata = cfg._metadata
       completeAttempt(cfg)
-      if (isDevelopment && metadata) {
+      if (isDevelopment && metadata && !cfg.url?.startsWith('/auth/')) {
         // eslint-disable-next-line no-console
         console.debug('[API Response]', {
           status: response.status,
@@ -423,15 +476,25 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           }
           if (isDevelopment) {
             // eslint-disable-next-line no-console
-            console.debug('[API Retry]', { attempt: retryCount + 1, maxRetry, delay })
+            console.debug('[API Retry]', {
+              attempt: retryCount + 1,
+              maxRetry,
+              delay,
+            })
           }
           return service(cfg)
         }
         completeAttempt(cfg)
       }
       const strategy = config.onAuthFailure ?? { kind: 'silent' as const }
-      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        if (strategy.kind === 'clear-and-run') {
+      if (
+        error.response &&
+        (error.response.status === 401 || error.response.status === 403)
+      ) {
+        if (
+          strategy.kind === 'clear-and-run' &&
+          error.response.status === 401
+        ) {
           if (!isAuthErrorHandling) {
             isAuthErrorHandling = true
             try {
@@ -442,7 +505,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
               }, 1000)
             }
           }
-        } else if (strategy.kind === 'redirect-login' && error.response.status === 401) {
+        } else if (
+          strategy.kind === 'redirect-login' &&
+          error.response.status === 401
+        ) {
           if (!isAuthErrorHandling) {
             isAuthErrorHandling = true
             try {
@@ -453,7 +519,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
               }, 1000)
             }
           }
-        } else if (strategy.kind === 'redirect-login' && error.response.status === 403) {
+        } else if (
+          strategy.kind === 'redirect-login' &&
+          error.response.status === 403
+        ) {
           if (isDevelopment && cfg?._metadata) {
             // eslint-disable-next-line no-console
             console.warn(`[API Forbidden] ${cfg._metadata.requestId}`, {
@@ -486,7 +555,8 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   // type that cannot collapse when the caller passes its own response type
   // parameter. The response interceptor already unwraps the envelope, so the
   // runtime value is the payload; assert that once here, not at every call site.
-  const asPayload = <T>(request: Promise<unknown>): Promise<T> => request as Promise<T>
+  const asPayload = <T>(request: Promise<unknown>): Promise<T> =>
+    request as Promise<T>
   const toAxiosConfig = (init?: RequestConfig): AxiosRequestConfig => {
     if (!init) return {}
     const {
@@ -521,9 +591,13 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     apiGet: <T>(path: string, init?: RequestConfig) =>
       asPayload<T>(service.get<T, T>(path, toAxiosConfig(init))),
     apiPost: <T>(path: string, body?: unknown, init?: RequestConfig) =>
-      asPayload<T>(service.post<T, T, unknown>(path, body, toAxiosConfig(init))),
+      asPayload<T>(
+        service.post<T, T, unknown>(path, body, toAxiosConfig(init)),
+      ),
     apiPatch: <T>(path: string, body?: unknown, init?: RequestConfig) =>
-      asPayload<T>(service.patch<T, T, unknown>(path, body, toAxiosConfig(init))),
+      asPayload<T>(
+        service.patch<T, T, unknown>(path, body, toAxiosConfig(init)),
+      ),
     apiPut: <T>(path: string, body?: unknown, init?: RequestConfig) =>
       asPayload<T>(service.put<T, T, unknown>(path, body, toAxiosConfig(init))),
     apiDelete: <T>(path: string, init?: RequestConfig) =>
@@ -545,14 +619,20 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
           },
           onUploadProgress: (progressEvent) => {
             if (onProgress && progressEvent.total) {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              const progress = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total,
+              )
               onProgress(progress)
             }
           },
         }),
       )
     },
-    apiDownload: async (path: string, filename?: string, init?: RequestConfig) => {
+    apiDownload: async (
+      path: string,
+      filename?: string,
+      init?: RequestConfig,
+    ) => {
       const blob = await asPayload<Blob>(
         service.get<Blob, Blob>(path, {
           ...toAxiosConfig(init),

@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import * as echarts from "echarts";
+import { useResizeObserver } from "@vueuse/core";
 import type { UserSkill } from "@/types/userStats";
 import { useI18n } from "vue-i18n";
 import { useChartPalette } from "@ulticode/design-system";
+import { problemTagLabelKey } from "@/i18n/utils/problemTagLabel";
 import { withSafeChartAnimation } from "./chartOptions";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+const skillLabel = (skill: UserSkill) => {
+  const key = problemTagLabelKey(skill.tagSlug);
+  return key ? t(key) : skill.tagName;
+};
 
 interface Props {
   skills: UserSkill[];
@@ -37,7 +44,7 @@ const initChart = () => {
   const colors = chartPalette.value;
 
   const indicators = props.skills.map((skill) => ({
-    name: skill.tagName,
+    name: skillLabel(skill),
     max: Math.max(...props.skills.map((s) => s.count)) * 1.2,
   }));
 
@@ -52,15 +59,15 @@ const initChart = () => {
       textStyle: {
         color: colors.foreground,
       },
-      formatter: (params: unknown) => {
-        const data = params as {
-          value: number[];
-          indicator: { name: string }[];
-        };
-        if (!data.value || !data.indicator) return "";
-        return data.indicator
-          .map((ind, idx) => `${ind.name}: ${data.value[idx]}`)
-          .join("<br/>");
+      confine: true,
+      formatter: () => {
+        const tooltip = document.createElement("div");
+        for (const skill of props.skills) {
+          const row = document.createElement("div");
+          row.textContent = `${skillLabel(skill)}: ${skill.count}`;
+          tooltip.append(row);
+        }
+        return tooltip;
       },
     },
     radar: {
@@ -123,11 +130,12 @@ const handleResize = () => {
   chartInstance?.resize();
 };
 
+useResizeObserver(chartRef, handleResize);
+
 onMounted(() => {
   if (hasSkills.value) {
     initChart();
   }
-  window.addEventListener("resize", handleResize);
 });
 
 watch(
@@ -144,9 +152,14 @@ watch(
 );
 
 watch(chartPalette, () => initChart(), { flush: "post" });
+watch(locale, () => initChart(), { flush: "post" });
+watch(
+  () => props.loading,
+  () => initChart(),
+  { flush: "post" },
+);
 
 onUnmounted(() => {
-  window.removeEventListener("resize", handleResize);
   chartInstance?.dispose();
   chartInstance = null;
 });

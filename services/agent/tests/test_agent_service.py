@@ -14,14 +14,68 @@ import httpx
 import pytest
 import uvicorn
 
-from deepseek_model import DeepseekModel
+from deepseek_model import DeepseekModel, ModelBudgetExceeded
 from agent_loop import ModelDecision, ToolCall
 from agent_service.app import create_app, parse_model_answer
+from agent_service.app import _read_agent_feature as read_admin_feature, AgentError
 from retrieval import SourceDocument
 from citation_integrity import check_citations
 from ulticode_client import UlticodeServiceError
 
 HEADERS = {"cookie": "access_token=access; csrf_token=csrf", "x-csrf-token": "csrf"}
+
+
+@pytest.mark.parametrize("payload,expected", [
+    ({"code": 0, "data": {"enabled": True}}, True),
+    ({"code": 0, "data": {"enabled": False}}, False),
+    ({"code": 0, "data": {"enabled": "true"}}, None),
+    ({"code": 50000, "data": {"enabled": True}}, None),
+    ({}, None),
+])
+def test_admin_feature_response_is_validated(monkeypatch, payload, expected):
+    original_client = httpx.AsyncClient
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: original_client(transport=transport, **kwargs))
+    if expected is None:
+        with pytest.raises(AgentError, match="agent_settings_unavailable"):
+            asyncio.run(read_admin_feature())
+    else:
+        assert asyncio.run(read_admin_feature()) is expected
+
+
+@pytest.fixture(autouse=True)
+def enabled_admin_feature(monkeypatch):
+    async def enabled():
+        return True
+    monkeypatch.setattr("agent_service.app._read_agent_feature", enabled)
+
+
+def test_admin_disabled_agent_rejects_direct_requests(tmp_path):
+    app = create_app(state_path=tmp_path / "admin-disabled.sqlite3", client_factory=SessionClient)
+    async def disabled():
+        return False
+    app.state.agent_feature_enabled = disabled
+    async def scenario(client):
+        capability = await client.get("/agent/capabilities", headers=HEADERS)
+        assert capability.status_code == 200
+        assert capability.json()["data"]["featureEnabled"] is False
+        response = await client.get("/agent/conversations", headers=HEADERS)
+        assert response.status_code == 403
+        assert response.json()["message"] == "agent_disabled"
+    asyncio.run(with_client(app, scenario))
+
+
+def test_admin_settings_failure_prevents_agent_operations(tmp_path):
+    from agent_service.app import AgentError
+    app = create_app(state_path=tmp_path / "admin-unavailable.sqlite3", client_factory=SessionClient)
+    async def unavailable():
+        raise AgentError(503, "agent_settings_unavailable", 50300)
+    app.state.agent_feature_enabled = unavailable
+    async def scenario(client):
+        response = await client.get("/agent/conversations", headers=HEADERS)
+        assert response.status_code == 503
+        assert response.json()["message"] == "agent_settings_unavailable"
+    asyncio.run(with_client(app, scenario))
 
 
 async def with_client(app, callback):
@@ -1190,7 +1244,9 @@ def test_model_answer_rejects_lone_surrogate():
 
 
 @pytest.mark.parametrize("mode", ["known", "malformed", "budget", "protocol", "cancel"])
-def test_model_observation_uses_existing_metadata_without_payloads(mode):
+@pytest.mark.parametrize("conversation", [False, True])
+def test_model_observation_uses_existing_metadata_without_payloads(mode, conversation):
+    from agent_service.app import _ConversationModel
     from agent_service.observation import ObservedModel
     from deepseek_model import ModelBudgetExceeded, ModelProtocolError
     events = []
@@ -1210,7 +1266,10 @@ def test_model_observation_uses_existing_metadata_without_payloads(mode):
             self.metering.append({"attempt_id": attempt if mode == "known" else "secret-attempt"})
             return ModelDecision(text="secret-answer")
     async def scenario():
-        observed = ObservedModel(MeteredModel(), lambda kind, detail: events.append((kind, detail)), node="model")
+        model = MeteredModel()
+        if conversation:
+            model = _ConversationModel(model, "secret-question", {}, [], False)
+        observed = ObservedModel(model, lambda kind, detail: events.append((kind, detail)), node="model")
         if mode in {"budget", "protocol", "cancel"}:
             error = {"budget": ModelBudgetExceeded, "protocol": ModelProtocolError,
                      "cancel": asyncio.CancelledError}[mode]
@@ -1225,6 +1284,7 @@ def test_model_observation_uses_existing_metadata_without_payloads(mode):
         assert detail["usageStatus"] == ("known" if mode == "known" else "unavailable")
         assert detail["attemptId"] == (attempt if mode == "known" else None)
         if mode == "known":
+            assert detail["model"] == "deepseek-flash"
             assert detail["usage"] == {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5}
         elif mode == "malformed":
             assert detail["usage"]["prompt_tokens"] is None
@@ -1536,6 +1596,9 @@ async def main():
     model = ScriptedModel()
     app = create_app(state_path=sys.argv[1], client_factory=OwnerClient,
                      offline_model_factory=lambda: (model, {}))
+    async def feature_enabled():
+        return True
+    app.state.agent_feature_enabled = feature_enabled
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
             if sys.argv[2] == "prepare":
@@ -1690,6 +1753,140 @@ def test_authorization_outage_allows_explicit_save_recovery(tmp_path, monkeypatc
                 assert recovered.status_code == 200
                 assert recovered.json()["data"]["status"] == "saved"
                 assert posts["count"] == 2
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("unit", ["ascii", "cjk", "emoji"])
+def test_conversation_prompt_trims_history_using_deepseek_budget(unit):
+    from agent_service.app import _ConversationModel
+    from agent_service.graph import run_readonly_graph
+
+    symbols = {"ascii": "x", "cjk": "界", "emoji": "🙂"}
+    history = [
+        {"question": f"old-{index}", "answer": symbols[unit] * 900, "status": "completed"}
+        for index in range(12)
+    ]
+    captured = []
+
+    async def handler(request):
+        captured.append(json.loads(request.content))
+        decision = ({"tool": "search_evidence", "args": {"query": "boundary"}}
+                    if len(captured) < 3 else {"answer": "ok"})
+        return httpx.Response(200, json={
+            "choices": [{"message": {"content": json.dumps(decision)}}],
+        })
+
+    async def search(_arguments):
+        return {"hits": [{"text": "e" * 2000}]}
+
+    async def scenario():
+        async with DeepseekModel(
+            "test-key", tool_specs={"search_evidence": "Search bounded evidence"},
+            max_prompt_tokens=12_000, transport=httpx.MockTransport(handler),
+        ) as model:
+            conversation_model = _ConversationModel(
+                model, "current question", {"status": "Accepted", "private": "ignored"}, history, True,
+            )
+            result = await run_readonly_graph(
+                conversation_model, {"search_evidence": search}, conversation_model.prompt([]),
+            )
+            assert result.answer == "ok"
+            assert result.rounds == 3
+
+    asyncio.run(scenario())
+    assert len(captured) == 3
+    prompts = [request["messages"][1]["content"] for request in captured]
+    for prompt in prompts:
+        assert "current question" in prompt
+        assert '\"status\":\"Accepted\"' in prompt
+        assert "The user authorized current submission source" in prompt
+        assert "old-11" in prompt
+    assert prompts[-1].count('\"question\":\"old-') < prompts[0].count('\"question\":\"old-')
+    assert captured[-1]["messages"][-1]["content"].startswith("TOOL_RESULT:")
+
+
+def test_conversation_prompt_fails_closed_when_current_question_exceeds_real_budget():
+    from agent_service.app import _conversation_prompt
+
+    async def handler(_request):
+        raise AssertionError("oversized prompt must not make a request")
+
+    async def scenario():
+        async with DeepseekModel(
+            "test-key", tool_specs={}, max_prompt_tokens=12_000,
+            transport=httpx.MockTransport(handler),
+        ) as model:
+            with pytest.raises(ModelBudgetExceeded):
+                prompt = _conversation_prompt(
+                    "x" * 30_000, {"status": "Accepted"}, [], False,
+                    budget_check=model.check_prompt_budget,
+                )
+                await model.decide([{"role": "user", "content": prompt}])
+            assert model.calls_made == 0
+
+    asyncio.run(scenario())
+
+
+def test_cancelled_run_lock_blocks_new_turn_across_app_instances(tmp_path):
+    entered = asyncio.Event()
+    release = asyncio.Event()
+
+    class WaitingModel:
+        async def decide(self, _messages):
+            entered.set()
+            await release.wait()
+            return ModelDecision(text=json.dumps({"text": "ok", "citations": []}))
+
+    model = WaitingModel()
+    state_path = tmp_path / "cross-app-conversation.sqlite3"
+    app_a = create_app(
+        state_path=state_path, client_factory=SessionClient,
+        offline_model_factory=lambda: (model, {}),
+    )
+    app_b = create_app(
+        state_path=state_path, client_factory=SessionClient,
+        offline_model_factory=lambda: (model, {}),
+    )
+    conversation_id = str(uuid.uuid4())
+
+    async def scenario():
+        async with app_a.router.lifespan_context(app_a):
+            async with app_b.router.lifespan_context(app_b):
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app_a), base_url="http://app-a",
+                ) as client_a, httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app_b), base_url="http://app-b",
+                ) as client_b:
+                    created = await client_a.post("/agent/conversations", headers=HEADERS, json={
+                        "conversationId": conversation_id,
+                        "sourceSubmissionId": str(uuid.uuid4()),
+                        "clientTurnId": str(uuid.uuid4()), "question": "First question",
+                    })
+                    turn = created.json()["data"]["turn"]
+                    run = asyncio.create_task(client_a.post(
+                        f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/run",
+                        headers=HEADERS, json={"sourceConsent": False},
+                    ))
+                    await asyncio.wait_for(entered.wait(), timeout=2)
+                    cancelled = await client_b.post(
+                        f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/cancel",
+                        headers=HEADERS, json={},
+                    )
+                    assert cancelled.json()["data"]["status"] == "cancelled"
+                    rejected = await client_b.post(
+                        f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+                        json={"clientTurnId": str(uuid.uuid4()), "question": "Second question"},
+                    )
+                    assert rejected.status_code == 409
+                    assert rejected.json()["data"]["reason"] == "turn_active"
+                    release.set()
+                    assert (await asyncio.wait_for(run, timeout=2)).status_code == 200
+                    accepted = await client_b.post(
+                        f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+                        json={"clientTurnId": str(uuid.uuid4()), "question": "Second question"},
+                    )
+                    assert accepted.status_code == 200
 
     asyncio.run(scenario())
 
@@ -1974,5 +2171,47 @@ def test_owner_source_is_consent_scoped_and_never_persisted(tmp_path, monkeypatc
                     continue
                 for row in db.execute(f"SELECT * FROM {table}"):
                     assert marker not in repr(tuple(row))
+
+    asyncio.run(with_client(app, scenario))
+
+
+@pytest.mark.parametrize("legacy_status", ["queued", "failed"])
+def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path, legacy_status):
+    class Model:
+        async def decide(self, _messages):
+            return ModelDecision(text=json.dumps({"text": "Review boundary cases", "citations": []}))
+
+    app = create_app(
+        state_path=tmp_path / "legacy-queued.sqlite3", client_factory=SessionClient,
+        offline_model_factory=lambda: (Model(), {}),
+    )
+    conversation_id = str(uuid.uuid4())
+
+    async def scenario(client):
+        created = await client.post("/agent/conversations", headers=HEADERS, json={
+            "conversationId": conversation_id, "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": str(uuid.uuid4()), "question": "Review boundary cases",
+        })
+        first = created.json()["data"]["turn"]
+        first_url = f"/agent/conversations/{conversation_id}/turns/{first['turnId']}"
+        assert (await client.post(first_url + "/cancel", headers=HEADERS, json={})).status_code == 200
+        second_response = await client.post(f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
+            json={"clientTurnId": str(uuid.uuid4()), "question": "Explain the result"})
+        second = second_response.json()["data"]
+        # Reproduce a pre-upgrade retry/crash snapshot without weakening admission.
+        with app.state.store._connect() as db:
+            db.execute("UPDATE conversation_turns SET status=?,cancel_requested=0 WHERE turn_id=?",
+                       (legacy_status, first["turnId"]))
+        blocked = await client.post(first_url + "/run", headers=HEADERS, json={"sourceConsent": False})
+        assert blocked.status_code == 409
+        assert blocked.json()["data"]["reason"] == "turn_active"
+        cancelled = await client.post(
+            f"/agent/conversations/{conversation_id}/turns/{second['turnId']}/cancel", headers=HEADERS, json={})
+        assert cancelled.json()["data"]["status"] == "cancelled"
+        resumed = await client.post(first_url + "/run", headers=HEADERS, json={"sourceConsent": False})
+        assert resumed.status_code == 200
+        assert resumed.json()["data"]["status"] == "completed"
+        history = (await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)).json()["data"]
+        assert [turn["status"] for turn in history["turns"]] == ["completed", "cancelled"]
 
     asyncio.run(with_client(app, scenario))

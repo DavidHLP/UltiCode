@@ -1,6 +1,6 @@
 import { storeToRefs } from 'pinia'
 import { computed, watch } from 'vue'
-import { tryOnScopeDispose, watchDebounced } from '@vueuse/core'
+import { tryOnScopeDispose } from '@vueuse/core'
 import { normalizeDateParams, type AuditLog, type AuditLogQueryParams } from '@/api/admin/audit'
 import { useRemoteTable, type PaginationState } from '@/composables/useRemoteTable'
 import { useAuditStore } from '@/stores/admin/audit'
@@ -115,28 +115,53 @@ export function useAuditReadWorkspace() {
     { deep: true, flush: 'sync' },
   )
 
-  watchDebounced(
+  watch(
     table.query,
-    (current) => {
-      void refreshStats(current)
+    (current, _previous, onCleanup) => {
+      const timer = setTimeout(() => void refreshStats(current), 500)
+      onCleanup(() => clearTimeout(timer))
     },
-    { debounce: 500, deep: true, immediate: true },
+    { deep: true, immediate: true },
   )
 
   tryOnScopeDispose(() => auditStore.cancelStats())
 
+  function setSearch(search: string): void {
+    statsError.value = null
+    table.setSearch(search)
+  }
+
+  function setFilters(filters: AuditFilters): Promise<void> | void {
+    statsError.value = null
+    return table.setFilters(filters)
+  }
+
+  function setPagination(pagination: PaginationState): Promise<void> | void {
+    statsError.value = null
+    return table.setPagination(pagination)
+  }
+
+  const searchQuery = computed({
+    get: () => table.searchQuery.value,
+    set: setSearch,
+  })
+  const tablePagination = computed({
+    get: () => table.tablePagination.value,
+    set: setPagination,
+  })
+
   return {
     query: table.query,
-    searchQuery: table.searchQuery,
-    tablePagination: table.tablePagination,
+    searchQuery,
+    tablePagination,
     loading: table.loading,
     statsLoading,
     data: table.data,
     total: table.total,
     error: computed(() => table.error.value ?? statsError.value),
-    setSearch: table.setSearch,
-    setFilters: table.setFilters,
-    setPagination: table.setPagination,
+    setSearch,
+    setFilters,
+    setPagination,
     refresh,
     stats,
     actionTypeStats: computed(() => stats.value?.actionsByType ?? []),

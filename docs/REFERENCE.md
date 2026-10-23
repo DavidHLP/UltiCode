@@ -17,6 +17,8 @@
 
 `POST /learning-plans` 为当前已认证、有效且未封禁的用户保存已确认的学习计划。请求必须携带规范 UUID 格式的 `Idempotency-Key`，且来源提交必须属于当前用户。相同 key 和请求内容重试时返回原记录；同一 key 携带不同内容时返回 HTTP 409（业务码 `40900`）。`GET /learning-plans/{id}` 和 `GET /learning-plans/by-key/{key}` 仅返回当前用户拥有的记录。
 
+App 受保护路由对未认证请求返回 HTTP 401；已认证但缺少所需角色时返回 HTTP 403。显式公开路由继续允许匿名访问。
+
 ### Agent workflow API
 
 The opt-in Python Agent service is separate from Java `/learning-plans`: it owns private multi-turn conversation history and local LearningPlan workflow drafts, while App Java owns confirmed LearningPlan records. Factory: `agent_service.app.create_app(...)`. Conversation IDs and client turn IDs are UUIDs supplied by the client; server validation binds each conversation to the authenticated owner and one eligible submission. Existing LearningPlan thread IDs remain server-generated. Every operation checks the authenticated owner; a body field cannot select a user, model, graph node, or checkpoint.
@@ -55,6 +57,8 @@ Read-only recovery can still reconcile an already dispatched write by its origin
 eligibility changes, but cannot retry that write. Deploy the updated Java detail provider before enabling the new
 Console entry; old providers that omit the field cannot establish eligibility. General metadata
 listing tools retain their existing projection and do not gain source code, tests, or owner fields.
+
+Conversation cancellation fences later result writes; it does not prove that a remote model request has stopped. While a cancelled turn still holds its execution file lock, adding another turn returns HTTP `409 turn_active`; retrying another turn or deleting the conversation also returns HTTP `409`. Admission and start check other active turns within the SQLite write transaction. After the lock is released, the next turn may be accepted. A lost `/run` response is not a terminal state, even if a refresh still reports `queued`: the Console retains observation until authoritative terminal state or a terminal event resolves it, without automatically resending analysis. Transient SSE errors retain native reconnection; server stream closure triggers a status refresh and reconnects observation if the turn is unresolved.
 
 LearningPlan thread states include `draft`, `analyzing`, `awaiting_confirmation`, `confirmed`, `saving`, `saved`, `unknown`, `failed`, and `cancelled`. Agent SQLite is canonical for those drafts, thread state, and events; LangGraph checkpoints are resumable workflow control state only. Multi-turn conversation turns use separate SQLite rows and statuses `queued`, `running`, `completed`, `failed`, and `cancelled`; each turn has its own run ID, event sequence, and cancellation fence, and chat analysis does not write a LangGraph checkpoint. `saved` requires an accepted
 Java record response. A timeout, lost response, or uncertain process restart remains `unknown`.
@@ -171,7 +175,7 @@ For startup and retained checks, see [Agent local runtime](DEVELOPMENT.md#agent-
 `services/api/` 的 provider-owned contract：
 
 - `auth-api`：Identity、Account administration、Authorization snapshot。
-- `app-api`：App-owned Problem/Contest/content、facts/recipient 例外。
+- `app-api`：App-owned Problem/Contest/content、facts/recipient 例外。`GET /problem-lists/{id}/overview` 的问题条目携带 `categorySlugs`（类别 slug 列表），供题单内类别筛选使用。
 - `judge-api`：Judge-owned execution contract；不包含 provider implementation 或 sandbox dependency。
 - `submission-api`：intake、verdict、fence、facts、rejudge administration 和 lifecycle events。
 - `notification-api`：notification administration、reconciliation、intent/delivery payload。
@@ -205,6 +209,19 @@ Provider 校验 audience、签名、deadline、jti/replay、actor 和输入边�
 2. Auth 创建 hash-only refresh session，并返回 HttpOnly `access_token`、`refresh_token` 与可读 `csrf_token`。
 3. 浏览器调用其他 mutation、`POST /auth/refresh` 或 logout 时，按[安全架构](ARCHITECTURE.md#安全架构与信任边界)提交 Cookie 与 CSRF header。
 4. refresh 只使用 refresh cookie；Auth 条件 revoke 旧 session 并插入新 session。
+
+### Multiple signed-in accounts
+
+The sidebar account menu supports up to five signed-in accounts through these Auth endpoints:
+
+| Endpoint | Contract |
+| --- | --- |
+| `GET /auth/accounts` | Returns `{ id, name, email, role, current }[]` for valid active/saved sessions; credentials are never returned. |
+| `POST /auth/accounts` | Accepts login credentials and optional `adminOnly`; authenticates the added account while retaining the previous account. |
+| `POST /auth/accounts/switch` | Accepts `accountId` and optional `adminOnly`; validates and rotates that account's saved refresh session. |
+| `GET /auth/csrf` | Issues/reuses a double-submit token without an active access token, including after logging out while other accounts remain saved. |
+
+Adding/switching returns the existing login response and applies session cookies. Saved refresh credentials use account-bound HttpOnly `saved_account_*` cookies; the active account continues to use the existing access/refresh pair. Logging out revokes the active refresh credential and preserves other signed-in accounts. Unsafe requests require double-submit CSRF even when only saved credentials remain. A failed switch does not replace the active cookies. Password reset, revocation, expiry, inactivity, and bans remain enforced by Auth. Management's `adminOnly` option rejects non-administrator selections and does not grant permissions.
 
 ### 服务入口
 

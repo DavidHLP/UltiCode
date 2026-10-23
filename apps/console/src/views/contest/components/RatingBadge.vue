@@ -20,7 +20,9 @@ const title = computed(() =>
   props.rating != null ? getRatingTitle(props.rating) : "NEWBIE",
 );
 const color = computed(() =>
-  props.rating != null ? getRatingColor(props.rating) : "var(--muted-foreground)",
+  props.rating != null
+    ? getRatingColor(props.rating)
+    : "var(--muted-foreground)",
 );
 
 const displayName = computed(() => {
@@ -54,7 +56,7 @@ const sizeClasses = computed(() => {
 <template>
   <div class="inline-flex items-center gap-1.5">
     <span
-      class="font-bold rounded-none border border-transparent text-foreground-strong"
+      class="font-bold rounded-lg border border-transparent text-foreground"
       :class="sizeClasses"
       :style="{ borderColor: color }"
     >

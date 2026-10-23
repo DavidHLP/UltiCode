@@ -157,6 +157,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
         all.setFeatureNotifications(f.isFeatureNotifications());
         all.setFeatureBookmarks(f.isFeatureBookmarks());
         all.setFeatureProblemLists(f.isFeatureProblemLists());
+        all.setFeatureAgent(f.isFeatureAgent());
 
         return all;
     }
@@ -192,6 +193,18 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
     public UploadSettingsVO updateUploadSettings(UploadSettingsVO vo) {
         store.save(SystemSettingsStore.KEY_UPLOADS, vo);
         return getUploadSettings();
+    }
+
+    @Override
+    public boolean isAgentEnabled() {
+        Map<String, String> raw = store.loadAllRaw(List.of(SystemSettingsStore.KEY_FEATURES));
+        if (!raw.containsKey(SystemSettingsStore.KEY_FEATURES)) return true;
+        FeatureTogglesVO flags = store.parseOrDefault(raw.get(SystemSettingsStore.KEY_FEATURES),
+                FeatureTogglesVO.class, () -> {
+                    throw new BusinessException(AdminErrorCode.SETTING_INVALID_VALUE);
+                });
+        if (flags == null) throw new BusinessException(AdminErrorCode.SETTING_INVALID_VALUE);
+        return flags.isFeatureAgent();
     }
 
     @Override
@@ -286,7 +299,8 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
                 && !v.isFeatureAchievements()
                 && !v.isFeatureNotifications()
                 && !v.isFeatureBookmarks()
-                && !v.isFeatureProblemLists();
+                && !v.isFeatureProblemLists()
+                && !(v.isFeatureAgentSpecified() && v.isFeatureAgent());
     }
 
     // ===== DDL defaults (policy, not storage shape) =====

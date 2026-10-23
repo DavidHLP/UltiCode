@@ -63,7 +63,9 @@ const categoryColor = computed(
       "
     >
       <template v-if="achievement.earned">
-        <Trophy :class="cn('text-primary-foreground', iconSizes[size || 'md'])" />
+        <Trophy
+          :class="cn('text-primary-foreground', iconSizes[size || 'md'])"
+        />
       </template>
       <template v-else>
         <Lock :class="cn('text-muted-foreground', iconSizes[size || 'md'])" />
@@ -103,7 +105,7 @@ const categoryColor = computed(
       v-if="achievement.points > 0"
       :class="
         cn(
-          'absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-2xs font-bold text-primary-foreground',
+          'absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground',
           size === 'lg' && 'h-6 text-xs',
         )
       "
@@ -114,10 +116,7 @@ const categoryColor = computed(
     <!-- Tier label -->
     <span
       :class="
-        cn(
-          'mt-1 text-2xs font-medium uppercase tracking-wide',
-          categoryColor,
-        )
+        cn('mt-1 text-xs font-medium uppercase tracking-wide', categoryColor)
       "
     >
       {{ TierLabels[achievement.tier as keyof typeof TierLabels] || "Bronze" }}

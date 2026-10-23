@@ -33,7 +33,7 @@ function createInitialHeaderGroups(
       index: 0,
       title: t("problem.layout.problemDescription"),
       icon: "FileText",
-      iconColor: "var(--accent-primary)",
+      iconColor: "var(--primary)",
     },
   ];
   if (!isContest) {
@@ -42,7 +42,7 @@ function createInitialHeaderGroups(
       index: problemInfoHeaders.length,
       title: t("problem.layout.solution"),
       icon: "FlaskConical",
-      iconColor: "var(--accent-primary)",
+      iconColor: "var(--primary)",
     });
   }
   problemInfoHeaders.push({
@@ -50,7 +50,7 @@ function createInitialHeaderGroups(
     index: problemInfoHeaders.length,
     title: t("problem.layout.submissions"),
     icon: "History",
-    iconColor: "var(--accent-primary)",
+    iconColor: "var(--primary)",
   });
 
   return [
@@ -109,10 +109,7 @@ function buildLayoutConfig(
   });
 }
 
-function getLeetLayoutConfig(
-  t: (key: string) => string,
-  isContest: boolean,
-) {
+function getLeetLayoutConfig(t: (key: string) => string, isContest: boolean) {
   const groups = createInitialHeaderGroups(t, isContest);
   const children: LayoutNodeType[] = [
     {
@@ -256,10 +253,7 @@ function getCompactLayoutConfig(
   return { groups, layout };
 }
 
-function getWideLayoutConfig(
-  t: (key: string) => string,
-  isContest: boolean,
-) {
+function getWideLayoutConfig(t: (key: string) => string, isContest: boolean) {
   const groups = createInitialHeaderGroups(t, isContest);
   const children: LayoutNodeType[] = [
     {
@@ -394,9 +388,7 @@ export function useProblemLayout(contestId: Ref<string | null>) {
     const config = getLayoutConfig(currentLayout.value);
     headerStore.initData(config.groups, config.layout);
     if (previousActive === null || previousActive === undefined) return;
-    const problemInfoGroup = config.groups.find(
-      (g) => g.id === "problem-info",
-    );
+    const problemInfoGroup = config.groups.find((g) => g.id === "problem-info");
     const stillExists = problemInfoGroup?.headers.some(
       (h) => h.id === previousActive,
     );
@@ -445,11 +437,18 @@ export function useProblemLayout(contestId: Ref<string | null>) {
   );
 
   function initLayout() {
+    const tabParam = route.params.tab;
+    let tabName = Array.isArray(tabParam) ? tabParam[0] : tabParam;
+    // These panels have their own mobile tabs, not a problem-info header.
+    // Initializing the desktop header must not overwrite their deep links.
+    const preservePanelRoute = ["code", "testcases", "testresults"].includes(
+      tabName ?? "",
+    );
+    if (preservePanelRoute) isUpdatingFromRoute.value = true;
+
     const initialConfig = getLeetLayoutConfig(t, isContest.value);
     headerStore.initData(initialConfig.groups, initialConfig.layout);
 
-    const tabParam = route.params.tab;
-    let tabName = Array.isArray(tabParam) ? tabParam[0] : tabParam;
     // In contest mode the solutions tab is not rendered, so any
     // ?tab=solutions deep link should resolve to the description tab.
     if (isContest.value && tabName === "solutions") {
@@ -463,6 +462,11 @@ export function useProblemLayout(contestId: Ref<string | null>) {
       lastTab.value = tabName;
     } else {
       lastTab.value = "description";
+    }
+    if (preservePanelRoute) {
+      nextTick(() => {
+        isUpdatingFromRoute.value = false;
+      });
     }
   }
 

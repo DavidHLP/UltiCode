@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultProblemListReadPort implements ProblemListReadPort {
 
+    private static final String CATEGORY_TAG_PREFIX = "problem-category-";
+
     private final ProblemMapper problemMapper;
 
     @Override
@@ -36,6 +38,15 @@ public class DefaultProblemListReadPort implements ProblemListReadPort {
                                 Collectors.toList()
                         )
                 ));
+        Map<Long, List<String>> categorySlugsByProblemId = tags.stream()
+                .filter(tag -> tag.tagSlug() != null && tag.tagSlug().startsWith(CATEGORY_TAG_PREFIX))
+                .collect(Collectors.groupingBy(
+                        ProblemMapper.ProblemTagDTO::problemId,
+                        Collectors.mapping(
+                                tag -> tag.tagSlug().substring(CATEGORY_TAG_PREFIX.length()),
+                                Collectors.toList()
+                        )
+                ));
         return problems.stream()
                 .map(p -> new ProblemListItemDTO(
                         p.getId(),
@@ -46,6 +57,7 @@ public class DefaultProblemListReadPort implements ProblemListReadPort {
                         p.getAcceptanceRate(),
                         p.getIsPremium(),
                         p.getHasSolution(),
+                        categorySlugsByProblemId.getOrDefault(p.getId(), List.of()),
                         tagsByProblemId.getOrDefault(p.getId(), List.of())
                 ))
                 .toList();

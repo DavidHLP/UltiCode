@@ -8,7 +8,7 @@ import {
   Loader2,
   Check,
 } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -17,7 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuItem,
   DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuGroup,
+} from "@ulticode/design-system/ui/dropdown-menu";
 import { useBookmarkStore } from "@/stores/bookmark";
 import {
   getUserListsForProblem,
@@ -35,9 +36,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@ulticode/design-system/ui/dialog";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Label } from "@ulticode/design-system/ui/label";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -109,7 +110,10 @@ async function loadData() {
     // Load bookmark folders in parallel
     await bookmarkStore.loadFolders();
     const [folders, lists] = await Promise.all([
-      bookmarkStore.loadItemFolders(props.targetType, props.problemId.toString()),
+      bookmarkStore.loadItemFolders(
+        props.targetType,
+        props.problemId.toString(),
+      ),
       getUserListsForProblem(props.problemId),
     ]);
 
@@ -260,9 +264,9 @@ watch(
         <Button
           type="button"
           variant="ghost"
-          class="h-8 px-3 rounded-none flex items-center gap-1.5 transition-all select-none font-bold text-xs cursor-pointer bg-transparent text-foreground dark:text-foreground-muted hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] hover:text-foreground-strong dark:hover:text-foreground shadow-none"
+          class="px-3 flex items-center gap-1.5 select-none cursor-pointer dark:hover:bg-border dark:hover:text-foreground"
           :class="{
-            'text-[var(--primary)]! bg-[var(--primary)]/10! hover:bg-[var(--primary)]/15! hover:text-[var(--primary)]!':
+            'text-primary! bg-primary/10! hover:bg-primary/15! hover:text-primary!':
               isSaved,
           }"
           :aria-label="t('problem.save.title')"
@@ -274,169 +278,169 @@ watch(
           />
           <span
             v-if="count !== undefined"
-            class="text-xxs tabular-nums font-mono font-bold"
+            class="text-xs tabular-nums font-mono font-bold"
           >
             {{ count }}
           </span>
-          <span class="hidden sm:inline text-xxs font-bold opacity-80">
+          <span class="hidden sm:inline text-xs font-bold opacity-80">
             {{ t("problem.save.title") }}
           </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent class="w-72" align="end">
-        <DropdownMenuLabel>{{ t("problem.save.title") }}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-
-        <template v-if="isLoading">
-          <div class="flex items-center justify-center py-4">
-            <Loader2 class="h-4 w-4 animate-spin" />
-          </div>
-        </template>
-        <template v-else-if="!isAuthed">
-          <div class="px-3 py-2 text-sm text-muted-foreground">
-            {{ t("problem.save.loginRequired") }}
-          </div>
-        </template>
-        <template v-else>
-          <!-- Bookmark Folders Section -->
-          <div v-if="bookmarkStore.defaultFolder">
-            <DropdownMenuLabel class="text-xs text-muted-foreground px-2 py-1">
-              {{ t("problem.save.quickSave") }}
-            </DropdownMenuLabel>
-            <DropdownMenuCheckboxItem
-              :checked="isFavorited"
-              @select.prevent="toggleFolder(bookmarkStore.defaultFolder.id)"
-              :class="{
-                'bg-primary/10 border-l-2 border-primary': isFavorited,
-              }"
-              class="transition-colors"
-            >
-              <span class="flex items-center gap-2 flex-1">
-                <Bookmark class="h-4 w-4" />
-                <span
-                  :class="{
-                    'font-semibold text-primary': isFavorited,
-                  }"
-                >
-                  {{ bookmarkStore.defaultFolder.name }}
-                </span>
-                <Check
-                  v-if="isFavorited"
-                  class="h-3 w-3 text-primary ml-auto"
-                />
-              </span>
-            </DropdownMenuCheckboxItem>
-
-            <DropdownMenuSeparator
-              v-if="
-                bookmarkStore.customFolders.length > 0 || userLists.length > 0
-              "
-            />
-          </div>
-
-          <!-- Custom Folders -->
-          <div v-if="bookmarkStore.customFolders.length > 0">
-            <DropdownMenuLabel class="text-xs text-muted-foreground px-2 py-1">
-              {{ t("problem.save.folders") }}
-            </DropdownMenuLabel>
-            <DropdownMenuCheckboxItem
-              v-for="folder in bookmarkStore.customFolders"
-              :key="folder.id"
-              :checked="itemFolders.includes(folder.id)"
-              @select.prevent="toggleFolder(folder.id)"
-              :class="{
-                'bg-primary/10 border-l-2 border-primary': itemFolders.includes(
-                  folder.id,
-                ),
-              }"
-            >
-              <span class="flex items-center gap-2 flex-1">
-                <span
-                  :class="{
-                    'font-semibold text-primary': itemFolders.includes(
-                      folder.id,
-                    ),
-                  }"
-                  >{{ folder.name }}</span
-                >
-                <Check
-                  v-if="itemFolders.includes(folder.id)"
-                  class="h-3 w-3 text-primary ml-auto"
-                />
-              </span>
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuSeparator v-if="userLists.length > 0" />
-          </div>
-
-          <!-- Problem Lists Section -->
-          <div v-if="userLists.length > 0">
-            <DropdownMenuLabel class="text-xs text-muted-foreground px-2 py-1">
-              {{ t("problem.save.lists") }}
-            </DropdownMenuLabel>
-            <div class="max-h-[200px] overflow-y-auto">
-              <DropdownMenuCheckboxItem
-                v-for="list in userLists"
-                :key="list.id"
-                :checked="list.containsProblem"
-                @select.prevent="toggleList(list.id)"
-                :class="{
-                  'bg-primary/10 border-l-2 border-primary':
-                    list.containsProblem,
-                }"
-                class="flex items-start gap-2 py-2 transition-colors"
-              >
-                <div class="flex flex-col flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
-                    <span
-                      class="truncate"
-                      :class="{
-                        'font-semibold text-primary': list.containsProblem,
-                        'font-medium': !list.containsProblem,
-                      }"
-                      >{{ list.name }}</span
-                    >
-                    <Check
-                      v-if="list.containsProblem"
-                      class="h-4 w-4 text-primary flex-shrink-0 ml-auto"
-                    />
-                  </div>
-                  <div
-                    class="flex items-center gap-2 text-xs"
-                    :class="{
-                      'text-primary/70': list.containsProblem,
-                      'text-muted-foreground': !list.containsProblem,
-                    }"
-                  >
-                    <span
-                      >{{ list.problemCount }} {{ t("bookmark.items") }}</span
-                    >
-                  </div>
-                </div>
-              </DropdownMenuCheckboxItem>
-            </div>
-          </div>
-
-          <!-- Empty State -->
-          <div
-            v-if="
-              bookmarkStore.customFolders.length === 0 &&
-              userLists.length === 0 &&
-              !bookmarkStore.defaultFolder
-            "
-            class="px-3 py-4 text-sm text-muted-foreground text-center"
-          >
-            <p class="mb-2">{{ t("problem.save.empty") }}</p>
-            <p class="text-xs">{{ t("problem.save.createHint") }}</p>
-          </div>
-
+        <DropdownMenuGroup
+          ><DropdownMenuLabel>{{ t("problem.save.title") }}</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          <!-- Actions -->
-          <DropdownMenuItem class="cursor-pointer" @select="openCreateDialog">
-            <FolderPlus class="mr-2 h-4 w-4" />
-            {{ t("problem.save.createList") }}
-          </DropdownMenuItem>
-        </template>
+          <template v-if="isLoading">
+            <div class="flex items-center justify-center py-4">
+              <Loader2 class="h-4 w-4 animate-spin" />
+            </div>
+          </template>
+          <template v-else-if="!isAuthed">
+            <div class="px-3 py-2 text-sm text-muted-foreground">
+              {{ t("problem.save.loginRequired") }}
+            </div>
+          </template>
+          <template v-else>
+            <!-- Bookmark Folders Section -->
+            <div v-if="bookmarkStore.defaultFolder">
+              <DropdownMenuLabel class="px-2 py-1">
+                {{ t("problem.save.quickSave") }}
+              </DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                :checked="isFavorited"
+                @select.prevent="toggleFolder(bookmarkStore.defaultFolder.id)"
+                :class="{
+                  'bg-primary/10 border-l-2 border-primary': isFavorited,
+                }"
+              >
+                <span class="flex items-center gap-2 flex-1">
+                  <Bookmark class="h-4 w-4" />
+                  <span
+                    :class="{
+                      'font-semibold text-primary': isFavorited,
+                    }"
+                  >
+                    {{ bookmarkStore.defaultFolder.name }}
+                  </span>
+                  <Check
+                    v-if="isFavorited"
+                    class="h-3 w-3 text-primary ml-auto"
+                  />
+                </span>
+              </DropdownMenuCheckboxItem>
+
+              <DropdownMenuSeparator
+                v-if="
+                  bookmarkStore.customFolders.length > 0 || userLists.length > 0
+                "
+              />
+            </div>
+
+            <!-- Custom Folders -->
+            <div v-if="bookmarkStore.customFolders.length > 0">
+              <DropdownMenuLabel class="px-2 py-1">
+                {{ t("problem.save.folders") }}
+              </DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                v-for="folder in bookmarkStore.customFolders"
+                :key="folder.id"
+                :checked="itemFolders.includes(folder.id)"
+                @select.prevent="toggleFolder(folder.id)"
+                :class="{
+                  'bg-primary/10 border-l-2 border-primary':
+                    itemFolders.includes(folder.id),
+                }"
+              >
+                <span class="flex items-center gap-2 flex-1">
+                  <span
+                    :class="{
+                      'font-semibold text-primary': itemFolders.includes(
+                        folder.id,
+                      ),
+                    }"
+                    >{{ folder.name }}</span
+                  >
+                  <Check
+                    v-if="itemFolders.includes(folder.id)"
+                    class="h-3 w-3 text-primary ml-auto"
+                  />
+                </span>
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator v-if="userLists.length > 0" />
+            </div>
+
+            <!-- Problem Lists Section -->
+            <div v-if="userLists.length > 0">
+              <DropdownMenuLabel class="px-2 py-1">
+                {{ t("problem.save.lists") }}
+              </DropdownMenuLabel>
+              <div class="max-h-[200px] overflow-y-auto">
+                <DropdownMenuCheckboxItem
+                  v-for="list in userLists"
+                  :key="list.id"
+                  :checked="list.containsProblem"
+                  @select.prevent="toggleList(list.id)"
+                  :class="{
+                    'bg-primary/10 border-l-2 border-primary':
+                      list.containsProblem,
+                  }"
+                  class="flex items-start gap-2 py-2"
+                >
+                  <div class="flex flex-col flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="truncate"
+                        :class="{
+                          'font-semibold text-primary': list.containsProblem,
+                          'font-medium': !list.containsProblem,
+                        }"
+                        >{{ list.name }}</span
+                      >
+                      <Check
+                        v-if="list.containsProblem"
+                        class="h-4 w-4 text-primary flex-shrink-0 ml-auto"
+                      />
+                    </div>
+                    <div
+                      class="flex items-center gap-2 text-xs"
+                      :class="{
+                        'text-primary/70': list.containsProblem,
+                        'text-muted-foreground': !list.containsProblem,
+                      }"
+                    >
+                      <span
+                        >{{ list.problemCount }} {{ t("bookmark.items") }}</span
+                      >
+                    </div>
+                  </div>
+                </DropdownMenuCheckboxItem>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div
+              v-if="
+                bookmarkStore.customFolders.length === 0 &&
+                userLists.length === 0 &&
+                !bookmarkStore.defaultFolder
+              "
+              class="px-3 py-4 text-sm text-muted-foreground text-center"
+            >
+              <p class="mb-2">{{ t("problem.save.empty") }}</p>
+              <p class="text-xs">{{ t("problem.save.createHint") }}</p>
+            </div>
+
+            <DropdownMenuSeparator />
+
+            <!-- Actions -->
+            <DropdownMenuItem class="cursor-pointer" @select="openCreateDialog">
+              <FolderPlus class="mr-2 h-4 w-4" />
+              {{ t("problem.save.createList") }}
+            </DropdownMenuItem>
+          </template></DropdownMenuGroup
+        >
       </DropdownMenuContent>
     </DropdownMenu>
 

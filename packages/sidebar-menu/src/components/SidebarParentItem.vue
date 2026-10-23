@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
-import { CollapsibleRoot, CollapsibleTrigger, CollapsibleContent } from 'reka-ui'
-import { cn } from '../utils'
+import { Button } from "@ulticode/design-system/ui/button";
+
+import { Button as NavigationButton } from "@ulticode/design-system/ui/button";
+import type { Component } from "vue";
+import {
+  Collapsible as CollapsibleRoot,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@ulticode/design-system/ui/collapsible";
+import { cn } from "../utils";
 
 /**
  * SidebarParentItem — a parent row that is both a link and a collapsible
@@ -25,21 +32,20 @@ import { cn } from '../utils'
  */
 const props = withDefaults(
   defineProps<{
-    title: string
-    url?: string
+    title: string;
+    url?: string;
     /** Leading icon component (lucide in console, tabler in management). */
-    icon?: Component
+    icon?: Component;
     /** Extra class applied to the leading icon (e.g. active color). */
-    iconClass?: string
-    active?: boolean
-    defaultOpen?: boolean
-    class?: string
+    iconClass?: string;
+    active?: boolean;
+    defaultOpen?: boolean;
+    class?: string;
   }>(),
   { active: false, defaultOpen: true },
-)
+);
 
-const rowBase =
-  'uc-sidebar-item group flex flex-1 cursor-pointer items-center gap-2.5 rounded-md mx-1 h-9 pl-2.5 pr-3 py-1.5 text-sm font-medium transition-all duration-200 select-none'
+const rowBase = "flex-1 justify-start";
 </script>
 
 <template>
@@ -52,19 +58,32 @@ const rowBase =
     <div :class="cn('group flex items-center', props.class)">
       <!-- Mode A: title navigates; chevron is a separate collapse trigger. -->
       <template v-if="url">
-        <component
-          :is="'router-link'"
-          :to="url"
-          :data-active="active ? 'true' : 'false'"
+        <NavigationButton
+          variant="ghost"
+          as-child
           :class="rowBase"
+          data-sidebar="menu-button"
+          :data-active="active || undefined"
+          ><component
+            :is="'router-link'"
+            :to="url"
+            data-sidebar="menu-button"
+            :data-active="active || undefined"
+            :class="rowBase"
+          >
+            <component
+              :is="icon"
+              v-if="icon"
+              :class="cn('size-4 shrink-0 transition-colors', iconClass)"
+            />
+            <span class="flex-1 truncate">{{ title }}</span>
+          </component></NavigationButton
         >
-          <component :is="icon" v-if="icon" :class="cn('size-4 shrink-0 transition-colors', iconClass)" />
-          <span class="flex-1 truncate">{{ title }}</span>
-        </component>
         <CollapsibleTrigger as-child>
-          <button
+          <Button
+            variant="ghost"
             type="button"
-            class="mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--foreground-muted)] hover:bg-[var(--border-subtle)]/40 hover:text-[var(--foreground)] min-h-11 min-w-11 sm:min-h-7 sm:min-w-7"
+            class="mr-1 flex shrink-0 items-center justify-center min-h-11 min-w-11 sm:min-h-7 sm:min-w-7"
             :aria-label="isOpen ? 'collapse section' : 'expand section'"
           >
             <slot name="chevron" :open="isOpen">
@@ -76,23 +95,33 @@ const rowBase =
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                :class="cn('size-4 transition-transform duration-200', isOpen && 'rotate-90')"
+                :class="
+                  cn(
+                    'size-4 transition-transform duration-200',
+                    isOpen && 'rotate-90',
+                  )
+                "
               >
                 <path d="m9 18 6-6-6-6" />
               </svg>
             </slot>
-          </button>
+          </Button>
         </CollapsibleTrigger>
       </template>
       <!-- Mode B: title row is the collapse trigger itself. -->
       <CollapsibleTrigger v-else as-child>
-        <button
+        <Button
+          variant="ghost"
           type="button"
-          :data-active="active ? 'true' : 'false'"
+          data-sidebar="menu-button"
           :class="rowBase"
           :aria-label="isOpen ? 'collapse section' : 'expand section'"
         >
-          <component :is="icon" v-if="icon" :class="cn('size-4 shrink-0 transition-colors', iconClass)" />
+          <component
+            :is="icon"
+            v-if="icon"
+            :class="cn('size-4 shrink-0 transition-colors', iconClass)"
+          />
           <span class="flex-1 truncate text-left">{{ title }}</span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -102,11 +131,16 @@ const rowBase =
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            :class="cn('ml-auto size-4 shrink-0 text-[var(--foreground-muted)] transition-transform duration-200', isOpen && 'rotate-90')"
+            :class="
+              cn(
+                'ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-200',
+                isOpen && 'rotate-90',
+              )
+            "
           >
             <path d="m9 18 6-6-6-6" />
           </svg>
-        </button>
+        </Button>
       </CollapsibleTrigger>
     </div>
     <CollapsibleContent>

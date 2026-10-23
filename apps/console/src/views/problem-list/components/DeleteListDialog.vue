@@ -7,8 +7,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
 
 defineProps<{
   open: boolean;

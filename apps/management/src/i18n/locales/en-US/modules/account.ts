@@ -31,6 +31,12 @@ export default {
     username: 'Username',
   },
 
+  placeholders: {
+    company: 'Your company',
+    location: 'Your location',
+    bio: 'Tell us about yourself...',
+  },
+
   actions: {
     save: 'Save Changes',
     cancel: 'Cancel',

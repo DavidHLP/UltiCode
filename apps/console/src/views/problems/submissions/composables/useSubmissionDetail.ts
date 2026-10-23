@@ -158,17 +158,17 @@ export function useSubmissionDetail(
     const severity = statusMeta.value?.severity ?? statusMeta.value?.category;
     switch (severity) {
       case "success":
-        return "text-[var(--foreground-strong)]";
+        return "text-[var(--foreground)]";
       case "error":
-        return "text-[var(--foreground-strong)]";
+        return "text-[var(--foreground)]";
       case "warning":
-        return "text-[var(--foreground-strong)]";
+        return "text-[var(--foreground)]";
       case "info":
         return "text-[var(--primary)]";
       default:
         return submission()?.status === "Accepted"
-          ? "text-foreground-strong"
-          : "text-foreground-strong";
+          ? "text-foreground"
+          : "text-foreground";
     }
   });
 

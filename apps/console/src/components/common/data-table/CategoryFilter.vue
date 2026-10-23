@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import type { Component } from "vue";
+import { Button } from "@ulticode/design-system/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@ulticode/design-system/ui/dropdown-menu";
+import { ChevronDown } from "@lucide/vue";
+import { computed, type Component } from "vue";
 
 export interface CategoryOption {
   label: string;
@@ -7,7 +16,7 @@ export interface CategoryOption {
   icon?: Component;
 }
 
-defineProps<{
+const props = defineProps<{
   categories: CategoryOption[];
   modelValue: string;
 }>();
@@ -15,25 +24,51 @@ defineProps<{
 const emit = defineEmits<{
   "update:modelValue": [value: string];
 }>();
+
+const selectedCategory = computed(() =>
+  props.categories.find((category) => category.value === props.modelValue),
+);
 </script>
 
 <template>
-  <div
-    class="flex w-full flex-wrap items-center gap-1 rounded-lg border border-border-subtle bg-surface-sunken p-1"
-  >
-    <button
-      v-for="cat in categories"
-      :key="cat.value"
-      @click="emit('update:modelValue', cat.value)"
-      class="terminal-tab flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-all duration-200 cursor-pointer select-none whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:flex-1 md:px-3"
-      :class="
-        modelValue === cat.value
-          ? 'bg-surface-highlight text-foreground-strong shadow-sm border border-border-control font-bold'
-          : 'border border-transparent text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong font-medium'
-      "
-    >
-      <component :is="cat.icon" v-if="cat.icon" class="w-3.5 h-3.5 shrink-0" />
-      {{ cat.label }}
-    </button>
-  </div>
+  <DropdownMenu>
+    <DropdownMenuTrigger as-child>
+      <Button variant="outline" class="gap-2 cursor-pointer">
+        <component
+          :is="selectedCategory.icon"
+          v-if="selectedCategory?.icon"
+          class="size-3.5 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
+        {{ selectedCategory?.label || modelValue }}
+        <ChevronDown
+          class="size-3.5 text-muted-foreground"
+          aria-hidden="true"
+        />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="start" class="min-w-44">
+      <DropdownMenuRadioGroup
+        :model-value="modelValue"
+        @update:model-value="
+          typeof $event === 'string' && emit('update:modelValue', $event)
+        "
+      >
+        <DropdownMenuRadioItem
+          v-for="category in categories"
+          :key="category.value"
+          :value="category.value"
+          class="gap-2 cursor-pointer"
+        >
+          <component
+            :is="category.icon"
+            v-if="category.icon"
+            class="size-3.5 text-muted-foreground"
+            aria-hidden="true"
+          />
+          {{ category.label }}
+        </DropdownMenuRadioItem>
+      </DropdownMenuRadioGroup>
+    </DropdownMenuContent>
+  </DropdownMenu>
 </template>

@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { AlertTriangle } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import type { ContestDetail } from "@/types/contest";
 
 /**
@@ -25,7 +25,7 @@ const backHref = computed(() => `/contest/${props.contest.slug}`);
 
 <template>
   <div
-    class="flex items-center gap-3 border border-[var(--status-warning-mark)]/40 bg-[var(--status-warning-mark)]/10 px-3 py-2 font-mono text-xxs uppercase tracking-wider text-foreground-strong"
+    class="flex items-center gap-3 border border-status-warning-mark/40 bg-status-warning-mark/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-foreground"
     role="alert"
     data-testid="contest-problem-not-in-contest"
   >
@@ -35,14 +35,16 @@ const backHref = computed(() => `/contest/${props.contest.slug}`);
         <span class="font-black">{{
           t("contest.detail.problemNotInContest.title")
         }}</span>
-        <span class="ml-2 text-[var(--foreground-strong)]/70 normal-case font-normal tracking-normal">
+        <span
+          class="ml-2 text-foreground/70 normal-case font-normal tracking-normal"
+        >
           {{ t("contest.detail.problemNotInContest.description") }}
         </span>
       </div>
       <Button
         variant="outline"
         size="sm"
-        class="h-7 rounded-none border-[var(--status-warning-mark)]/60 px-3 font-black text-2xs uppercase tracking-widest text-foreground-strong hover:bg-[var(--status-warning-mark)]/10"
+        class="px-3"
         :data-testid="'back-to-contest-from-not-in-contest'"
         @click="$router.push(backHref)"
       >

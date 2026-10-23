@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import * as echarts from "echarts";
+import { useResizeObserver } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
+import { Button } from "@ulticode/design-system/ui/button";
 import { fetchSubmissionHistory } from "@/api/submission";
 import type { SubmissionHistory } from "@/api/submission";
 import { useChartPalette } from "@ulticode/design-system";
@@ -24,6 +26,7 @@ const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
 const historyData = ref<SubmissionHistory | null>(null);
 const dataLoading = ref(true);
+const loadFailed = ref(false);
 const chartPalette = useChartPalette();
 
 const hasData = computed(
@@ -47,8 +50,7 @@ const initChart = () => {
   const colors = chartPalette.value;
 
   const months = historyData.value?.monthly.map((m) => m.month) || [];
-  const submissionCounts =
-    historyData.value?.monthly.map((m) => m.count) || [];
+  const submissionCounts = historyData.value?.monthly.map((m) => m.count) || [];
   const acceptedCounts =
     historyData.value?.monthly.map((m) => m.accepted) || [];
 
@@ -118,6 +120,7 @@ const initChart = () => {
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: "axis",
+      confine: true,
       backgroundColor: colors.background,
       borderColor: colors.tooltipBorder,
       borderRadius: 0,
@@ -143,14 +146,14 @@ const initChart = () => {
       {
         left: "3%",
         right: "55%",
-        bottom: "15%",
+        bottom: 64,
         top: "10%",
         containLabel: true,
       },
       {
         left: "55%",
         right: "3%",
-        bottom: "15%",
+        bottom: 64,
         top: "10%",
         containLabel: true,
       },
@@ -173,6 +176,7 @@ const initChart = () => {
       {
         gridIndex: 1,
         type: "value",
+        minInterval: 1,
         axisLine: {
           lineStyle: {
             color: colors.border,
@@ -193,6 +197,7 @@ const initChart = () => {
     yAxis: [
       {
         type: "value",
+        minInterval: 1,
         axisLine: {
           lineStyle: {
             color: colors.border,
@@ -234,11 +239,16 @@ const handleResize = () => {
   chartInstance?.resize();
 };
 
+useResizeObserver(chartRef, handleResize);
+
 const loadData = async () => {
   dataLoading.value = true;
+  loadFailed.value = false;
   try {
     historyData.value = await fetchSubmissionHistory();
   } catch (e) {
+    historyData.value = null;
+    loadFailed.value = true;
     console.error("Failed to load submission history", e);
   } finally {
     dataLoading.value = false;
@@ -247,7 +257,6 @@ const loadData = async () => {
 
 onMounted(() => {
   loadData();
-  window.addEventListener("resize", handleResize);
 });
 
 watch([hasData, dataLoading], () => {
@@ -259,7 +268,6 @@ watch([hasData, dataLoading], () => {
 watch(chartPalette, () => initChart(), { flush: "post" });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", handleResize);
   chartInstance?.dispose();
   chartInstance = null;
 });
@@ -274,6 +282,18 @@ onUnmounted(() => {
       <div
         class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
       ></div>
+    </div>
+    <div
+      v-else-if="loadFailed"
+      role="alert"
+      class="flex min-h-[230px] flex-col items-center justify-center gap-3 text-center"
+    >
+      <p class="text-sm text-destructive [overflow-wrap:anywhere]">
+        {{ t("personal.history.loadError") }}
+      </p>
+      <Button variant="outline" @click="loadData">
+        {{ t("common.actions.retry") }}
+      </Button>
     </div>
     <div
       v-else-if="!hasData"

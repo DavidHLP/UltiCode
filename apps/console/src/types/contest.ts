@@ -1,4 +1,4 @@
-import type { PageResult } from '@ulticode/domain-types'
+import type { PageResult } from "@ulticode/domain-types";
 
 // ============================================================================
 // ENUMS — Aligned with backend ContestQueryDTO/ContestVO
@@ -27,10 +27,7 @@ export enum ParticipantStatus {
 
 export type ContestScoringMode = "SCORE" | "ICPC" | "IOI";
 export type ContestTieBreaker =
-  | "LAST_SOLVE_TIME"
-  | "TOTAL_TIME"
-  | "TOTAL_ATTEMPTS"
-  | "NONE";
+  "LAST_SOLVE_TIME" | "TOTAL_TIME" | "TOTAL_ATTEMPTS" | "NONE";
 export type VirtualContestStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 
 // Codeforces-style rating titles
@@ -64,10 +61,10 @@ export const RATING_THRESHOLDS: Record<RatingTitle, number> = {
 };
 
 export const RATING_COLORS: Record<RatingTitle, string> = {
-  NEWBIE: "var(--foreground-muted)",
+  NEWBIE: "var(--muted-foreground)",
   PUPIL: "var(--status-success-mark)",
   SPECIALIST: "var(--status-info-mark)",
-  EXPERT: "var(--accent-primary)",
+  EXPERT: "var(--primary)",
   CANDIDATE_MASTER: "var(--status-special-mark)",
   MASTER: "var(--status-warning-mark)",
   INTERNATIONAL_MASTER: "var(--status-warning-mark)",
@@ -165,6 +162,7 @@ export interface ContestProblemSummary {
   difficulty: string;
   solvedCount: number;
   submissionCount: number;
+  /** Percentage from the problem API, in the range 0..100. */
   acceptanceRate: number;
 }
 
@@ -364,8 +362,7 @@ export interface UserContestHistory {
 // PAGINATED RESPONSE — alias to canonical PageResult from shared/domain-types
 // ============================================================================
 
-export type PaginatedResult<T> = PageResult<T>
-
+export type PaginatedResult<T> = PageResult<T>;
 
 // ============================================================================
 // STATS

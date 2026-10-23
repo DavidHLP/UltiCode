@@ -1,24 +1,24 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconCalendar,
-  IconCircleCheckFilled,
-  IconClock,
-  IconEye,
-  IconLoader,
-  IconPlayerPlay,
-  IconPlayerStop,
-  IconTrash,
-  IconTrophy,
-  IconUsers,
-} from '@tabler/icons-vue'
+  Calendar as IconCalendar,
+  CircleCheck as IconCircleCheckFilled,
+  Clock as IconClock,
+  Eye as IconEye,
+  Loader as IconLoader,
+  Play as IconPlayerPlay,
+  Square as IconPlayerStop,
+  Trash as IconTrash,
+  Trophy as IconTrophy,
+  Users as IconUsers,
+} from '@lucide/vue'
 
 import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { Contest } from '@/api/admin/contests'
 import { formatDate } from '@/lib/format/date'
 import type { ContestPermissionMap } from '@/composables/domainPermissionMaps'
-import { badge, CONTEST_TYPE_COLOR_MAP, CONTEST_STATUS_COLOR_MAP } from '@/components/ui/terminal'
+import { badge, CONTEST_TYPE_COLOR_MAP, CONTEST_STATUS_COLOR_MAP } from '@ulticode/badge-config'
 
 export interface ContestActions {
   viewContest: (contest: Contest) => void
@@ -65,7 +65,7 @@ export function createColumns(
   return [
     ...createSelectionColumn<Contest>(t, {
       checkboxClass:
-        'border-[var(--border-subtle)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
+        'border-[var(--border)] data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-[var(--primary)]',
     }),
     {
       id: 'row_num',
@@ -74,7 +74,11 @@ export function createColumns(
         const pageIndex = table.getState().pagination.pageIndex
         const pageSize = table.getState().pagination.pageSize
         const rowNum = pageIndex * pageSize + row.index + 1
-        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+        return h(
+          'span',
+          { class: 'text-xs tabular-nums text-muted-foreground' },
+          String(rowNum).padStart(2, '0'),
+        )
       },
       enableSorting: false,
       enableHiding: false,
@@ -84,7 +88,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('contests.columns.contest'),
         ),
       cell: ({ row }) => {
@@ -96,9 +100,9 @@ export function createColumns(
               'data-testid': 'contest-title-icon',
               class: [
                 'h-9 w-9 border flex items-center justify-center',
-                'bg-[var(--surface-sunken)]',
-                'border-[color-mix(in_oklch,_var(--primary)_28%,_var(--border-subtle))]',
-                'dark:border-[color-mix(in_oklch,_var(--primary)_38%,_var(--border-subtle))]',
+                'bg-[var(--muted)]',
+                'border-[color-mix(in_oklch,_var(--primary)_28%,_var(--border))]',
+                'dark:border-[color-mix(in_oklch,_var(--primary)_38%,_var(--border))]',
                 'text-[var(--primary)]',
               ].join(' '),
             },
@@ -119,7 +123,7 @@ export function createColumns(
               'span',
               {
                 'data-testid': 'contest-slug',
-                class: 'font-data text-xs text-[var(--muted-foreground)]',
+                class: 'font-mono text-xs text-[var(--muted-foreground)]',
               },
               contest.slug,
             ),
@@ -132,7 +136,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('contests.columns.type'),
         ),
       cell: ({ row }) => {
@@ -145,7 +149,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('contests.columns.status'),
         ),
       cell: ({ row }) => {
@@ -158,23 +162,23 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('contests.columns.schedule'),
         ),
       cell: ({ row }) => {
         const contest = row.original
         const startDate = formatDate(contest.startTime)
         return h('div', { class: 'flex flex-col gap-1' }, [
-          h('div', { class: 'flex items-center gap-1.5 text-[var(--foreground-muted)]' }, [
+          h('div', { class: 'flex items-center gap-1.5 text-[var(--muted-foreground)]' }, [
             h(IconCalendar, { class: 'h-3.5 w-3.5' }),
-            h('span', { class: 'font-data text-xs tabular-nums' }, startDate),
+            h('span', { class: 'font-mono text-xs tabular-nums' }, startDate),
           ]),
-          h('div', { class: 'flex items-center gap-1.5 text-[var(--foreground-muted)]' }, [
+          h('div', { class: 'flex items-center gap-1.5 text-[var(--muted-foreground)]' }, [
             h(IconClock, { class: 'h-3.5 w-3.5' }),
             h(
               'span',
-              { class: 'font-data text-xs tabular-nums' },
-              t('contests.scheduleStep.minutes', { minutes: contest.duration }),
+              { class: 'font-mono text-xs tabular-nums' },
+              t('contests.scheduleStep.minutes', { minutes: contest.durationMinutes }),
             ),
           ]),
         ])
@@ -185,15 +189,15 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('contests.columns.participants'),
         ),
       cell: ({ row }) => {
-        return h('div', { class: 'flex items-center gap-2 text-[var(--foreground-muted)]' }, [
+        return h('div', { class: 'flex items-center gap-2 text-[var(--muted-foreground)]' }, [
           h(IconUsers, { class: 'h-4 w-4' }),
           h(
             'span',
-            { class: 'font-data text-sm tabular-nums' },
+            { class: 'font-mono text-sm tabular-nums' },
             row.original.participantCount || 0,
           ),
         ])
@@ -204,7 +208,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]' },
+          { class: 'font-mono text-xs uppercase tracking-widest text-[var(--muted-foreground)]' },
           t('contests.columns.actions'),
         ),
       cell: ({ row }) => {
@@ -215,22 +219,22 @@ export function createColumns(
               label: t('contests.actions.viewDetails'),
               onSelect: () => actions.viewContest(contest),
               icon: IconEye,
-              iconClass: 'h-4 w-4 text-foreground-strong',
+              iconClass: 'h-4 w-4 text-foreground',
             },
             {
               label: t('contests.actions.startContest'),
               onSelect: () => actions.startContest(contest),
               icon: IconPlayerPlay,
-              iconClass: 'h-4 w-4 text-foreground-strong',
-              labelClass: 'text-[var(--foreground-strong)]',
+              iconClass: 'h-4 w-4 text-foreground',
+              labelClass: 'text-[var(--foreground)]',
               hidden: !(can.update.value && contest.status === 'UPCOMING'),
             },
             {
               label: t('contests.actions.endContest'),
               onSelect: () => actions.endContest(contest),
               icon: IconPlayerStop,
-              iconClass: 'h-4 w-4 text-foreground-strong',
-              labelClass: 'text-[var(--foreground-strong)]',
+              iconClass: 'h-4 w-4 text-foreground',
+              labelClass: 'text-[var(--foreground)]',
               hidden: !(can.update.value && contest.status === 'RUNNING'),
             },
             { kind: 'separator' },
@@ -238,18 +242,17 @@ export function createColumns(
               label: t('contests.actions.delete'),
               onSelect: () => actions.startDeleteContest(contest),
               icon: IconTrash,
-              iconClass: 'h-4 w-4 text-foreground-strong',
-              labelClass: 'text-[var(--foreground-strong)]',
+              iconClass: 'h-4 w-4 text-foreground',
+              labelClass: 'text-[var(--foreground)]',
               hidden: !can.delete.value,
             },
           ],
           {
-            triggerClass:
-              'h-8 w-8 p-0 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]',
-            triggerIconClass: 'h-4 w-4 text-[var(--foreground-muted)]',
-            contentClass: 'border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]',
-            itemClass: 'font-data text-xs cursor-pointer',
-            separatorClass: 'bg-[var(--border-subtle)] dark:bg-[var(--foreground-strong)]',
+            triggerClass: 'h-8 w-8 p-0 hover:bg-[var(--accent)] dark:hover:bg-[var(--foreground)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--muted-foreground)]',
+            contentClass: 'border-[var(--border)] dark:border-[var(--foreground)]',
+            itemClass: 'font-mono text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--border)] dark:bg-[var(--foreground)]',
           },
         )
       },

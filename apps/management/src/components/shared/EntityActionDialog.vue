@@ -2,7 +2,13 @@
 import { ref, watch, computed, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconAlertTriangle, IconBan, IconFlag, IconLoader } from '@tabler/icons-vue'
+import {
+  AlertTriangle as IconAlertTriangle,
+  Ban as IconBan,
+  Flag as IconFlag,
+  Loader as IconLoader,
+} from '@lucide/vue'
+
 import {
   Dialog,
   DialogContent,
@@ -10,11 +16,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
+} from '@ulticode/design-system/ui/dialog'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { Input } from '@ulticode/design-system/ui/input'
 
 export type ActionType = 'delete' | 'flag' | 'ban' | 'unban'
 
@@ -177,9 +183,9 @@ const headerIcon = computed<Component>(() => {
 })
 
 const headerClass = computed(() => {
-  if (isFlagAction.value) return 'text-foreground-strong'
+  if (isFlagAction.value) return 'text-foreground'
   if (isBanAction.value) return 'text-destructive'
-  if (props.action === 'unban') return 'text-foreground-strong'
+  if (props.action === 'unban') return 'text-foreground'
   return 'text-destructive'
 })
 
@@ -195,10 +201,10 @@ const confirmButtonVariant = computed(() => {
 
 const confirmButtonClass = computed(() => {
   if (isFlagAction.value) {
-    return 'bg-status-warning-surface text-foreground-strong border border-[var(--status-warning-mark)] hover:bg-status-warning-surface'
+    return 'bg-status-warning-surface text-foreground border border-status-warning-mark hover:bg-status-warning-surface'
   }
   if (props.action === 'unban') {
-    return 'bg-status-success-surface text-foreground-strong border border-[var(--status-success-mark)] hover:bg-status-success-surface'
+    return 'bg-status-success-surface text-foreground border border-status-success-mark hover:bg-status-success-surface'
   }
   return ''
 })
@@ -208,7 +214,7 @@ const confirmButtonClass = computed(() => {
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle class="flex items-center gap-2 text-foreground-strong">
+        <DialogTitle class="flex items-center gap-2">
           <component :is="headerIcon" class="h-5 w-5" :class="headerClass" />
           {{ defaultTitle }}
         </DialogTitle>

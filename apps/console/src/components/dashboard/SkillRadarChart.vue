@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from "vue";
+import { computed, ref } from "vue";
+import { useResizeObserver } from "@vueuse/core";
+import { useI18n } from "vue-i18n";
 import type { UserSkill } from "@/types/userStats";
+import { problemTagLabelKey } from "@/i18n/utils/problemTagLabel";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   skills: UserSkill[];
@@ -8,12 +13,20 @@ const props = defineProps<{
   maxDisplay?: number;
 }>();
 
+const skillLabel = (skill: UserSkill) => {
+  const key = problemTagLabelKey(skill.tagSlug);
+  return key ? t(key) : skill.tagName;
+};
+
 const containerRef = ref<HTMLElement | null>(null);
 const size = ref(300);
 
-onMounted(() => {
+useResizeObserver(containerRef, () => {
   if (containerRef.value) {
-    size.value = Math.min(containerRef.value.clientWidth, 300);
+    size.value = Math.max(
+      0,
+      Math.min(containerRef.value.clientWidth - 64, 300),
+    );
   }
 });
 
@@ -74,7 +87,7 @@ const labelPositions = computed(() => {
     const angle = i * angleStep.value - Math.PI / 2;
     const labelRadius = radius.value + 20;
     return {
-      skill,
+      name: skillLabel(skill),
       x: centerX.value + labelRadius * Math.cos(angle),
       y: centerY.value + labelRadius * Math.sin(angle),
       textAnchor:
@@ -152,18 +165,18 @@ const labelPositions = computed(() => {
           :y="label.y"
           :text-anchor="label.textAnchor"
           dominant-baseline="middle"
-          class="fill-current text-2xs text-muted-foreground"
+          class="fill-current text-xs text-muted-foreground"
         >
-          {{ label.skill.tagName }}
+          {{ label.name }}
         </text>
       </svg>
 
       <!-- Empty state -->
       <div
         v-else
-        class="flex h-48 w-full items-center justify-center text-sm text-muted-foreground"
+        class="flex h-48 w-full items-center justify-center text-center text-sm text-muted-foreground"
       >
-        No skills data yet. Solve problems to build your skill profile!
+        {{ t("personal.skills.noSkills") }}
       </div>
     </div>
   </div>

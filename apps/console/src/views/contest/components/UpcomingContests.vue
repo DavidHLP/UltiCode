@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
 import { Calendar, Clock, Trophy } from "@lucide/vue";
 import { useRouter } from "vue-router";
 import type { ContestListItem } from "@/types/contest";
@@ -98,7 +98,7 @@ onUnmounted(() => {
       <Card
         v-for="(contest, index) in contests.slice(0, 2)"
         :key="contest.id"
-        class="group relative cursor-pointer overflow-hidden rounded-none border border-border bg-card text-foreground transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 shadow-[3px_3px_0px_0px_var(--border)] hover:shadow-[4px_4px_0px_0px_var(--border)]"
+        class="group relative cursor-pointer overflow-hidden hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0"
         :class="
           index === 0
             ? 'border-l-4 border-l-[var(--status-info-mark)]'
@@ -116,7 +116,7 @@ onUnmounted(() => {
             <div class="flex justify-between items-start gap-4">
               <div class="space-y-2">
                 <span
-                  class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wider uppercase border border-border bg-muted text-muted-foreground rounded-none"
+                  class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wider uppercase border border-border bg-muted text-muted-foreground rounded-lg"
                 >
                   {{
                     t(
@@ -132,7 +132,7 @@ onUnmounted(() => {
                 </h3>
               </div>
               <div class="p-2 bg-muted/50 border border-border shrink-0">
-                <Trophy class="w-8 h-8 text-[var(--status-warning-mark)]" />
+                <Trophy class="w-8 h-8 text-status-warning-mark" />
               </div>
             </div>
 
@@ -161,7 +161,7 @@ onUnmounted(() => {
                 class="text-xs font-mono text-muted-foreground flex items-center gap-1.5"
               >
                 <span
-                  class="h-2 w-2 bg-[var(--status-info-mark)] animate-pulse inline-block"
+                  class="h-2 w-2 bg-status-info-mark animate-pulse inline-block"
                 ></span>
                 <span>{{ t("contest.list.startsIn") }}</span>
                 <span
@@ -172,7 +172,7 @@ onUnmounted(() => {
               <Button
                 variant="outline"
                 size="sm"
-                class="rounded-none border-border shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs self-end sm:self-auto"
+                class="active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 self-end sm:self-auto"
                 @click.stop
               >
                 <Calendar class="mr-2 h-3.5 w-3.5" />

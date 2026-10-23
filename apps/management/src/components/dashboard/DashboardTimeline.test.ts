@@ -51,6 +51,15 @@ describe('DashboardTimeline', () => {
     expect(wrapper.text()).toContain('Permission')
   })
 
+  it('keeps target labels on the foreground token in both color modes', () => {
+    const wrapper = mountTimeline('en-US')
+    const target = wrapper.findAll('span').find((span) => span.text() === 'Permission')!
+
+    expect(target.classes()).toContain('text-foreground')
+    expect(target.classes()).not.toContain('dark:text-border')
+    wrapper.unmount()
+  })
+
   it('uses readable raw values when the backend sends an unknown enum', () => {
     const wrapper = mountTimeline('en-US', [
       { ...activities[0], action: 'CUSTOM_ACTION', target: 'CUSTOM_TARGET' },

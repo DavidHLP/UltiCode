@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-for action in "$ROOT_DIR/.github/actions/host-deploy/action.yml" "$ROOT_DIR/.github/actions/host-health/action.yml"; do
+for action in "$ROOT_DIR/scripts/deploy/deploy.sh" "$ROOT_DIR/scripts/deploy/health.sh"; do
   grep -Fq 'StrictHostKeyChecking=yes' "$action" || {
     echo "missing strict SSH host-key checking: $action" >&2
     exit 1

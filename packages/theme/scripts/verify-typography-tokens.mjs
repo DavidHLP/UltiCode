@@ -9,7 +9,7 @@
 //
 // Both apps (console, management) MUST source their typography from
 // packages/theme/src/typography.css — either via the shared utility classes
-// (`uc-type-*`, `font-mono`, `terminal-label`, ...) or via the
+// (`uc-type-*`, `font-mono`, ...) or via the
 // `--uc-*` / `--text-*` CSS variables. A new raw override is treated
 // as a regression and fails this check.
 //

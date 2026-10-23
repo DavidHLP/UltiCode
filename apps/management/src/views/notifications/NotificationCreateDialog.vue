@@ -2,11 +2,18 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import { RadioGroup, RadioGroupItem } from '@ulticode/design-system/ui/radio-group'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ulticode/design-system/ui/dialog'
 import {
   Field,
   FieldGroup,
@@ -15,14 +22,15 @@ import {
   FieldLegend,
   FieldDescription,
   FieldSeparator,
-} from '@/components/ui/field'
+} from '@ulticode/design-system/ui/field'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
 import { useNotificationsStore } from '@/stores/admin/notifications'
 import {
   NOTIFICATION_TYPES,
@@ -139,62 +147,56 @@ async function handleSubmit() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[600px] terminal-card p-0 overflow-hidden">
-      <!-- Terminal Header -->
-      <div class="terminal-card-header flex items-center justify-between">
-        <span class="font-data text-sm uppercase tracking-wider">{{
+    <DialogContent class="gap-0 sm:max-w-[600px] p-0">
+      <!-- Page header -->
+      <DialogHeader class="shrink-0 px-4 py-3 pe-12">
+        <DialogTitle class="font-mono text-sm uppercase tracking-wider">{{
           isEditMode ? t('notifications.dialog.editTitle') : t('notifications.dialog.createTitle')
-        }}</span>
-      </div>
-
-      <!-- Content -->
-      <div class="p-4">
-        <p class="text-sm text-[var(--foreground-muted)] mb-4">
+        }}</DialogTitle>
+        <DialogDescription>
           {{
             isEditMode
               ? t('notifications.dialog.editDescription')
               : t('notifications.dialog.createDescription')
           }}
-        </p>
+        </DialogDescription>
+      </DialogHeader>
 
+      <!-- Content -->
+      <div class="p-4">
         <form @submit.prevent="handleSubmit">
           <!-- Error Block - Terminal Style -->
           <div
             v-if="error"
-            class="mb-4 p-3 border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] text-sm"
+            class="mb-4 p-3 border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] text-sm"
           >
-            <span class="font-data text-[var(--foreground-strong)]">&gt; ERROR: </span>
-            <span class="text-[var(--foreground)]">{{ error }}</span>
+            <span class="font-mono text-foreground">&gt; ERROR: </span>
+            <span class="text-foreground">{{ error }}</span>
           </div>
 
-          <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
+          <FieldGroup class="px-1">
             <FieldSet>
-              <FieldLegend
-                class="font-data text-xs uppercase tracking-wider text-foreground-strong"
-                >{{ t('notifications.form.messageContent') }}</FieldLegend
-              >
-              <FieldDescription class="text-[var(--foreground-muted)]">{{
+              <FieldLegend>{{ t('notifications.form.messageContent') }}</FieldLegend>
+              <FieldDescription>{{
                 t('notifications.form.messageContentDescription')
               }}</FieldDescription>
               <FieldGroup class="mt-3">
                 <Field>
-                  <FieldLabel for="notification-title" class="terminal-label">{{
+                  <FieldLabel for="notification-title">{{
                     t('notifications.form.notificationTitle')
                   }}</FieldLabel>
                   <Input
                     id="notification-title"
                     v-model="form.title"
                     type="text"
-                    variant="terminal"
                     required
                     :disabled="loading"
                     :placeholder="t('notifications.form.notificationTitlePlaceholder')"
-                    class="font-data text-sm"
                   />
                 </Field>
 
                 <Field>
-                  <FieldLabel for="notification-content" class="terminal-label">{{
+                  <FieldLabel for="notification-content">{{
                     t('notifications.form.notificationContent')
                   }}</FieldLabel>
                   <Textarea
@@ -204,68 +206,57 @@ async function handleSubmit() {
                     :disabled="loading"
                     :placeholder="t('notifications.form.notificationContentPlaceholder')"
                     rows="4"
-                    class="terminal-input font-data text-sm min-h-[100px] resize-y selection:bg-[var(--primary)] selection:text-primary-foreground"
+                    class="min-h-[100px] resize-y selection:bg-primary selection:text-primary-foreground"
                   />
                 </Field>
               </FieldGroup>
             </FieldSet>
 
-            <FieldSeparator class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]" />
+            <FieldSeparator />
 
             <FieldSet>
-              <FieldLegend
-                class="font-data text-xs uppercase tracking-wider text-foreground-strong"
-                >{{ t('notifications.form.classification') }}</FieldLegend
-              >
-              <FieldDescription class="text-[var(--foreground-muted)]">{{
+              <FieldLegend>{{ t('notifications.form.classification') }}</FieldLegend>
+              <FieldDescription>{{
                 t('notifications.form.classificationDescription')
               }}</FieldDescription>
               <FieldGroup class="mt-3">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field>
-                    <FieldLabel for="notification-type" class="terminal-label">{{
+                    <FieldLabel for="notification-type">{{
                       t('notifications.form.type')
                     }}</FieldLabel>
                     <Select v-model="form.type" :disabled="loading">
-                      <SelectTrigger
-                        id="notification-type"
-                        class="terminal-input font-data text-sm"
-                      >
+                      <SelectTrigger id="notification-type">
                         <SelectValue :placeholder="t('notifications.form.selectType')" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem
-                          v-for="type in NOTIFICATION_TYPES"
-                          :key="type"
-                          :value="type"
-                          class="font-data"
+                        <SelectGroup
+                          ><SelectItem v-for="type in NOTIFICATION_TYPES" :key="type" :value="type">
+                            {{ getNotificationTypeLabel(type, t) }}
+                          </SelectItem></SelectGroup
                         >
-                          {{ getNotificationTypeLabel(type, t) }}
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
 
                   <Field>
-                    <FieldLabel for="notification-category" class="terminal-label">{{
+                    <FieldLabel for="notification-category">{{
                       t('notifications.form.category')
                     }}</FieldLabel>
                     <Select v-model="form.category" :disabled="loading">
-                      <SelectTrigger
-                        id="notification-category"
-                        class="terminal-input font-data text-sm"
-                      >
+                      <SelectTrigger id="notification-category">
                         <SelectValue :placeholder="t('notifications.form.selectCategory')" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem
-                          v-for="category in NOTIFICATION_CATEGORIES"
-                          :key="category"
-                          :value="category"
-                          class="font-data"
+                        <SelectGroup
+                          ><SelectItem
+                            v-for="category in NOTIFICATION_CATEGORIES"
+                            :key="category"
+                            :value="category"
+                          >
+                            {{ getNotificationCategoryLabel(category, t) }}
+                          </SelectItem></SelectGroup
                         >
-                          {{ getNotificationCategoryLabel(category, t) }}
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
@@ -273,39 +264,36 @@ async function handleSubmit() {
               </FieldGroup>
             </FieldSet>
 
-            <FieldSeparator
-              v-if="!isEditMode"
-              class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
-            />
+            <FieldSeparator v-if="!isEditMode" />
 
             <FieldSet v-if="!isEditMode">
-              <FieldDescription class="text-[var(--foreground-muted)]">{{
+              <FieldDescription>{{
                 t('notifications.form.targetAudienceDescription')
               }}</FieldDescription>
               <FieldGroup class="mt-3">
                 <Field>
                   <RadioGroup v-model="form.target" class="flex flex-col space-y-2">
                     <div
-                      class="flex items-center space-x-3 p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none hover:border-[var(--status-info-mark)] transition-colors cursor-pointer"
+                      class="flex items-center space-x-3 p-2 border border-border dark:border-border rounded-lg hover:border-status-info-mark transition-colors cursor-pointer"
                       :class="{
-                        'border-[var(--status-info-mark)] bg-[color-mix(in_oklch,_var(--status-info-mark)_8%,_transparent)]':
+                        'border-status-info-mark bg-[color-mix(in_oklch,_var(--status-info-mark)_8%,_transparent)]':
                           form.target === 'ALL',
                       }"
                     >
                       <RadioGroupItem :value="'ALL'" id="target-all" />
-                      <FieldLabel for="target-all" class="font-normal cursor-pointer">
+                      <FieldLabel for="target-all" class="cursor-pointer">
                         {{ t('notifications.form.allUsers') }}
                       </FieldLabel>
                     </div>
                     <div
-                      class="flex items-center space-x-3 p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] rounded-none hover:border-[var(--status-info-mark)] transition-colors cursor-pointer"
+                      class="flex items-center space-x-3 p-2 border border-border dark:border-border rounded-lg hover:border-status-info-mark transition-colors cursor-pointer"
                       :class="{
-                        'border-[var(--status-info-mark)] bg-[color-mix(in_oklch,_var(--status-info-mark)_8%,_transparent)]':
+                        'border-status-info-mark bg-[color-mix(in_oklch,_var(--status-info-mark)_8%,_transparent)]':
                           form.target === 'USERS',
                       }"
                     >
                       <RadioGroupItem :value="'USERS'" id="target-users" />
-                      <FieldLabel for="target-users" class="font-normal cursor-pointer">
+                      <FieldLabel for="target-users" class="cursor-pointer">
                         {{ t('notifications.form.specificUsers') }}
                       </FieldLabel>
                     </div>
@@ -313,7 +301,7 @@ async function handleSubmit() {
                 </Field>
 
                 <Field v-if="form.target === 'USERS'">
-                  <FieldLabel for="notification-userIds" class="terminal-label">{{
+                  <FieldLabel for="notification-userIds">{{
                     t('notifications.form.userIds')
                   }}</FieldLabel>
                   <Textarea
@@ -322,7 +310,6 @@ async function handleSubmit() {
                     :disabled="loading"
                     :placeholder="t('notifications.form.userIdsPlaceholder')"
                     rows="2"
-                    class="terminal-input font-data text-sm"
                   />
                 </Field>
               </FieldGroup>
@@ -330,23 +317,11 @@ async function handleSubmit() {
           </FieldGroup>
 
           <!-- Footer Buttons - Terminal Style -->
-          <DialogFooter class="mt-6 flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="terminal"
-              size="sm"
-              class="font-data text-xs border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
-              @click="emit('update:open', false)"
-            >
+          <DialogFooter class="mt-6 flex shrink-0 justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" @click="emit('update:open', false)">
               {{ t('common.cancel') }}
             </Button>
-            <Button
-              type="submit"
-              variant="terminal"
-              size="sm"
-              class="font-data text-xs border-[var(--primary)] text-[var(--primary)] hover:bg-[color-mix(in_oklch,_var(--primary)_10%,_transparent)]"
-              :disabled="loading"
-            >
+            <Button type="submit" variant="outline" size="sm" :disabled="loading">
               <span v-if="loading" class="flex items-center gap-2">
                 <span class="animate-spin">⟳</span>
                 {{

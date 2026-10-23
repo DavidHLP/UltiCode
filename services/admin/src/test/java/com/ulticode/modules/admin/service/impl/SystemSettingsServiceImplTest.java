@@ -82,6 +82,37 @@ class SystemSettingsServiceImplTest {
 
     // ===== default seeding =====
 
+    @Test
+    void agentAvailabilityRejectsCorruptStoredSettings() {
+        assertThat(service.isAgentEnabled()).isTrue();
+        store.rows.put(SystemSettingsStore.KEY_FEATURES, "broken-json");
+        assertThatThrownBy(() -> service.isAgentEnabled()).isInstanceOf(BusinessException.class);
+        store.rows.put(SystemSettingsStore.KEY_FEATURES, "{\"featureForum\":true}");
+        assertThat(service.isAgentEnabled()).isTrue();
+        store.rows.put(SystemSettingsStore.KEY_FEATURES, "{\"featureAgent\":false}");
+        assertThat(service.isAgentEnabled()).isFalse();
+    }
+
+    @Test
+    void agentOnlyConfigurationSavesButEmptyRequestStillFails() throws Exception {
+        FeatureTogglesVO agentOnly = objectMapper.readValue("{\"featureAgent\":true}", FeatureTogglesVO.class);
+        assertThat(service.updateFeatureToggles(agentOnly).isFeatureAgent()).isTrue();
+        assertThat(objectMapper.writeValueAsString(agentOnly)).doesNotContain("Specified");
+        FeatureTogglesVO empty = objectMapper.readValue("{}", FeatureTogglesVO.class);
+        assertThatThrownBy(() -> service.updateFeatureToggles(empty)).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void agentDefaultsOnForOldSettingsAndCanBeDisabled() throws Exception {
+        assertThat(service.getFeatureToggles().isFeatureAgent()).isTrue();
+        FeatureTogglesVO legacy = objectMapper.readValue("{\"featureForum\":true}", FeatureTogglesVO.class);
+        assertThat(legacy.isFeatureAgent()).isTrue();
+        legacy.setFeatureAgent(false);
+        service.updateFeatureToggles(legacy);
+        assertThat(service.getFeatureToggles().isFeatureAgent()).isFalse();
+        assertThat(service.getAllSettings().isFeatureAgent()).isFalse();
+    }
+
     @Nested
     @DisplayName("DDL defaults on missing rows")
     class Defaults {

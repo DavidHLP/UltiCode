@@ -14,12 +14,13 @@
  * `@/api/problem` boundary is mocked — no real backend is touched.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { defineComponent, h, type PropType } from "vue";
-import { mount, type VueWrapper } from "@vue/test-utils";
+import { defineComponent, h, ref, type PropType } from "vue";
+import { mount, shallowMount, type VueWrapper } from "@vue/test-utils";
 import { CheckCircle2, FileEdit } from "@lucide/vue";
 import type { Problem } from "@/types/problem";
 import type { ProblemExplorerProps } from "../../type";
 import { useProblemExplorer } from "../useProblemExplorer";
+import ProblemExplorer from "../../ProblemExplorer.vue";
 
 // --- Mock handles ---------------------------------------------------------
 // `vi.hoisted` guarantees these exist before any hoisted `vi.mock` factory
@@ -29,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   fetchRandomProblem: vi.fn(),
   routerPush: vi.fn(),
   toastError: vi.fn(),
+  useSidebar: vi.fn(),
 }));
 
 vi.mock("@/api/problem", () => ({
@@ -38,6 +40,10 @@ vi.mock("@/api/problem", () => ({
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({ push: mocks.routerPush }),
+}));
+
+vi.mock("@ulticode/design-system/ui/sidebar", () => ({
+  useSidebar: mocks.useSidebar,
 }));
 
 vi.mock("vue-i18n", () => ({
@@ -110,6 +116,7 @@ function makeProblem(
     difficulty: overrides.difficulty ?? "EASY",
     acceptance_rate: overrides.acceptance_rate ?? 50,
     tags: overrides.tags ?? [],
+    categorySlugs: overrides.categorySlugs,
     status: overrides.status,
     isPremium: overrides.isPremium,
     hasSolution: overrides.hasSolution,
@@ -137,6 +144,8 @@ beforeEach(() => {
   mocks.fetchRandomProblem.mockReset();
   mocks.routerPush.mockReset();
   mocks.toastError.mockReset();
+  mocks.useSidebar.mockReset();
+  mocks.useSidebar.mockReturnValue(null);
   idCounter = 0;
 });
 
@@ -157,8 +166,7 @@ describe("useProblemExplorer", () => {
       const ex = explorerOf(wrapper);
 
       expect(mocks.fetchProblems).toHaveBeenCalledTimes(1);
-      const [filters, pageNumber, pageSize] =
-        mocks.fetchProblems.mock.calls[0];
+      const [filters, pageNumber, pageSize] = mocks.fetchProblems.mock.calls[0];
       expect(filters).toEqual({
         category: "all",
         search: undefined,
@@ -299,6 +307,13 @@ describe("useProblemExplorer", () => {
       expect(ex.selectedCategory.value).toBe("algorithms");
       expect([...ex.selectedTags.value]).toEqual(["dp", "graph"]);
       expect(ex.searchQuery.value).toBe("sum");
+      expect(mocks.routerPush).toHaveBeenLastCalledWith({
+        name: "problemset-category",
+        params: { category: "algorithms" },
+      });
+
+      ex.setSelectedCategory("all");
+      expect(mocks.routerPush).toHaveBeenLastCalledWith({ name: "problemset" });
     });
 
     it("clearFilters resets every filter and triggers a reload", async () => {
@@ -392,10 +407,7 @@ describe("useProblemExplorer", () => {
 
       expect(mocks.fetchProblems).toHaveBeenCalledTimes(1);
       expect(mocks.fetchProblems.mock.calls[0][1]).toBe(2);
-      expect(ex.displayedProblems.value.map((p) => p.slug)).toEqual([
-        "a",
-        "b",
-      ]);
+      expect(ex.displayedProblems.value.map((p) => p.slug)).toEqual(["a", "b"]);
       expect(ex.hasMore.value).toBe(false);
     });
 
@@ -522,6 +534,102 @@ describe("useProblemExplorer", () => {
   });
 
   describe("props.problems source override", () => {
+    it("filters the supplied list without fetching or changing its source", async () => {
+      const problems = [
+        makeProblem({
+          id: 1,
+          title: "Two Sum",
+          slug: "two",
+          tags: ["array", "hash"],
+          status: "solved",
+        }),
+        makeProblem({
+          id: 2,
+          title: "Hard Sum",
+          slug: "hard",
+          difficulty: "HARD",
+          tags: ["array"],
+          isPremium: true,
+        }),
+        makeProblem({
+          id: 9,
+          title: "Linked List",
+          slug: "list",
+          status: "attempted",
+        }),
+      ];
+      const wrapper = await mountExplorer({ problems });
+      const ex = explorerOf(wrapper);
+      const ids = () => ex.displayedProblems.value.map((p) => p.id);
+
+      ex.toggleDifficulty("Hard", true);
+      expect(ids()).toEqual([2]);
+      ex.setSearchQuery(" SUM ");
+      expect(ids()).toEqual([2]);
+      ex.togglePremium(false, true);
+      expect(ids()).toEqual([]);
+      ex.clearFilters();
+      expect(ids()).toEqual([1, 2, 9]);
+      ex.setSearchQuery("9");
+      expect(ids()).toEqual([9]);
+      ex.clearFilters();
+      ex.toggleStatus("solved", true);
+      ex.setSelectedTags(["array", "hash"]);
+      expect(ids()).toEqual([1]);
+      ex.togglePremium(true, true);
+      expect(ids()).toEqual([]);
+      ex.clearFilters();
+      ex.toggleDifficulty("Easy", true);
+      ex.toggleDifficulty("Hard", true);
+      expect(ids()).toEqual([1, 2, 9]);
+      await wrapper.setProps({ problems: [problems[1]!] });
+      expect(ids()).toEqual([2]);
+      await vi.advanceTimersByTimeAsync(300);
+      expect(mocks.fetchProblems).not.toHaveBeenCalled();
+      expect(problems).toHaveLength(3);
+      wrapper.unmount();
+    });
+
+    it("filters supplied problems by category slug", async () => {
+      const problems = [
+        makeProblem({
+          id: 1,
+          slug: "algorithm",
+          categorySlugs: ["algorithms"],
+        }),
+        makeProblem({ id: 2, slug: "database", categorySlugs: ["database"] }),
+        makeProblem({ id: 3, slug: "uncategorized" }),
+      ];
+      const wrapper = await mountExplorer({ problems });
+      const ex = explorerOf(wrapper);
+      const ids = () => ex.displayedProblems.value.map((problem) => problem.id);
+
+      ex.setSelectedCategory("database");
+      expect(ids()).toEqual([2]);
+      ex.setSelectedCategory("shell");
+      expect(ids()).toEqual([]);
+      ex.setSelectedCategory("all");
+      expect(ids()).toEqual([1, 2, 3]);
+      expect(mocks.fetchProblems).not.toHaveBeenCalled();
+      expect(mocks.routerPush).not.toHaveBeenCalled();
+      wrapper.unmount();
+    });
+
+    it("does not pick a problem outside an empty supplied result", async () => {
+      const wrapper = await mountExplorer({
+        problems: [makeProblem({ title: "Two Sum", slug: "two" })],
+      });
+      const ex = explorerOf(wrapper);
+      ex.setSearchQuery("no match");
+      await ex.pickOne();
+      expect(mocks.fetchRandomProblem).not.toHaveBeenCalled();
+      expect(mocks.routerPush).not.toHaveBeenCalled();
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        "problem.explorer.noProblemsAvailable",
+      );
+      wrapper.unmount();
+    });
+
     it("uses props.problems as the source and maps statusIcon per status for display", async () => {
       const problems = [
         makeProblem({ title: "S", slug: "s", status: "solved" }),
@@ -553,13 +661,9 @@ describe("useProblemExplorer", () => {
       ]);
 
       const editableWrapper = await mountExplorer({ editable: true });
-      expect(explorerOf(editableWrapper).columns.value.map((c) => c.key)).toEqual([
-        "status",
-        "title",
-        "acceptance",
-        "difficulty",
-        "actions",
-      ]);
+      expect(
+        explorerOf(editableWrapper).columns.value.map((c) => c.key),
+      ).toEqual(["status", "title", "acceptance", "difficulty", "actions"]);
     });
   });
 
@@ -575,5 +679,58 @@ describe("useProblemExplorer", () => {
         "concurrency",
       ]);
     });
+  });
+});
+
+describe("ProblemExplorer category entry", () => {
+  it("uses desktop navigation and restores the menu when collapsed or mobile", async () => {
+    const state = ref<"expanded" | "collapsed">("expanded");
+    const isMobile = ref(false);
+    mocks.useSidebar.mockReturnValue({ state, isMobile });
+    const wrapper = shallowMount(ProblemExplorer);
+    const panel = wrapper.getComponent({ name: "ProblemFilterPanel" });
+
+    expect(panel.props("showCategoryFilter")).toBe(false);
+    state.value = "collapsed";
+    await settle();
+    expect(panel.props("showCategoryFilter")).toBe(true);
+
+    state.value = "expanded";
+    isMobile.value = true;
+    await settle();
+    expect(panel.props("showCategoryFilter")).toBe(true);
+
+    isMobile.value = false;
+    await settle();
+    expect(panel.props("showCategoryFilter")).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("keeps list-local categories available beside expanded navigation", () => {
+    mocks.useSidebar.mockReturnValue({
+      state: ref("expanded"),
+      isMobile: ref(false),
+    });
+    const wrapper = shallowMount(ProblemExplorer, { props: { problems: [] } });
+
+    expect(
+      wrapper
+        .getComponent({ name: "ProblemFilterPanel" })
+        .props("showCategoryFilter"),
+    ).toBe(true);
+    expect(mocks.fetchProblems).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("keeps category selection available without a sidebar provider", () => {
+    const wrapper = shallowMount(ProblemExplorer);
+
+    expect(mocks.useSidebar).toHaveBeenCalledWith(null);
+    expect(
+      wrapper
+        .getComponent({ name: "ProblemFilterPanel" })
+        .props("showCategoryFilter"),
+    ).toBe(true);
+    wrapper.unmount();
   });
 });

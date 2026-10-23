@@ -14,7 +14,7 @@
  */
 
 import type { DFormVerdict } from '@ulticode/sandbox-types'
-import type { SemanticColor } from '@ulticode/badge-config'
+import type { SemanticColor } from '@ulticode/badge-config/semantic-colors'
 
 /**
  * Map a D-form verdict (Title Case) to the UPPERCASE_UNDERSCORE status key

@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useLoading } from "@/composables/useLoading";
 import { useI18n } from "vue-i18n";
-import { Spinner } from "@/components/ui/spinner";
+import { Spinner } from "@ulticode/design-system/ui/spinner";
 
 const props = defineProps<{
   /** Override loading state (uses global state if not provided) */

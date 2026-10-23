@@ -178,6 +178,20 @@ export default {
     },
   },
 
+  tags: {
+    array: "数组",
+    hashTable: "哈希表",
+    linkedList: "链表",
+    string: "字符串",
+    slidingWindow: "滑动窗口",
+    twoPointers: "双指针",
+    binarySearch: "二分查找",
+    divideAndConquer: "分治",
+    heap: "堆",
+    math: "数学",
+    recursion: "递归",
+  },
+
   // Categories
   categories: {
     all: "全部题目",
@@ -252,6 +266,9 @@ export default {
 
   // Banners
   banners: {
+    collections: "精选题单",
+    previousCollections: "上一组题单",
+    nextCollections: "下一组题单",
     unableToLoad: "无法加载精选列表",
     noBanners: "暂无精选列表",
     tryAgain: "请稍后重试。",
@@ -447,6 +464,8 @@ export default {
     dailyChallenge: "每日一题",
     completed: "已通关",
     daysUnit: "天",
+    todayProblem: "今日：{id}.",
+    toggleCalendar: "切换日历",
     legendCompleted: "已通关",
     legendToday: "今日",
   },

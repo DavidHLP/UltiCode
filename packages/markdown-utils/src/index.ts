@@ -104,6 +104,7 @@ const PURIFY_CONFIG: DOMPurifyConfig = {
     'data-code',
     'data-index',
     'aria-label',
+    'tabindex',
     'viewBox',
     // KaTeX draws radicals, stretchy arrows, braces and wide hats as an SVG
     // whose 400000-unit-wide viewBox has to be sliced to a ~1em box:
@@ -332,7 +333,7 @@ const groupFencesPlugin = (instance: MarkdownItInstance): void => {
       }
       const activeClass = index === 0 ? 'active' : ''
       const encoded = encodeURIComponent(fence.content)
-      bodyHtml += `\n        <div class="lc-code-panel ${activeClass}" data-index="${index}">\n          <div class="lc-code-block group/code">\n             <div class="lc-copy-wrapper">\n                <button class="lc-copy-btn" data-code="${encoded}" aria-label="Copy code">\n                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lc-copy-icon"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>\n                </button>\n             </div>\n             <pre><code class="hljs language-${langName}">${highlighted}</code></pre>\n          </div>\n        </div>\n      `
+      bodyHtml += `\n        <div class="lc-code-panel ${activeClass}" data-index="${index}">\n          <div class="lc-code-block group/code">\n             <div class="lc-copy-wrapper">\n                <button class="lc-copy-btn" data-code="${encoded}" aria-label="Copy code">\n                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lc-copy-icon"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>\n                </button>\n             </div>\n             <pre><code tabindex="0" class="hljs language-${langName}">${highlighted}</code></pre>\n          </div>\n        </div>\n      `
     })
     bodyHtml += '</div>'
 
@@ -509,6 +510,18 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   return defaultHeadingOpen(tokens, idx, options, env, self)
 }
 
+const defaultTableOpen =
+  md.renderer.rules.table_open ||
+  ((_tokens, _idx, _options, _env, self) => self.renderToken(_tokens, _idx, _options))
+const defaultTableClose =
+  md.renderer.rules.table_close ||
+  ((_tokens, _idx, _options, _env, self) => self.renderToken(_tokens, _idx, _options))
+
+md.renderer.rules.table_open = (tokens, idx, options, env, self) =>
+  `<div class="typeset-scroll" tabindex="0">\n${defaultTableOpen(tokens, idx, options, env, self)}`
+md.renderer.rules.table_close = (tokens, idx, options, env, self) =>
+  `${defaultTableClose(tokens, idx, options, env, self)}\n</div>`
+
 // ---------------------------------------------------------------------------
 // Standalone fence renderer — toolbar (lang label + copy button) for blocks
 // that aren't grouped.
@@ -541,7 +554,7 @@ md.renderer.rules.fence = (tokens, idx) => {
         </button>
       </div>
       <div class="lc-code-body p-0 m-0">
-        <pre class="m-0! p-4! overflow-x-auto bg-transparent!"><code class="hljs language-${langName} text-xs font-mono">${highlighted}</code></pre>
+        <pre class="m-0! p-4! overflow-x-auto bg-transparent!"><code tabindex="0" class="hljs language-${langName} text-xs font-mono">${highlighted}</code></pre>
       </div>
     </div>
   `

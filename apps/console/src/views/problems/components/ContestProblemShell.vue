@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from "@ulticode/design-system/ui/button";
+
 /**
  * ContestProblemShell
  *
@@ -25,7 +27,7 @@
 import { computed, inject, onBeforeUnmount, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { ArrowLeft, Target, Trophy, Timer, Lightbulb } from "@lucide/vue";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import ContestStatusBadge from "@/views/contest/components/ContestStatusBadge.vue";
 import ContestTimer from "@/views/contest/components/ContestTimer.vue";
 import ContestAnnouncementBell from "./ContestAnnouncementBell.vue";
@@ -49,14 +51,13 @@ const authStore = useAuthStore();
 // authenticated users and the participation refresh fills it in
 // after the first submit.
 const score = computed(() => ctx?.participation.value?.score ?? 0);
-const rank = computed(
-  () => ctx?.participation.value?.ranking ?? null,
-);
+const rank = computed(() => ctx?.participation.value?.ranking ?? null);
 const solvedCount = computed(
   () => ctx?.participation.value?.problemsSolved ?? 0,
 );
 const totalProblems = computed(
-  () => ctx?.participation.value?.totalProblems ?? ctx?.problems.value.length ?? 0,
+  () =>
+    ctx?.participation.value?.totalProblems ?? ctx?.problems.value.length ?? 0,
 );
 const isAuthed = computed(() => authStore.isAuthenticated);
 
@@ -253,21 +254,21 @@ onMounted(() => {
 <template>
   <div
     v-if="ctx?.isInContest.value && ctx.contest.value"
-    class="border-b border-border bg-surface dark:bg-surface-highlight shadow-sm"
+    class="border-b border-border bg-background dark:bg-accent shadow-sm"
     data-testid="contest-problem-shell"
   >
     <!-- Top row: back link, title, status badge, timer, score/rank/solved -->
-    <div
-      class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2 font-mono"
-    >
+    <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2 font-mono">
       <!-- Back link -->
       <router-link
         :to="`/contest/${ctx.contest.value.slug}`"
-        class="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-[var(--primary)]"
+        class="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary"
         :data-testid="'shell-back-to-contest'"
       >
         <ArrowLeft class="h-3.5 w-3.5" />
-        <span class="hidden sm:inline">{{ t("contest.detail.backToContest") }}</span>
+        <span class="hidden sm:inline">{{
+          t("contest.detail.backToContest")
+        }}</span>
       </router-link>
 
       <div class="h-5 w-px flex-none bg-border/60" />
@@ -275,21 +276,18 @@ onMounted(() => {
       <!-- Title + status badge -->
       <div class="flex min-w-0 items-center gap-2">
         <span
-          class="truncate text-xs font-black text-foreground dark:text-foreground-strong"
+          class="truncate text-xs font-black text-foreground dark:text-foreground"
           :title="ctx.contest.value.title"
         >
           {{ ctx.contest.value.title }}
         </span>
-        <ContestStatusBadge
-          :status="ctx.contest.value.status"
-          size="sm"
-        />
+        <ContestStatusBadge :status="ctx.contest.value.status" size="sm" />
       </div>
 
       <!-- Timer (only when there's a meaningful target) -->
       <div
         v-if="timerTargetIso"
-        class="ml-auto flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted-foreground"
+        class="ml-auto flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"
       >
         <Timer class="h-3.5 w-3.5" />
         <span>{{
@@ -312,10 +310,12 @@ onMounted(() => {
       class="mx-auto flex max-w-7xl items-center gap-3 border-t border-border/40 px-4 py-2 font-mono"
     >
       <!-- My score -->
-      <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-score">
-        <Trophy class="h-3.5 w-3.5 text-[var(--status-warning-mark)]" />
-        <span class="text-muted-foreground">{{ t("contest.detail.shell.score") }}</span>
-        <span class="font-black text-foreground dark:text-foreground-strong">
+      <div class="flex items-center gap-1.5 text-xs" data-testid="shell-score">
+        <Trophy class="h-3.5 w-3.5 text-status-warning-mark" />
+        <span class="text-muted-foreground">{{
+          t("contest.detail.shell.score")
+        }}</span>
+        <span class="font-black text-foreground dark:text-foreground">
           {{ isAuthed ? score : "—" }}
         </span>
       </div>
@@ -323,10 +323,12 @@ onMounted(() => {
       <div class="h-4 w-px flex-none bg-border/40" />
 
       <!-- My rank -->
-      <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-rank">
-        <Target class="h-3.5 w-3.5 text-[var(--primary)]" />
-        <span class="text-muted-foreground">{{ t("contest.detail.shell.rank") }}</span>
-        <span class="font-black text-foreground dark:text-foreground-strong">
+      <div class="flex items-center gap-1.5 text-xs" data-testid="shell-rank">
+        <Target class="h-3.5 w-3.5 text-primary" />
+        <span class="text-muted-foreground">{{
+          t("contest.detail.shell.rank")
+        }}</span>
+        <span class="font-black text-foreground dark:text-foreground">
           {{ isAuthed && rank != null ? `#${rank}` : "—" }}
         </span>
       </div>
@@ -334,9 +336,11 @@ onMounted(() => {
       <div class="h-4 w-px flex-none bg-border/40" />
 
       <!-- Solved / total -->
-      <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-solved">
-        <span class="text-muted-foreground">{{ t("contest.detail.shell.solved") }}</span>
-        <span class="font-black text-[var(--foreground-strong)]">
+      <div class="flex items-center gap-1.5 text-xs" data-testid="shell-solved">
+        <span class="text-muted-foreground">{{
+          t("contest.detail.shell.solved")
+        }}</span>
+        <span class="font-black text-foreground">
           {{ isAuthed ? solvedCount : "—" }}
         </span>
         <span class="text-muted-foreground">/ {{ totalProblems }}</span>
@@ -350,19 +354,22 @@ onMounted(() => {
           class="flex items-center gap-1"
           :data-testid="'shell-problem-nav'"
         >
-          <span class="text-2xs font-black uppercase tracking-widest text-muted-foreground">
+          <span
+            class="text-xs font-black uppercase tracking-widest text-muted-foreground"
+          >
             {{ t("contest.detail.shell.problemNav") }}
           </span>
-          <div class="flex overflow-hidden rounded-none border border-border">
-            <button
+          <div class="flex overflow-hidden rounded-lg border border-border">
+            <Button
+              variant="outline"
               v-for="p in pills"
               :key="p.problemId"
               type="button"
               :class="[
-                'h-7 w-8 font-black text-xxs uppercase tracking-wider transition-colors cursor-pointer',
+                'h-7 w-8 font-black text-xs uppercase tracking-wider transition-colors cursor-pointer',
                 isActivePill(p)
-                  ? 'bg-[var(--primary)]/15 text-[var(--primary)] border-r border-border last:border-r-0'
-                  : 'bg-transparent text-muted-foreground hover:bg-[var(--surface-highlight)]/50 dark:hover:bg-background/50 border-r border-border last:border-r-0',
+                  ? 'bg-primary/15 text-primary border-r border-border last:border-r-0'
+                  : 'bg-transparent text-muted-foreground hover:bg-accent/50 dark:hover:bg-background/50 border-r border-border last:border-r-0',
                 !p.slug ? 'cursor-not-allowed opacity-50' : '',
               ]"
               :disabled="!p.slug"
@@ -370,7 +377,7 @@ onMounted(() => {
               @click="goToPill(p)"
             >
               {{ p.problemIndex }}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -384,7 +391,7 @@ onMounted(() => {
     <!-- Solutions-hidden hint (only when RUNNING / virtual) -->
     <div
       v-if="showSolutionsHiddenHint"
-      class="border-t border-border/40 bg-[var(--surface-highlight)]/40 px-4 py-1.5 font-mono text-2xs text-muted-foreground dark:bg-background/40"
+      class="border-t border-border/40 bg-accent/40 px-4 py-1.5 font-mono text-xs text-muted-foreground dark:bg-background/40"
       :data-testid="'shell-solutions-hidden-hint'"
     >
       <div class="mx-auto flex max-w-7xl items-center gap-1.5">
@@ -397,7 +404,10 @@ onMounted(() => {
          (and the contest status is FINISHED). Useful for the user
          to confirm they're in a virtual replay vs the live contest. -->
     <Badge
-      v-if="contestStore.isInVirtualContest && ctx.contest.value?.status === 'FINISHED'"
+      v-if="
+        contestStore.isInVirtualContest &&
+        ctx.contest.value?.status === 'FINISHED'
+      "
       variant="outline"
       class="absolute right-4 top-2 hidden"
     >

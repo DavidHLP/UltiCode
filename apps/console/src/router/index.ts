@@ -98,11 +98,17 @@ const contestRoutes: RouteRecordRaw = {
     },
     {
       path: "global-ranking",
-      redirect: (to) => ({ name: "contest-rankings", query: to.query }),
+      redirect: (to) => ({
+        name: "contest-rankings",
+        query: { ...to.query, scope: "global" },
+      }),
     },
     {
       path: "local-ranking",
-      redirect: (to) => ({ name: "contest-rankings", query: to.query }),
+      redirect: (to) => ({
+        name: "contest-rankings",
+        query: { ...to.query, scope: "local" },
+      }),
     },
     {
       path: ":slug",
@@ -286,18 +292,31 @@ forumEditRoute.meta = { requiresAuth: true };
 const landingRoute: RouteRecordRaw = {
   path: "/landing",
   name: "landing",
-  component: () => import("@/views/landing/LandingView.vue"),
+  component: () => import("@/views/LandingRedirectView.vue"),
 };
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition;
+    if (to.hash) {
+      const target = document.getElementById(to.hash.slice(1));
+      if (target) {
+        return {
+          el: target,
+          top: parseFloat(getComputedStyle(target).scrollMarginTop) || 0,
+        };
+      }
+    }
+    return to.path === from.path ? false : { left: 0, top: 0 };
+  },
   routes: [
     {
       path: "/",
       name: "root",
       redirect: () => {
         const authStore = useAuthStore();
-        return authStore.isAuthenticated ? "/problemset" : "/landing";
+        return authStore.isAuthenticated ? "/problemset" : "/landing/";
       },
     },
     landingRoute,

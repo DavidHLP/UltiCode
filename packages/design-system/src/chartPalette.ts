@@ -1,7 +1,8 @@
 import { ref, type Ref } from "vue";
-import { readCssColor, SOLARIZED_PALETTE } from "./palette.ts";
+import { readCssColor, UI_PALETTE } from "./palette.ts";
 
 export interface ChartPalette {
+  fontFamily: string;
   series1: string;
   series2: string;
   series3: string;
@@ -18,27 +19,24 @@ export interface ChartPalette {
 
 export function resolveChartPalette(): ChartPalette {
   return {
-    series1: readCssColor("--chart-series-1", SOLARIZED_PALETTE.blue),
-    series2: readCssColor("--chart-series-2", SOLARIZED_PALETTE.cyan),
-    series3: readCssColor("--chart-series-3", SOLARIZED_PALETTE.green),
-    series4: readCssColor("--chart-series-4", SOLARIZED_PALETTE.violet),
-    solved: readCssColor("--chart-status-solved", SOLARIZED_PALETTE.green),
-    background: readCssColor(
-      "--chart-tooltip-background",
-      SOLARIZED_PALETTE.base3,
-    ),
-    surface: readCssColor("--surface-highlight", SOLARIZED_PALETTE.base2),
-    foreground: readCssColor(
-      "--foreground-strong",
-      SOLARIZED_PALETTE.base03,
-    ),
-    muted: readCssColor("--foreground", SOLARIZED_PALETTE.base01),
-    axis: readCssColor("--foreground", SOLARIZED_PALETTE.base01),
-    border: readCssColor("--chart-grid-color", SOLARIZED_PALETTE.base1),
-    tooltipBorder: readCssColor(
-      "--chart-tooltip-border",
-      SOLARIZED_PALETTE.base00,
-    ),
+    fontFamily:
+      typeof document === "undefined" || typeof getComputedStyle !== "function"
+        ? "system-ui, sans-serif"
+        : getComputedStyle(document.documentElement)
+            .getPropertyValue("--uc-font-ui")
+            .trim() || "system-ui, sans-serif",
+    series1: readCssColor("--chart-1", UI_PALETTE.blue),
+    series2: readCssColor("--chart-2", UI_PALETTE.orange),
+    series3: readCssColor("--chart-3", UI_PALETTE.cyan),
+    series4: readCssColor("--chart-4", UI_PALETTE.amber),
+    solved: readCssColor("--status-success-mark", UI_PALETTE.green),
+    background: readCssColor("--popover", UI_PALETTE.background),
+    surface: readCssColor("--muted", UI_PALETTE.secondary),
+    foreground: readCssColor("--foreground", UI_PALETTE.darkBackground),
+    muted: readCssColor("--muted-foreground", UI_PALETTE.muted),
+    axis: readCssColor("--muted-foreground", UI_PALETTE.muted),
+    border: readCssColor("--border", UI_PALETTE.border),
+    tooltipBorder: readCssColor("--border", UI_PALETTE.muted),
   };
 }
 
@@ -59,7 +57,14 @@ function ensureThemeObserver() {
   });
   themeObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["class"],
+    attributeFilter: [
+      "class",
+      "style",
+      "data-appearance-base",
+      "data-appearance-accent",
+      "data-appearance-chart",
+      "data-appearance-font",
+    ],
   });
 }
 

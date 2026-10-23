@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import { FieldLabel } from '@ulticode/design-system/ui/field'
+
+import { Input } from '@ulticode/design-system/ui/input'
+import { Switch } from '@ulticode/design-system/ui/switch'
+import { Label } from '@ulticode/design-system/ui/label'
 import { useI18n } from 'vue-i18n'
 import type { ScheduleSlice, SchedulePatch } from './useContestAuthoring'
 
@@ -28,54 +30,49 @@ function updateIsPublished(value: boolean): void {
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-      <span class="terminal-comment">schedule_config</span>
+      <span class="text-sm text-muted-foreground">{{ t('contests.wizard.schedule') }}</span>
     </div>
 
     <!-- Start Time Field -->
     <div class="space-y-2">
-      <label class="terminal-label">{{ t('contests.scheduleStep.startTime') }}</label>
+      <FieldLabel>{{ t('contests.scheduleStep.startTime') }}</FieldLabel>
       <Input
         type="datetime-local"
         :model-value="slice.startTimeLocal"
         @update:model-value="updateStartTime($event)"
-        class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
       />
-      <span class="terminal-comment text-xs">{{
+      <span class="text-sm text-muted-foreground text-xs">{{
         t('contests.scheduleStep.startTimeDescription')
       }}</span>
     </div>
 
     <!-- Duration Field -->
     <div class="space-y-2">
-      <label class="terminal-label">{{ t('contests.scheduleStep.duration') }}</label>
+      <FieldLabel>{{ t('contests.scheduleStep.duration') }}</FieldLabel>
       <Input
         type="number"
         min="1"
         :model-value="slice.duration"
         @update:model-value="updateDuration($event)"
-        class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
       />
-      <span class="terminal-comment text-xs">{{
+      <span class="text-sm text-muted-foreground text-xs">{{
         t('contests.scheduleStep.durationDescription')
       }}</span>
     </div>
 
     <!-- Publish Toggle - Terminal Style -->
-    <div
-      class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] p-4 bg-[var(--surface-sunken)]"
-    >
+    <div class="border border-border p-4 bg-muted">
       <div class="flex items-center gap-4">
         <Switch
           id="is_published"
-          :checked="slice.isPublished"
-          @update:checked="updateIsPublished($event)"
-          class="data-[state=checked]:bg-[var(--status-success-mark)]"
+          :model-value="slice.isPublished"
+          @update:model-value="updateIsPublished($event)"
         />
         <div class="space-y-1">
-          <Label for="isPublished" class="font-data text-xs uppercase tracking-wider">
+          <Label for="is_published">
             {{ t('contests.scheduleStep.publishImmediately') }}
           </Label>
-          <p class="terminal-comment text-xs">
+          <p class="text-sm text-muted-foreground text-xs">
             {{ t('contests.scheduleStep.publishImmediatelyDescription') }}
           </p>
         </div>

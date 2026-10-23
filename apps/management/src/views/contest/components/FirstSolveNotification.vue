@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from '@ulticode/design-system/ui/button'
+
 /**
  * FirstSolveNotification Component
  *
@@ -7,7 +9,8 @@
  * Auto-dismiss after 5 seconds.
  */
 import { onMounted, onUnmounted, ref, watch } from 'vue'
-import { IconTrophy, IconX } from '@tabler/icons-vue'
+import { Trophy as IconTrophy, X as IconX } from '@lucide/vue'
+
 import { cn } from '@/lib/utils'
 
 export interface FirstSolveData {
@@ -117,7 +120,7 @@ onUnmounted(() => {
             'border border-[color-mix(in_oklch,_var(--status-warning-mark)_40%,_transparent)]',
             'bg-gradient-to-r from-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)] to-[color-mix(in_oklch,_var(--status-info-mark)_15%,_transparent)]',
             'backdrop-blur-sm',
-            'rounded-none shadow-lg',
+            'rounded-lg shadow-lg',
             'p-4',
             isLeaving && 'opacity-0 translate-x-full',
           )
@@ -128,35 +131,36 @@ onUnmounted(() => {
           <div
             class="flex-shrink-0 w-10 h-10 rounded-full bg-[color-mix(in_oklch,_var(--status-warning-mark)_30%,_transparent)] flex items-center justify-center"
           >
-            <IconTrophy class="h-5 w-5 text-[var(--status-warning-mark)] animate-bounce-subtle" />
+            <IconTrophy class="h-5 w-5 text-status-warning-mark animate-bounce-subtle" />
           </div>
 
           <!-- Content -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="font-data text-2xs uppercase tracking-wide text-[var(--foreground-strong)]">
+              <span class="font-mono text-xs uppercase tracking-wide text-foreground">
                 First Solve
               </span>
             </div>
             <p class="mt-1 text-sm font-medium text-foreground">
-              <span class="text-[var(--primary)]">{{ data.username }}</span>
+              <span class="text-primary">{{ data.username }}</span>
               solved problem
-              <span class="font-data font-bold text-[var(--foreground-strong)]">
+              <span class="font-mono font-bold text-foreground">
                 {{ data.problemIndex }}
               </span>
             </p>
-            <p class="mt-0.5 text-xs text-[var(--foreground-muted)]">
+            <p class="mt-0.5 text-xs text-muted-foreground">
               Solved in {{ formatTimeSpent(data.timeSpent) }}
             </p>
           </div>
 
           <!-- Close button -->
-          <button
-            class="flex-shrink-0 p-1 rounded-none hover:bg-[var(--border-subtle)] dark:hover:bg-[var(--foreground-strong)] transition-colors"
+          <Button
+            variant="outline"
+            class="flex-shrink-0 p-1 dark:hover:bg-foreground"
             @click="close"
           >
-            <IconX class="h-4 w-4 text-[var(--foreground-muted)]" />
-          </button>
+            <IconX class="h-4 w-4 text-muted-foreground" />
+          </Button>
         </div>
       </div>
     </Transition>

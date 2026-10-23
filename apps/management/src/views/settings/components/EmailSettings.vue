@@ -1,11 +1,20 @@
 <script setup lang="ts">
+import { Button } from '@ulticode/design-system/ui/button'
+
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { IconMail, IconEye, IconEyeOff } from '@tabler/icons-vue'
+import { Input } from '@ulticode/design-system/ui/input'
+import { Label } from '@ulticode/design-system/ui/label'
+import { Switch } from '@ulticode/design-system/ui/switch'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@ulticode/design-system/ui/card'
+import { Mail as IconMail, Eye as IconEye, EyeOff as IconEyeOff } from '@lucide/vue'
+
 import type { EmailSettings } from '@/api/admin/settings'
 
 const { t } = useI18n()
@@ -73,14 +82,15 @@ function updateField<K extends keyof EmailSettings>(key: K, value: EmailSettings
               placeholder="•••••••••"
               class="pr-10"
             />
-            <button
+            <Button
+              variant="ghost"
               type="button"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              class="absolute right-3 top-1/2 -translate-y-1/2"
               @click="showSmtpPassword = !showSmtpPassword"
             >
               <IconEye v-if="!showSmtpPassword" class="h-4 w-4" />
               <IconEyeOff v-else class="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
         <div class="space-y-2">
@@ -101,15 +111,16 @@ function updateField<K extends keyof EmailSettings>(key: K, value: EmailSettings
         </div>
       </div>
       <div class="flex items-center justify-between space-x-2 pt-4">
-        <Label class="flex flex-col space-y-1">
+        <Label class="flex flex-col items-start space-y-1">
           <span>{{ t('settings.email.smtpSecure') }}</span>
           <span class="font-normal text-xs text-muted-foreground">{{
             t('settings.email.smtpSecureDescription')
           }}</span>
         </Label>
         <Switch
-          :checked="settings.smtp_secure"
-          @update:checked="updateField('smtp_secure', $event)"
+          :model-value="settings.smtp_secure"
+          :aria-label="t('settings.email.smtpSecure')"
+          @update:model-value="updateField('smtp_secure', $event)"
         />
       </div>
     </CardContent>

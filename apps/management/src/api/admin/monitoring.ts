@@ -112,12 +112,12 @@ export interface SystemHealth {
 }
 
 interface ApiAllStats {
-  system: SystemInfo
-  resources: ResourceUsage
-  database: DatabaseStats
-  queues: QueueStats[]
-  redis: RedisStats
-  health: SystemHealth
+  system: SystemInfo | null
+  resources: ResourceUsage | null
+  database: DatabaseStats | null
+  queues: QueueStats[] | null
+  redis: RedisStats | null
+  health: SystemHealth | null
 }
 
 export const monitoringApi = {
@@ -145,53 +145,23 @@ export const monitoringApi = {
     return apiGet<SystemHealth>('/monitoring/health')
   },
 
-  /**
-   * Fetch all six monitoring endpoints in parallel.
-   *
-   * Each individual endpoint is wrapped in a generic `safe()` helper so
-   * a single failing endpoint (e.g. Redis down) does not blank out the
-   * entire dashboard. On failure we log a warning and substitute a
-   * sensible default for that field. `Promise.all` waits for all six
-   * slots to resolve, but each slot independently degrades.
-   */
+  /** Keep successful probes independent; failed probes remain unavailable, not zero or empty. */
   async getAllStats(): Promise<ApiAllStats> {
-    const safe = async <T>(label: string, p: Promise<T>, fallback: T): Promise<T> => {
+    const safe = async <T>(label: string, p: Promise<T>): Promise<T | null> => {
       try {
         return await p
       } catch (e) {
         console.warn(`[monitoringApi] ${label} failed:`, e)
-        return fallback
+        return null
       }
     }
     const [system, resources, database, queues, redis, health] = await Promise.all([
-      safe('getSystemInfo', this.getSystemInfo(), {
-        uptime: 0,
-        javaVersion: 'unknown',
-        platform: 'unknown',
-        hostname: 'unknown',
-        env: 'unknown',
-        pid: -1,
-        version: 'unknown',
-      }),
-      safe('getResourceUsage', this.getResourceUsage(), {
-        memory: { heapUsed: 0, heapMax: 0, nonHeapUsed: 0 },
-        cpu: { processCpuLoad: 0, systemCpuLoad: 0, availableProcessors: 0 },
-        threadCount: 0,
-      }),
-      safe('getDatabaseStats', this.getDatabaseStats(), {
-        activeConnections: 0,
-        maxConnections: 0,
-        queryCount: 0,
-        slowQueries: 0,
-        status: 'unhealthy',
-      }),
-      safe('getQueueStats', this.getQueueStats(), []),
-      safe('getRedisStats', this.getRedisStats(), { connected: false }),
-      safe('getHealth', this.getHealth(), {
-        status: 'unhealthy',
-        checks: [],
-        timestamp: new Date().toISOString(),
-      }),
+      safe('getSystemInfo', this.getSystemInfo()),
+      safe('getResourceUsage', this.getResourceUsage()),
+      safe('getDatabaseStats', this.getDatabaseStats()),
+      safe('getQueueStats', this.getQueueStats()),
+      safe('getRedisStats', this.getRedisStats()),
+      safe('getHealth', this.getHealth()),
     ])
     return { system, resources, database, queues, redis, health }
   },

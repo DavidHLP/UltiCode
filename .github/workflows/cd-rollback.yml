@@ -42,6 +42,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Validate immutable release manifest
         env:
@@ -58,21 +60,10 @@ jobs:
             exit 1
           }
 
-      - name: Validate deployable service selection
+      - name: Validate deployable service selection and compatibility
         env:
           SELECTED_SERVICES: ${{ github.event.inputs.services }}
-        run: |
-          set -euo pipefail
-          ALL=("backend-auth" "backend-admin" "backend-app" "backend-submission" "backend-notification" "backend-search" "backend-judge" "console" "management")
-          if [[ "$SELECTED_SERVICES" == "all" || -z "$SELECTED_SERVICES" ]]; then
-            exit 0
-          fi
-          for service in $(printf '%s' "$SELECTED_SERVICES" | tr ',' ' ' | xargs); do
-            case " ${ALL[*]} " in
-              *" $service "*) ;;
-              *) echo "::error::Unknown deployable service: $service" >&2; exit 1 ;;
-            esac
-          done
+        run: scripts/deploy/service-selection.sh validate "$SELECTED_SERVICES" true
 
       # The remote host performs registry-backed verification immediately
       # before pull/up, against the same manifest supplied to this job.
@@ -86,6 +77,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Roll back on host
         uses: ./.github/actions/host-deploy

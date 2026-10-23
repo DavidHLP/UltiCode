@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
 import type { ForumFlairType, ForumPost } from "@/types/forum";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@ulticode/design-system/ui/avatar";
+import { Badge } from "@ulticode/design-system/ui/badge";
 
-import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { AspectRatio } from "@ulticode/design-system/ui/aspect-ratio";
 import { Link as LinkIcon } from "@lucide/vue";
 import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";
 import { useAvatar } from "@/composables/useAvatar";
 import { RouterLink, useRouter } from "vue-router";
-import { renderMarkdown } from '@ulticode/markdown-utils';
+import { renderMarkdown } from "@ulticode/markdown-utils";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toast } from "vue-sonner";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
@@ -51,15 +55,15 @@ const emit = defineEmits<{
 
 const flairClasses: Record<ForumFlairType, string> = {
   announcement:
-    "bg-status-warning-surface text-foreground-strong border border-status-warning-mark",
+    "bg-status-warning-surface text-foreground border border-status-warning-mark",
   discussion:
-    "bg-status-info-surface text-foreground-strong border border-status-info-mark",
+    "bg-status-info-surface text-foreground border border-status-info-mark",
   showcase:
-    "bg-status-special-surface text-foreground-strong border border-status-special-mark",
+    "bg-status-special-surface text-foreground border border-status-special-mark",
   question:
-    "bg-status-success-surface text-foreground-strong border border-status-success-mark",
+    "bg-status-success-surface text-foreground border border-status-success-mark",
   hiring:
-    "bg-status-warning-surface text-foreground-strong border border-status-warning-mark",
+    "bg-status-warning-surface text-foreground border border-status-warning-mark",
 };
 
 const userInitials = computed(() => {
@@ -105,9 +109,7 @@ type PostMediaItem = {
 
 const media = computed(() => {
   const m = props.post.media as unknown as
-    | PostMediaItem
-    | Array<PostMediaItem>
-    | undefined;
+    PostMediaItem | Array<PostMediaItem> | undefined;
 
   if (Array.isArray(m)) {
     return m.find((item) => item.kind === "image" || item.kind === "video");
@@ -227,56 +229,53 @@ function handleCardClick(event: MouseEvent) {
 
 <template>
   <div
-    class="terminal-card hover:bg-muted/10 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+    class="rounded-xl border bg-card text-card-foreground hover:bg-muted/10 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
     @click="handleCardClick"
   >
     <div class="flex gap-4 p-5 sm:p-6">
       <div class="min-w-0 flex-1 space-y-3">
         <!-- Header -->
         <header
-          class="flex items-center gap-2 text-xs font-mono text-foreground dark:text-[var(--foreground-muted)]"
+          class="flex flex-wrap items-center gap-2 text-xs font-mono text-foreground dark:text-muted-foreground"
         >
           <Avatar
-            class="h-9 w-9 rounded-none border border-border-control avatar-trigger cursor-pointer"
+            class="h-9 w-9 shrink-0 avatar-trigger cursor-pointer"
             v-if="post.community?.icon"
           >
             <AvatarImage
               :src="post.community.icon"
               :alt="post.community.name"
             />
-            <AvatarFallback class="text-xs">{{
+            <AvatarFallback>{{
               post.community.name.charAt(0).toUpperCase()
             }}</AvatarFallback>
           </Avatar>
-          <Avatar
-            class="h-9 w-9 rounded-none border border-border-control avatar-trigger cursor-pointer"
-            v-else
-          >
+          <Avatar class="h-9 w-9 shrink-0 avatar-trigger cursor-pointer" v-else>
             <AvatarImage
               :src="normalizedAvatar"
               :alt="post.author?.username || 'user'"
             />
-            <AvatarFallback class="text-xs">{{ userInitials }}</AvatarFallback>
+            <AvatarFallback>{{ userInitials }}</AvatarFallback>
           </Avatar>
-          <span class="flex items-center gap-1">
+          <span class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1 gap-y-1">
             <span
               v-if="post.community"
-              class="font-bold text-[var(--primary)] hover:underline cursor-pointer"
+              class="max-w-full break-words font-bold text-primary hover:underline cursor-pointer"
             >
               r/{{ post.community.name }}
             </span>
             <span
               v-else
-              class="font-bold text-foreground dark:text-[var(--foreground-muted)] hover:underline cursor-pointer"
+              class="max-w-full break-all font-bold text-foreground dark:text-muted-foreground hover:underline cursor-pointer"
             >
               u/{{ post.author?.username || "?" }}
             </span>
             <span class="text-muted-foreground/60">•</span>
-            <span>{{ createdAgo }}</span>
+            <span class="whitespace-nowrap">{{ createdAgo }}</span>
             <span v-if="post.community" class="text-muted-foreground/60"
               >•</span
             >
-            <span v-if="post.community"
+            <span v-if="post.community" class="max-w-full break-all"
               >{{ t("forum.post.postedBy") }} u/{{
                 post.author?.username || "?"
               }}</span
@@ -286,7 +285,7 @@ function handleCardClick(event: MouseEvent) {
             v-if="post.flair"
             variant="secondary"
             :class="[
-              'ml-auto sm:ml-2 rounded-none px-2 py-0 text-2xs h-5',
+              'ml-auto sm:ml-2 rounded-lg px-2 py-0 text-xs h-5',
               flairClasses[post.flair.type],
             ]"
           >
@@ -301,7 +300,7 @@ function handleCardClick(event: MouseEvent) {
             class="block"
           >
             <h3
-              class="text-base sm:text-lg font-bold leading-snug text-foreground hover:text-[var(--primary)] hover:underline transition-colors"
+              class="text-base sm:text-lg font-bold leading-snug text-foreground hover:text-primary hover:underline transition-colors"
             >
               {{ post.title }}
             </h3>
@@ -316,7 +315,7 @@ function handleCardClick(event: MouseEvent) {
             class="markdown-view"
           >
             <div
-              class="text-sm leading-relaxed text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
+              class="text-sm leading-relaxed text-muted-foreground max-h-[3lh] overflow-hidden typeset typeset-docs prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
               v-html="renderMarkdown(post.excerpt)"
             ></div>
           </div>
@@ -324,7 +323,7 @@ function handleCardClick(event: MouseEvent) {
           <!-- Media -->
           <div
             v-if="media"
-            class="mt-2 overflow-hidden rounded-none border border-border-control bg-[var(--surface-sunken)]/50"
+            class="mt-2 overflow-hidden rounded-lg border border-input bg-muted/50"
           >
             <AspectRatio
               v-if="media.kind === 'image'"
@@ -334,7 +333,7 @@ function handleCardClick(event: MouseEvent) {
               <img
                 :src="media.src"
                 :alt="media.alt ?? post.title"
-                class="h-full w-full object-contain bg-surface/5"
+                class="h-full w-full object-contain bg-background/5"
               />
             </AspectRatio>
 
@@ -351,9 +350,7 @@ function handleCardClick(event: MouseEvent) {
                 <div class="text-xs text-muted-foreground truncate">
                   {{ media.description }}
                 </div>
-                <div
-                  class="flex items-center gap-1 text-xs text-[var(--primary)]"
-                >
+                <div class="flex items-center gap-1 text-xs text-primary">
                   <LinkIcon class="w-3 h-3" />
                   {{ media.domain }}
                 </div>
@@ -386,10 +383,8 @@ function handleCardClick(event: MouseEvent) {
               class="markdown-view"
             >
               <div
-                class="prose prose-sm dark:prose-invert max-w-none p-3 text-sm leading-relaxed"
-                v-html="
-                  renderMarkdown(media.markdown || media.body || '')
-                "
+                class="typeset typeset-docs max-w-none p-3 text-sm leading-relaxed"
+                v-html="renderMarkdown(media.markdown || media.body || '')"
               ></div>
             </div>
           </div>

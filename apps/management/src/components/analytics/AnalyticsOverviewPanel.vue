@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { Card } from '@/components/ui/card'
+import { Card } from '@ulticode/design-system/ui/card'
 
 export interface AnalyticsOverviewItem {
   label: string
@@ -21,42 +21,39 @@ defineProps<{
 </script>
 
 <template>
-  <Card
-    data-testid="analytics-overview"
-    class="gap-0 py-0 overflow-hidden rounded-none border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 shadow-sm"
-  >
+  <Card data-testid="analytics-overview" class="gap-0 py-0 overflow-hidden">
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
       <section
         v-for="(group, groupIndex) in groups"
         :key="group.title"
-        class="min-w-0 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/40 md:[&:nth-last-child(-n+2)]:border-b-0 xl:border-b-0 xl:border-r xl:last:border-r-0"
+        class="min-w-0 border-b border-border dark:border-border/40 md:[&:nth-last-child(-n+2)]:border-b-0 xl:border-b-0 xl:border-r xl:last:border-r-0"
       >
         <header
-          class="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/40 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10"
+          class="flex items-center gap-2 px-4 py-3 border-b border-border dark:border-border/40 bg-background dark:bg-accent/10"
         >
-          <component :is="group.icon" class="size-4 text-[var(--accent-primary)]" />
-          <h2 class="text-xxs font-bold font-mono uppercase tracking-wide text-foreground">
+          <component :is="group.icon" class="size-4 text-primary" />
+          <h2 class="text-xs font-bold font-mono uppercase tracking-wide text-foreground">
             {{ group.title }}
           </h2>
-          <span class="ml-auto text-2xs font-data text-[var(--foreground-muted)]">
+          <span class="ml-auto text-xs font-mono text-muted-foreground">
             {{ String(groupIndex + 1).padStart(2, '0') }}
           </span>
         </header>
 
-        <dl class="divide-y divide-[var(--surface-highlight)] dark:divide-[var(--border-subtle)]/20 px-4">
+        <dl class="divide-y divide-[var(--accent)] dark:divide-[var(--border)]/20 px-4">
           <div
             v-for="item in group.items"
             :key="item.label"
             class="flex min-h-9 items-center justify-between gap-3 py-1.5"
           >
-            <dt class="truncate text-xxs font-mono text-[var(--foreground-muted)]">
+            <dt class="min-w-0 break-words text-xs font-mono text-muted-foreground">
               {{ item.label }}
             </dt>
-            <dd class="flex shrink-0 items-center gap-1.5 font-data tabular-nums">
+            <dd class="flex shrink-0 items-center gap-1.5 font-mono tabular-nums">
               <span class="text-xs font-bold text-foreground">{{ item.value }}</span>
               <span
                 v-if="item.change"
-                class="border px-1 py-0.5 text-2xs font-bold font-mono"
+                class="border px-1 py-0.5 text-xs font-bold font-mono"
                 :style="item.changeStyle"
               >
                 {{ item.change }}

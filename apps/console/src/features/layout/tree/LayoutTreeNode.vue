@@ -6,7 +6,7 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable";
+} from "@ulticode/design-system/ui/resizable";
 import { useHeaderStore, type LayoutNode } from "@/stores/headerStore";
 
 import LayoutPanel from "../panels/LayoutPanel.vue";
@@ -66,7 +66,7 @@ const visibleChildren = computed(() => {
           :id="child.id"
           :default-size="child.size"
           :min-size="20"
-          class="rounded-none overflow-hidden"
+          class="overflow-hidden"
         >
           <!-- Recursively render children -->
           <LayoutTreeNode :node="child" />
@@ -86,7 +86,7 @@ const visibleChildren = computed(() => {
         node.groupId &&
         getGroupHeaders(node.groupId).length > 0
       "
-      class="h-full cursor-pointer rounded-none border border-transparent overflow-hidden bg-background"
+      class="h-full cursor-pointer rounded-lg border border-transparent overflow-hidden bg-background"
       :class="{ 'border-border shadow-sm': activeGroupId === node.groupId }"
       @click="handleGroupClick(node.groupId)"
     >

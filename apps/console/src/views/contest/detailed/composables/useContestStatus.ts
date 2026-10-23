@@ -114,11 +114,11 @@ export function useContestStatus(
 
   function getDifficultyColor(difficulty: string): string {
     const colors: Record<string, string> = {
-      Easy: "text-foreground-strong",
-      Medium: "text-foreground-strong",
-      Hard: "text-foreground-strong",
+      Easy: "text-foreground",
+      Medium: "text-foreground",
+      Hard: "text-foreground",
     };
-    return colors[difficulty] || "text-foreground-muted";
+    return colors[difficulty] || "text-muted-foreground";
   }
 
   // Start timer when contest loads, clean up on unmount

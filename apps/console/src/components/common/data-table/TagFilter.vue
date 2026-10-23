@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@ulticode/design-system/ui/collapsible";
 import { ChevronDown } from "@lucide/vue";
 
 defineProps<{
@@ -37,22 +37,25 @@ function isTagSelected(tag: string, currentTags: string[]) {
       <Badge
         v-for="tag in popularTags"
         :key="tag"
+        as="button"
+        type="button"
+        :aria-pressed="isTagSelected(tag, modelValue)"
         variant="outline"
-        class="cursor-pointer rounded-md px-2.5 py-1 text-xxs font-medium transition-all duration-200"
+        class="min-h-7 cursor-pointer px-2.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         :class="
           isTagSelected(tag, modelValue)
-          ? 'border-border-control bg-surface-highlight text-foreground-strong hover:bg-surface-highlight/80'
-          : 'border-border-subtle bg-surface-sunken text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong'
+            ? 'border-border bg-accent text-foreground hover:bg-accent/80'
+            : 'border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
         "
         @click="toggleTag(tag, modelValue)"
       >
         {{ tag }}
       </Badge>
-      <CollapsibleTrigger as-child>
+      <CollapsibleTrigger v-if="otherTags.length" as-child>
         <Button
           variant="ghost"
           size="sm"
-          class="gap-1 h-6 rounded-md px-2 text-2xs font-mono text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong cursor-pointer"
+          class="gap-1 px-2 text-xs text-muted-foreground cursor-pointer"
         >
           {{ showMoreLabel || "Show more" }}
           <ChevronDown class="h-2.5 w-2.5" />
@@ -64,12 +67,15 @@ function isTagSelected(tag: string, currentTags: string[]) {
         <Badge
           v-for="tag in otherTags"
           :key="tag"
+          as="button"
+          type="button"
+          :aria-pressed="isTagSelected(tag, modelValue)"
           variant="outline"
-          class="cursor-pointer rounded-md px-2.5 py-1 text-2xs font-medium transition-all duration-200"
+          class="min-h-7 cursor-pointer px-2.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           :class="
             isTagSelected(tag, modelValue)
-            ? 'border-border-control bg-surface-highlight text-foreground-strong hover:bg-surface-highlight/80'
-            : 'border-border-subtle bg-surface-sunken text-foreground-muted hover:bg-surface-highlight hover:text-foreground-strong'
+              ? 'border-border bg-accent text-foreground hover:bg-accent/80'
+              : 'border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
           "
           @click="toggleTag(tag, modelValue)"
         >

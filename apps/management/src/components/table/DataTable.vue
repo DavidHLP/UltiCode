@@ -9,14 +9,15 @@ import type { PaginationState } from '@/composables/useRemoteTable'
 import { RestrictToVerticalAxis } from '@dnd-kit/abstract/modifiers'
 import { KeyboardSensor, PointerSensor } from '@dnd-kit/dom'
 import {
-  IconChevronDown,
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronsLeft,
-  IconChevronsRight,
-  IconLayoutColumns,
-  IconSearchOff,
-} from '@tabler/icons-vue'
+  ChevronDown as IconChevronDown,
+  ChevronLeft as IconChevronLeft,
+  ChevronRight as IconChevronRight,
+  ChevronsLeft as IconChevronsLeft,
+  ChevronsRight as IconChevronsRight,
+  Columns2 as IconLayoutColumns,
+  SearchX as IconSearchOff,
+} from '@lucide/vue'
+
 import {
   FlexRender,
   getCoreRowModel,
@@ -28,21 +29,22 @@ import {
 import { DragDropProvider } from 'dnd-kit-vue'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Label } from '@/components/ui/label'
+} from '@ulticode/design-system/ui/dropdown-menu'
+import { Label } from '@ulticode/design-system/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
 import {
   Table,
   TableBody,
@@ -50,15 +52,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@ulticode/design-system/ui/table'
 import {
   Empty,
   EmptyContent,
   EmptyDescription,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/ui/empty'
-import { Skeleton } from '@/components/ui/skeleton'
+} from '@ulticode/design-system/ui/empty'
+import { Skeleton } from '@ulticode/design-system/ui/skeleton'
 import DraggableRow from './DraggableRow.vue'
 
 // Constants for page size options
@@ -186,14 +188,38 @@ const table = useVueTable({
   },
 })
 
-// Watch for external clearing of selected rows
+function clearSelection() {
+  if (Object.keys(rowSelection.value).length > 0) {
+    table.resetRowSelection()
+  } else if (props.selectedRows?.length) {
+    emit('update:selectedRows', [])
+  }
+}
+
+watch(
+  () => props.loading,
+  (loading) => {
+    if (loading) clearSelection()
+  },
+)
+
+watch(
+  () => props.data.map((row) => row.id),
+  (rowIds, previousRowIds) => {
+    if (
+      rowIds.length !== previousRowIds.length ||
+      rowIds.some((id, index) => id !== previousRowIds[index])
+    ) {
+      clearSelection()
+    }
+  },
+)
+
 watch(
   () => props.selectedRows,
   (newVal) => {
     if (!newVal || newVal.length === 0) {
-      if (Object.keys(rowSelection.value).length > 0) {
-        table.resetRowSelection()
-      }
+      clearSelection()
     }
   },
 )
@@ -201,12 +227,10 @@ watch(
 
 <template>
   <!-- Unified Card Container (always visible) -->
-  <div
-    class="w-full border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)] flex flex-col rounded-none"
-  >
+  <div class="w-full border border-border dark:border-border bg-card flex flex-col rounded-lg">
     <!-- Toolbar Row -->
     <div
-      class="px-4 lg:px-6 py-2.5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+      class="px-4 lg:px-6 py-2.5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4 border-b border-border dark:border-border bg-muted"
     >
       <div class="flex flex-wrap items-center gap-2">
         <slot name="toolbar-left" :table="table" />
@@ -217,11 +241,7 @@ watch(
 
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--border-subtle)]"
-            >
+            <Button variant="outline" size="sm">
               <IconLayoutColumns class="h-3.5 w-3.5" />
               <span class="hidden lg:inline uppercase tracking-wider">{{
                 t('table.customizeColumns')
@@ -282,7 +302,7 @@ watch(
               }"
             />
           </colgroup>
-          <TableHeader class="bg-[var(--surface-sunken)] sticky top-0 z-10">
+          <TableHeader class="sticky top-0 z-10">
             <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
               <TableHead
                 v-for="header in headerGroup.headers"
@@ -319,9 +339,13 @@ watch(
     </div>
 
     <!-- Empty State -->
-    <div v-else class="flex h-96 items-center justify-center rounded-none bg-[var(--card)]">
+    <div
+      v-else
+      class="rounded-lg bg-card"
+      :class="{ 'flex h-96 items-center justify-center': !$slots.empty }"
+    >
       <slot name="empty">
-        <Empty class="border-none">
+        <Empty>
           <EmptyMedia variant="icon">
             <IconSearchOff />
           </EmptyMedia>
@@ -338,12 +362,12 @@ watch(
     <!-- Pagination Footer -->
     <div
       v-if="!props.hidePagination && (loading || table.getRowModel().rows.length)"
-      class="flex items-center justify-between px-4 lg:px-6 py-2.5 border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
+      class="flex items-center justify-between px-4 lg:px-6 py-2.5 border-t border-border dark:border-border bg-muted"
     >
       <div
-        class="hidden flex-1 text-sm lg:flex items-center gap-2 font-data text-xs text-[var(--foreground-muted)]"
+        class="hidden flex-1 text-sm lg:flex items-center gap-2 font-mono text-xs text-muted-foreground"
       >
-        <span class="text-[var(--foreground-strong)] tabular-nums">{{
+        <span class="text-foreground tabular-nums">{{
           table.getFilteredSelectedRowModel().rows.length
         }}</span>
         <span>{{ t('table.of') }}</span>
@@ -352,11 +376,7 @@ watch(
       </div>
       <div class="flex w-full items-center gap-6 lg:w-fit">
         <div class="hidden items-center gap-2 lg:flex">
-          <Label
-            for="rows-per-page"
-            class="text-xs font-data text-[var(--foreground-muted)] uppercase tracking-wider"
-            >{{ t('table.rowsPerPage') }}</Label
-          >
+          <Label for="rows-per-page">{{ t('table.rowsPerPage') }}</Label>
           <Select
             :disabled="loading"
             :model-value="`${table.getState().pagination.pageSize}`"
@@ -366,29 +386,25 @@ watch(
               }
             "
           >
-            <SelectTrigger
-              id="rows-per-page"
-              size="sm"
-              class="w-20 h-7 font-data text-xs border-[var(--border-subtle)]"
-            >
+            <SelectTrigger id="rows-per-page" size="sm" class="w-20">
               <SelectValue :placeholder="`${table.getState().pagination.pageSize}`" />
             </SelectTrigger>
             <SelectContent side="top">
-              <SelectItem
-                v-for="pageSize in PAGE_SIZE_OPTIONS"
-                :key="pageSize"
-                :value="`${pageSize}`"
+              <SelectGroup
+                ><SelectItem
+                  v-for="pageSize in PAGE_SIZE_OPTIONS"
+                  :key="pageSize"
+                  :value="`${pageSize}`"
+                >
+                  {{ pageSize }}
+                </SelectItem></SelectGroup
               >
-                {{ pageSize }}
-              </SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <div
-          class="flex w-fit items-center justify-center text-xs font-data text-[var(--foreground-muted)]"
-        >
+        <div class="flex w-fit items-center justify-center text-xs font-mono text-muted-foreground">
           <span>{{ t('table.page') }}</span>
-          <span class="mx-1.5 text-[var(--foreground-strong)] tabular-nums">{{
+          <span class="mx-1.5 text-foreground tabular-nums">{{
             table.getState().pagination.pageIndex + 1
           }}</span>
           <span>{{ t('table.of') }}</span>
@@ -396,8 +412,8 @@ watch(
         </div>
         <div class="ml-auto flex items-center gap-1.5 lg:ml-0">
           <Button
-            variant="terminal"
-            class="hidden h-7 w-7 p-0 lg:flex border-[var(--border-subtle)]"
+            variant="outline"
+            class="hidden w-7 p-0 lg:flex"
             :disabled="loading || !table.getCanPreviousPage()"
             @click="table.setPageIndex(0)"
           >
@@ -405,8 +421,8 @@ watch(
             <IconChevronsLeft class="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="terminal"
-            class="h-7 w-7 p-0 border-[var(--border-subtle)]"
+            variant="outline"
+            class="w-7 p-0"
             size="icon"
             :disabled="loading || !table.getCanPreviousPage()"
             @click="table.previousPage()"
@@ -415,8 +431,8 @@ watch(
             <IconChevronLeft class="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="terminal"
-            class="h-7 w-7 p-0 border-[var(--border-subtle)]"
+            variant="outline"
+            class="w-7 p-0"
             size="icon"
             :disabled="loading || !table.getCanNextPage()"
             @click="table.nextPage()"
@@ -425,8 +441,8 @@ watch(
             <IconChevronRight class="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="terminal"
-            class="hidden h-7 w-7 p-0 lg:flex border-[var(--border-subtle)]"
+            variant="outline"
+            class="hidden w-7 p-0 lg:flex"
             size="icon"
             :disabled="loading || !table.getCanNextPage()"
             @click="table.setPageIndex(table.getPageCount() - 1)"

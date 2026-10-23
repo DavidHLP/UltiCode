@@ -1,7 +1,11 @@
 import { defineStore } from "pinia";
 import { createValueRequest } from "@ulticode/request-state";
 import { computed, ref } from "vue";
-import type { ContestListItem, GlobalRankingEntry, UserContestHistory } from "@/types/contest";
+import type {
+  ContestListItem,
+  GlobalRankingEntry,
+  UserContestHistory,
+} from "@/types/contest";
 import {
   fetchGlobalRankings,
   fetchUserContestHistory,
@@ -36,6 +40,15 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
     rethrow: true,
   });
   const loadingRankings = rankingsRequest.loading;
+  const moreRankingsRequest = createValueRequest({
+    errorMessage: "Failed to load rankings",
+    rethrow: true,
+  });
+  const loadingMoreRankings = moreRankingsRequest.loading;
+  const loadMoreRankingsError = moreRankingsRequest.error;
+  const hasMoreRankings = ref(false);
+  let rankingPage = 1;
+  let rankingQuery: { limit: number; country?: string } = { limit: 10 };
 
   const registeredContests = ref<ContestListItem[]>([]);
   const participatedContests = ref<ContestListItem[]>([]);
@@ -43,7 +56,9 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
   const contestHistory = ref<UserContestHistory[]>([]);
 
   const operationError = ref<string | null>(null);
-  const error = computed(() => operationError.value ?? rankingsRequest.error.value);
+  const error = computed(
+    () => operationError.value ?? rankingsRequest.error.value,
+  );
 
   // =========================================================================
   // ACTIONS — GLOBAL RANKINGS
@@ -55,16 +70,43 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
     country?: string;
   }) {
     operationError.value = null;
-    rankingsRequest.error.value = null;
-    try {
-      const result = await rankingsRequest.run(() => fetchGlobalRankings({
+    moreRankingsRequest.cancel();
+    moreRankingsRequest.error.value = null;
+    hasMoreRankings.value = false;
+    const query = { limit: options?.limit ?? 10, country: options?.country };
+    const result = await rankingsRequest.run(() =>
+      fetchGlobalRankings({
+        ...query,
         page: options?.page ?? 1,
-        limit: options?.limit ?? 10,
-        country: options?.country,
-      }));
-      if (result) globalRankings.value = result.items;
-    } catch (err) {
-      throw err;
+      }),
+    );
+    if (result) {
+      globalRankings.value = result.items;
+      rankingQuery = { ...query, limit: result.pageSize };
+      rankingPage = result.page;
+      hasMoreRankings.value =
+        result.items.length > 0 && result.page < result.totalPages;
+    }
+  }
+
+  async function loadMoreGlobalRankings() {
+    if (
+      loadingRankings.value ||
+      loadingMoreRankings.value ||
+      !hasMoreRankings.value
+    )
+      return;
+    const result = await moreRankingsRequest.run(() =>
+      fetchGlobalRankings({
+        ...rankingQuery,
+        page: rankingPage + 1,
+      }),
+    );
+    if (result) {
+      globalRankings.value = [...globalRankings.value, ...result.items];
+      rankingPage = result.page;
+      hasMoreRankings.value =
+        result.items.length > 0 && result.page < result.totalPages;
     }
   }
 
@@ -121,6 +163,9 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
     // State
     globalRankings,
     loadingRankings,
+    loadingMoreRankings,
+    loadMoreRankingsError,
+    hasMoreRankings,
     registeredContests,
     participatedContests,
     virtualContests,
@@ -129,6 +174,7 @@ export const useContestRankingStore = defineStore("contestRanking", () => {
 
     // Actions
     loadGlobalRankings,
+    loadMoreGlobalRankings,
     loadUserContests,
     loadContestHistory,
     clearError,

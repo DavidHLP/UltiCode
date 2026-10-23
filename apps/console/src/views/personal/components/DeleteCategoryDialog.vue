@@ -9,7 +9,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@ulticode/design-system/ui/alert-dialog";
 
 defineProps<{
   open: boolean;
@@ -27,7 +27,7 @@ const { t } = useI18n();
 
 <template>
   <AlertDialog :open="open" @update:open="emit('update:open', $event)">
-    <AlertDialogContent class="rounded-none">
+    <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle>{{
           t("personal.problemLists.dialogs.deleteCategory")
@@ -41,14 +41,10 @@ const { t } = useI18n();
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel :disabled="loading" class="rounded-full">{{
+        <AlertDialogCancel :disabled="loading">{{
           t("common.actions.cancel")
         }}</AlertDialogCancel>
-        <AlertDialogAction
-          class="bg-status-error-surface text-foreground-strong border border-destructive hover:bg-status-error-surface/80 rounded-full"
-          @click="emit('confirm')"
-          :disabled="loading"
-        >
+        <AlertDialogAction @click="emit('confirm')" :disabled="loading">
           {{
             loading ? t("common.status.saving") : t("common.actions.confirm")
           }}

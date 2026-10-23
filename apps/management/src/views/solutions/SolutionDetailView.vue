@@ -5,8 +5,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSolutionsStore } from '@/stores/admin/solutions'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Skeleton } from '@ulticode/design-system/ui/skeleton'
 import { ArrowLeft, Flag, Eye, Trash, FileText, User } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import DescriptionDisplay from './components/DescriptionDisplay.vue'
@@ -86,46 +86,33 @@ function back() {
 
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-background flex flex-col">
-    <!-- Terminal Header -->
-    <header
-      class="sticky top-0 z-10 bg-[var(--card)]/95 backdrop-blur border-b border-[var(--border-subtle)]"
-    >
-      <div class="flex items-center justify-between h-14 px-4 lg:px-6">
-        <div class="flex items-center gap-4">
+    <!-- Page header -->
+    <header class="sticky top-0 z-10 bg-card/95 backdrop-blur border-b border-border">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-6">
+        <div class="flex min-w-0 items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 text-[var(--foreground-muted)] -ml-2 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]"
+            class="w-8 shrink-0"
+            :aria-label="t('common.back')"
             @click="back"
           >
             <ArrowLeft :size="18" />
           </Button>
-          <h1 v-if="solution" class="text-sm font-semibold text-[var(--foreground)]">
+          <h1 v-if="solution" class="min-w-0 break-words text-sm font-semibold text-foreground">
             {{ solution.title }}
           </h1>
           <Skeleton v-else class="h-5 w-32" />
         </div>
 
         <!-- Actions -->
-        <div v-if="solution" class="flex items-center gap-2">
+        <div v-if="solution" class="flex flex-wrap items-center gap-2">
           <template v-if="canUpdateSolution">
-            <Button
-              v-if="solution.isFlagged"
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
-              @click="unflagSolution"
-            >
+            <Button v-if="solution.isFlagged" variant="outline" size="sm" @click="unflagSolution">
               <Eye :size="14" class="mr-1.5" />
               <span class="uppercase tracking-wider">{{ t('solutions.actions.unflag') }}</span>
             </Button>
-            <Button
-              v-else
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--status-warning-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-warning-mark)_10%,_transparent)]"
-              @click="flagDialogOpen = true"
-            >
+            <Button v-else variant="outline" size="sm" @click="flagDialogOpen = true">
               <Flag :size="14" class="mr-1.5" />
               <span class="uppercase tracking-wider">{{ t('solutions.actions.flag') }}</span>
             </Button>
@@ -133,9 +120,8 @@ function back() {
 
           <Button
             v-if="canDeleteSolution"
-            variant="terminal"
+            variant="outline"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--status-error-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
             @click="deleteDialogOpen = true"
           >
             <Trash :size="14" class="mr-1.5" />
@@ -145,39 +131,28 @@ function back() {
       </div>
 
       <!-- Status Ticker -->
-      <div
-        v-if="solution"
-        class="px-4 lg:px-6 py-2.5 border-t border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
-      >
-        <div class="flex items-center gap-6 text-xs">
+      <div v-if="solution" class="px-4 lg:px-6 py-2.5 border-t border-border bg-muted">
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 whitespace-nowrap text-xs">
           <div class="flex items-center gap-2">
-            <span class="terminal-label">status:</span>
-            <span
-              v-if="solution.isFlagged"
-              class="font-data text-foreground-strong uppercase"
-            >
-              flagged
+            <span class="text-sm font-medium">{{ t('solutions.columns.status') }}:</span>
+            <span v-if="solution.isFlagged" class="font-mono text-foreground uppercase">
+              {{ t('solutions.status.flagged') }}
             </span>
-            <span
-              v-else-if="solution.isPublished"
-              class="font-data text-foreground-strong uppercase"
-            >
-              published
+            <span v-else-if="solution.isPublished" class="font-mono text-foreground uppercase">
+              {{ t('solutions.status.published') }}
             </span>
-            <span v-else class="font-data text-[var(--foreground-muted)] uppercase"> unpublished </span>
+            <span v-else class="font-mono text-muted-foreground uppercase">{{ t('solutions.status.unpublished') }}</span>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="terminal-label">author:</span>
-            <div class="flex items-center gap-1">
-              <User :size="10" class="text-[var(--status-info-mark)]" />
-              <span class="font-data text-[var(--foreground-strong)]">{{
-                solution.author.username
-              }}</span>
+          <div class="flex min-w-0 max-w-full items-center gap-2 whitespace-normal">
+            <span class="text-sm font-medium">{{ t('solutions.detail.author') }}:</span>
+            <div class="flex min-w-0 items-center gap-1">
+              <User :size="10" class="shrink-0 text-status-info-mark" />
+              <span class="min-w-0 break-all font-mono text-foreground">{{ solution.author.username }}</span>
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <span class="terminal-label">views:</span>
-            <span class="font-data text-[var(--foreground-muted)] tabular-nums">{{
+            <span class="text-sm font-medium">{{ t('solutions.detail.views') }}:</span>
+            <span class="font-mono text-muted-foreground tabular-nums">{{
               solution.views.toLocaleString()
             }}</span>
           </div>
@@ -185,22 +160,23 @@ function back() {
       </div>
 
       <!-- Terminal Tabs Navigation -->
-      <div class="border-b border-[var(--border-subtle)] bg-[var(--card)]">
+      <div class="border-b border-border bg-card">
         <div class="px-4 lg:px-6 flex gap-1">
-          <button
+          <Button
+            variant="outline"
             v-for="tab in tabs"
             :key="tab.value"
             :class="[
-              'px-4 py-3 font-data text-xs uppercase tracking-label border-b-2 transition-colors cursor-pointer',
+              'px-4 py-3 font-mono text-xs uppercase tracking-label border-b-2 transition-colors cursor-pointer',
               currentView === tab.value
-                ? 'border-[var(--primary)] text-[var(--foreground)]'
-                : 'border-transparent text-[var(--foreground-muted)] hover:text-[var(--foreground-strong)] dark:hover:text-[var(--border-subtle)]',
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-border',
             ]"
             @click="handleTabChange(tab.value)"
           >
-            <span v-if="currentView === tab.value" class="text-[var(--primary)]">//</span>
+            <span v-if="currentView === tab.value" class="text-primary">//</span>
             {{ tab.label }}
-          </button>
+          </Button>
         </div>
       </div>
     </header>
@@ -213,29 +189,21 @@ function back() {
         class="flex flex-col items-center justify-center py-24 text-center"
       >
         <div
-          class="w-12 h-12 rounded-full border-2 border-[var(--status-error-mark)] flex items-center justify-center mb-3"
+          class="w-12 h-12 rounded-full border-2 border-status-error-mark flex items-center justify-center mb-3"
         >
-          <FileText :size="24" class="text-[var(--status-error-mark)]" />
+          <FileText :size="24" class="text-status-error-mark" />
         </div>
-        <h2 class="text-sm font-semibold mb-1 text-[var(--foreground)]">
+        <h2 class="text-sm font-semibold mb-1 text-foreground">
           {{ t('solutions.error.loadingSolution') }}
         </h2>
-        <p class="text-xs font-data text-[var(--foreground-muted)] mb-4">{{ solutionsStore.operationError }}</p>
+        <p class="text-xs font-mono text-muted-foreground mb-4">
+          {{ solutionsStore.operationError }}
+        </p>
         <div class="flex gap-2">
-          <Button
-            variant="terminal"
-            size="sm"
-            class="font-data text-xs border-[var(--border-subtle)]"
-            @click="back"
-          >
+          <Button variant="outline" size="sm" @click="back">
             {{ t('solutions.error.back') }}
           </Button>
-          <Button
-            variant="terminal"
-            size="sm"
-            class="font-data text-xs border-[var(--primary)] text-[var(--primary)]"
-            @click="solutionsStore.fetchSolution(solutionId)"
-          >
+          <Button variant="outline" size="sm" @click="solutionsStore.fetchSolution(solutionId)">
             {{ t('solutions.error.retry') }}
           </Button>
         </div>
@@ -244,8 +212,8 @@ function back() {
       <!-- Loading State -->
       <div v-else-if="isInitialLoad || solutionsStore.operationLoading" class="space-y-6">
         <div class="space-y-4">
-          <Skeleton class="h-12 w-1/3 rounded-none" />
-          <Skeleton class="h-64 w-full rounded-none" />
+          <Skeleton class="h-12 w-1/3" />
+          <Skeleton class="h-64 w-full" />
         </div>
       </div>
 
@@ -255,22 +223,17 @@ function back() {
         class="flex flex-col items-center justify-center py-24 text-center"
       >
         <div
-          class="w-12 h-12 rounded-full border-2 border-[var(--status-warning-mark)] flex items-center justify-center mb-3"
+          class="w-12 h-12 rounded-full border-2 border-status-warning-mark flex items-center justify-center mb-3"
         >
-          <FileText :size="24" class="text-[var(--status-warning-mark)]" />
+          <FileText :size="24" class="text-status-warning-mark" />
         </div>
-        <h2 class="text-sm font-semibold mb-1 text-[var(--foreground)]">
+        <h2 class="text-sm font-semibold mb-1 text-foreground">
           {{ t('solutions.error.solutionNotFound') }}
         </h2>
-        <p class="text-xs font-data text-[var(--foreground-muted)] mb-4">
+        <p class="text-xs font-mono text-muted-foreground mb-4">
           {{ t('solutions.error.notFoundDescription') }}
         </p>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--border-subtle)]"
-          @click="back"
-        >
+        <Button variant="outline" size="sm" @click="back">
           {{ t('solutions.error.backToSolutions') }}
         </Button>
       </div>

@@ -6,8 +6,10 @@ export default {
     trending: "热门话题",
     latest: "最新帖子",
     noPosts: "暂无帖子",
+    loadFailed: "加载帖子失败，请重试。",
+    communitiesLoadFailed: "加载社区分类失败。",
     loadMore: "加载更多",
-    searchPlaceholder: "搜索帖子、标签或关键词...",
+    searchPlaceholder: "搜索帖子或标签...",
     sort: "排序",
   },
 
@@ -42,6 +44,7 @@ export default {
     unlock: "解锁",
     customLabel: "自定义标签",
     selectTags: "选择帖子标签",
+    removeTag: "移除标签 {tag}",
     editorMarkdown: "编辑器 (Markdown)",
     livePreview: "实时预览",
     untitled: "无标题帖子",
@@ -191,6 +194,7 @@ export default {
     },
     success: "反馈已提交。谢谢！",
     error: "提交反馈失败。请重试。",
+    unavailable: "反馈提交功能尚未接入，内容未发送。",
     fillRequired: "请填写所有必填字段。",
   },
 

@@ -65,7 +65,7 @@ boot 主因之后，且仍继续清理其余对象。
 
 ```mermaid
 flowchart LR
-  Browser[Console 9002 / Management 9003] --> Owners[Owner HTTP APIs]
+  Browser[Landing 9004 / Console 9002 / Management 9003] --> Owners[Owner HTTP APIs]
   Owners --> Auth[Auth 9101]
   Owners --> Admin[Admin 9102]
   Owners --> App[App 9103]
@@ -79,7 +79,8 @@ flowchart LR
   Judge --> Sandbox[Remote/rootless Docker sandbox in production]
 ```
 
-- 外部 HTTP/WS 入口由前端 Nginx/Compose gateway 处理；内部 Dubbo 端口不对公网发布。
+- Landing 由独立前端应用拥有页面、样式、文案和素材；生产产物挂载到 Console Nginx 的 `/landing/`，本地开发端口为 9004。Console 与 Management 继续分别运行于 9002/9003。外部 HTTP/WS 入口由前端 Nginx/Compose gateway 处理；内部 Dubbo 端口不对公网发布。
+- Console 与 Management 的通用 UI 由 `packages/design-system` 的官方 shadcn-vue 组件持有；外观白名单、事务、用户分区与 bootstrap 由 `packages/theme` 持有。Landing 保留独立设计、字体、配色、插画与动效，不接入共享 UI、主题 token 或外观设置；平台 UI 统一改造不包含 Landing，除非用户明确要求修改其设计。业务页面与权限仍由各应用拥有，专业编辑器和图表只消费共享 token。外观持久化当前是浏览器同源存储，不新增服务端用户偏好 Owner 或跨设备同步。
 - `scripts/dev/up.sh --mode dev-lite` 是默认开发入口；`dev-full` 显式启动 Search。当前 binary/DevStack 拒绝已退役的 local compatibility mode；生产回滚只能使用部署方保留的上一份完整 release descriptor。
 - **Admin 查询已收敛为粗粒度 query slices**，不再以拆分更多进程为理由；用户趋势使用一次 bounded Auth aggregate，Enricher 使用 bounded parallel owner reads。
 - **Judge normal dev-lite/dev-full 使用 provider-owned JudgeQueue Streams**；App 不再扫描 Judge runtime 或运行旧 RQueue poller。
@@ -354,6 +355,8 @@ Owner migration 顺序固定为 `shared → auth → admin → app → notificat
 Access/refresh token 保持 HttpOnly；Cookie 的 Secure、SameSite、Path、Domain 和 lifetime 在签发与删除时一致。`Secure=false` 只能由完全 local 的 `dev`、`test`、`ci` profile 显式启用，生产启动 fail closed。
 
 所有 Cookie-authenticated unsafe methods（包括 refresh/logout）经过无服务端状态的 double-submit CSRF：header 与 `csrf_token` cookie 使用恒定时间比较。Bearer-only service-to-service 请求与 safe methods 不进入浏览器 CSRF filter。
+
+Browser account switching retains refresh credentials only in HttpOnly account-bound cookies, using the existing hash-only refresh store and rotation/reuse checks. The readable `session_account` cookie is an identity-change sentinel, never an authentication credential. The shared HTTP client rejects stale-tab requests/responses and sends `X-Session-Account`; owner filters reject a mismatch with the authenticated principal, including reads. Switching reloads the application to discard the previous account's cached state. Public CSRF recovery remains available without an active access token.
 
 ### JWT、JWKS 与委托身份
 

@@ -204,9 +204,11 @@ const handleOverlayDrop = (
 
 <template>
   <div
-    class="flex flex-col h-full rounded-none overflow-hidden shadow-sm terminal-card"
+    class="flex flex-col h-full rounded-lg overflow-hidden shadow-sm rounded-xl border bg-card text-card-foreground"
   >
-    <header class="flex items-center terminal-card-header min-h-9">
+    <header
+      class="flex items-center flex items-center gap-2 px-4 py-3 font-semibold min-h-9"
+    >
       <div class="flex items-center min-h-8 flex-1 gap-1">
         <LayoutPanelHeader
           v-for="(header, idx) in localHeaders"
@@ -229,7 +231,7 @@ const handleOverlayDrop = (
       </div>
     </header>
     <main class="flex-1 overflow-hidden p-2 relative">
-      <div class="h-full overflow-auto rounded-none bg-background">
+      <div class="h-full overflow-auto rounded-lg bg-background">
         <LayoutPanelContent
           :active-header="activeHeader || null"
           :is-active="isActive"

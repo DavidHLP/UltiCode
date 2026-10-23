@@ -2,10 +2,15 @@
 <script setup lang="ts">
 import { ListPlus, Plus } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
+import { SidebarBranch } from "@ulticode/sidebar-menu";
 import { useSidebarLists } from "./composables/useSidebarLists";
 import SidebarListSections from "./components/SidebarListSections.vue";
 import SidebarListDialogs from "./components/SidebarListDialogs.vue";
-import { SidebarMenuItem as SharedSidebarMenuItem } from "@ulticode/sidebar-menu";
+import {
+  SidebarGroup,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
+} from "@ulticode/design-system/ui/sidebar";
 
 const { t } = useI18n();
 
@@ -41,24 +46,35 @@ const {
   loadData,
 } = useSidebarLists();
 </script>
-
 <template>
-  <!-- Action Buttons -->
-  <div class="uc-sidebar-action-list">
-    <SharedSidebarMenuItem as="button" @click="isCreateListOpen = true">
-      <template #icon>
-        <ListPlus class="h-3.5 w-3.5" />
-      </template>
-      {{ t("sidebar.problemLists.newList") }}
-    </SharedSidebarMenuItem>
-    <SharedSidebarMenuItem as="button" @click="isCreateCategoryOpen = true">
-      <template #icon>
-        <Plus class="h-3.5 w-3.5" />
-      </template>
-      {{ t("sidebar.problemLists.newCategory") }}
-    </SharedSidebarMenuItem>
-  </div>
-
+  <SidebarGroup>
+    <SidebarBranch
+      :title="t('sidebar.personal.problemLists')"
+      :icon="ListPlus"
+      :default-open="false"
+    >
+      <SidebarMenuSubItem
+        ><SidebarMenuSubButton
+          as="button"
+          type="button"
+          @click="isCreateListOpen = true"
+          ><ListPlus /><span>{{
+            t("sidebar.problemLists.newList")
+          }}</span></SidebarMenuSubButton
+        ></SidebarMenuSubItem
+      >
+      <SidebarMenuSubItem
+        ><SidebarMenuSubButton
+          as="button"
+          type="button"
+          @click="isCreateCategoryOpen = true"
+          ><Plus /><span>{{
+            t("sidebar.problemLists.newCategory")
+          }}</span></SidebarMenuSubButton
+        ></SidebarMenuSubItem
+      >
+    </SidebarBranch>
+  </SidebarGroup>
   <!-- List Sections -->
   <SidebarListSections
     :data="data"

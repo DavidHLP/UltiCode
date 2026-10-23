@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from '@ulticode/design-system/ui/table'
 
 export interface RankingEntry {
   id: string
@@ -60,10 +60,10 @@ function formatPenalty(penalty: number): string {
 function getProblemCellStyles(problem?: { solved: boolean; attempts: number }) {
   if (!problem) return ''
   if (problem.solved) {
-    return 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)] text-[var(--foreground-strong)]'
+    return 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)] text-foreground'
   }
   if (problem.attempts > 0) {
-    return 'bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)] text-[var(--foreground-strong)]'
+    return 'bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)] text-foreground'
   }
   return ''
 }
@@ -86,40 +86,20 @@ const displayProblemLabels = computed(() => {
 </script>
 
 <template>
-  <div
-    class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] rounded-none overflow-hidden"
-  >
+  <div class="border border-border dark:border-foreground rounded-lg overflow-hidden">
     <Table>
-      <TableHeader class="bg-[var(--surface-sunken)]">
-        <TableRow class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
-          <TableHead
-            class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[60px]"
-          >
-            Rank
-          </TableHead>
-          <TableHead class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)]">
-            User
-          </TableHead>
-          <TableHead
-            class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[80px] text-right"
-          >
-            Score
-          </TableHead>
-          <TableHead
-            class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[80px] text-right"
-          >
-            Time
-          </TableHead>
-          <TableHead
-            class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[80px] text-right"
-          >
-            Solved
-          </TableHead>
+      <TableHeader>
+        <TableRow>
+          <TableHead class="w-[60px]"> Rank </TableHead>
+          <TableHead> User </TableHead>
+          <TableHead class="w-[80px] text-right"> Score </TableHead>
+          <TableHead class="w-[80px] text-right"> Time </TableHead>
+          <TableHead class="w-[80px] text-right"> Solved </TableHead>
           <!-- Problem columns -->
           <TableHead
             v-for="label in displayProblemLabels"
             :key="label"
-            class="font-data text-2xs uppercase tracking-widest text-[var(--foreground-muted)] w-[50px] text-center"
+            class="w-[50px] text-center"
           >
             {{ label }}
           </TableHead>
@@ -130,7 +110,7 @@ const displayProblemLabels = computed(() => {
         <template v-if="loading">
           <TableRow v-for="i in 5" :key="i">
             <TableCell v-for="j in 4 + displayProblemLabels.length" :key="j">
-              <div class="h-4 bg-[var(--border-subtle)] animate-pulse rounded-none" />
+              <div class="h-4 bg-border animate-pulse rounded-lg" />
             </TableCell>
           </TableRow>
         </template>
@@ -141,9 +121,9 @@ const displayProblemLabels = computed(() => {
             v-for="(entry, i) in rankings"
             :key="entry.id"
             :class="[
-              'border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] transition-colors',
-              i < 3 ? 'bg-[var(--surface-sunken)]' : '',
-              isHighlighted(entry) ? 'ring-2 ring-inset ring-[var(--primary)]' : '',
+              'border-b border-accent dark:border-foreground transition-colors',
+              i < 3 ? 'bg-muted' : '',
+              isHighlighted(entry) ? 'ring-2 ring-inset ring-primary' : '',
             ]"
           >
             <!-- Rank -->
@@ -154,7 +134,7 @@ const displayProblemLabels = computed(() => {
                   v-if="getRankIcon(entry.rank)"
                   :class="['h-4 w-4', getRankAccentClass(entry.rank)]"
                 />
-                <span :class="['font-data text-sm font-bold tabular-nums', RANK_TEXT_CLASS]">
+                <span :class="['font-mono text-sm font-bold tabular-nums', RANK_TEXT_CLASS]">
                   #{{ entry.rank }}
                 </span>
               </div>
@@ -162,34 +142,31 @@ const displayProblemLabels = computed(() => {
 
             <!-- User -->
             <TableCell>
-              <span class="font-medium text-sm text-[var(--foreground)]">
+              <span class="font-medium text-sm text-foreground">
                 {{ entry.displayName || entry.username }}
               </span>
-              <span
-                v-if="entry.displayName"
-                class="block font-data text-xs text-[var(--foreground-muted)]"
-              >
+              <span v-if="entry.displayName" class="block font-mono text-xs text-muted-foreground">
                 @{{ entry.username }}
               </span>
             </TableCell>
 
             <!-- Score -->
             <TableCell class="text-right">
-              <span class="font-data text-sm text-[var(--foreground-strong)] tabular-nums font-bold">
+              <span class="font-mono text-sm text-foreground tabular-nums font-bold">
                 {{ entry.score }}
               </span>
             </TableCell>
 
             <!-- Time/Penalty -->
             <TableCell class="text-right">
-              <span class="font-data text-xs text-[var(--foreground-muted)] tabular-nums">
+              <span class="font-mono text-xs text-muted-foreground tabular-nums">
                 {{ formatPenalty(entry.penalty) }}
               </span>
             </TableCell>
 
             <!-- Solved count -->
             <TableCell class="text-right">
-              <span class="font-data text-sm text-[var(--foreground)] tabular-nums">
+              <span class="font-mono text-sm text-foreground tabular-nums">
                 {{ entry.solvedCount }}
               </span>
             </TableCell>
@@ -199,21 +176,18 @@ const displayProblemLabels = computed(() => {
               v-for="label in displayProblemLabels"
               :key="label"
               :class="[
-                'text-center font-data text-xs',
+                'text-center font-mono text-xs',
                 getProblemCellStyles(entry.problems?.[label]),
               ]"
             >
               <template v-if="entry.problems?.[label]">
-                <span v-if="entry.problems[label].solved" class="text-[var(--foreground-strong)]">
+                <span v-if="entry.problems[label].solved" class="text-foreground">
                   +{{ entry.problems[label].attempts || 1 }}
                 </span>
-                <span
-                  v-else-if="entry.problems[label].attempts > 0"
-                  class="text-foreground-strong"
-                >
+                <span v-else-if="entry.problems[label].attempts > 0" class="text-foreground">
                   -{{ entry.problems[label].attempts }}
                 </span>
-                <span v-else class="text-[var(--foreground-muted)]">-</span>
+                <span v-else class="text-muted-foreground">-</span>
               </template>
             </TableCell>
           </TableRow>
@@ -221,7 +195,7 @@ const displayProblemLabels = computed(() => {
           <!-- Empty state -->
           <TableRow v-if="rankings.length === 0">
             <TableCell :colspan="5 + displayProblemLabels.length" class="h-24 text-center">
-              <span class="text-[var(--foreground-muted)] text-sm">No rankings available yet</span>
+              <span class="text-muted-foreground text-sm">No rankings available yet</span>
             </TableCell>
           </TableRow>
         </template>

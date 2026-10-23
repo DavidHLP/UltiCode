@@ -5,20 +5,21 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useForumStore } from '@/stores/admin/forum'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TerminalBadge } from '@/components/ui/terminal'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Skeleton } from '@ulticode/design-system/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@ulticode/design-system/ui/tabs'
+import StatusBadge from '@ulticode/design-system/StatusBadge.vue'
 import {
-  IconArrowLeft,
-  IconFlag,
-  IconLock,
-  IconPin,
-  IconTrash,
-  IconFileText,
-  IconMessage,
-  IconHistory,
-} from '@tabler/icons-vue'
+  ArrowLeft as IconArrowLeft,
+  Flag as IconFlag,
+  Lock as IconLock,
+  Pin as IconPin,
+  Trash as IconTrash,
+  FileText as IconFileText,
+  MessageSquare as IconMessage,
+  History as IconHistory,
+} from '@lucide/vue'
+
 import { toast } from 'vue-sonner'
 import OverviewDisplay from './components/OverviewDisplay.vue'
 import CommentsTab from './components/CommentsTab.vue'
@@ -133,10 +134,10 @@ async function handleFlagPost(id: string | number, reason?: string) {
 
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-background flex flex-col">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <header
       :class="[
-        'sticky top-0 z-10 bg-[var(--card)] border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]',
+        'sticky top-0 z-10 bg-card border-b border-border dark:border-border',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -146,9 +147,9 @@ async function handleFlagPost(id: string | number, reason?: string) {
         <!-- Left: Back & Title -->
         <div class="flex items-center gap-4 min-w-0">
           <Button
-            variant="terminal"
+            variant="outline"
             size="sm"
-            class="h-8 w-8 p-0 border-[var(--border-subtle)] hover:border-[var(--foreground-muted)]"
+            class="w-8 p-0"
             @click="router.push({ name: 'forum-posts' })"
           >
             <IconArrowLeft class="h-4 w-4" />
@@ -156,7 +157,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
 
           <div v-if="post" class="flex items-center gap-3 min-w-0">
             <div class="flex items-center gap-2"></div>
-            <h1 class="text-base font-medium text-[var(--foreground)] truncate">
+            <h1 class="text-base font-medium text-foreground truncate">
               {{ post.title }}
             </h1>
           </div>
@@ -166,28 +167,19 @@ async function handleFlagPost(id: string | number, reason?: string) {
         <!-- Center: Tabs (Desktop) -->
         <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
           <Tabs :model-value="currentView" @update:model-value="handleTabChange">
-            <TabsList class="h-9 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
-              <TabsTrigger
-                value="overview"
-                class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
-              >
-                <span class="text-[var(--foreground-muted)] mr-1">01</span>
+            <TabsList class="h-9">
+              <TabsTrigger value="overview" class="h-7 px-3">
+                <span class="text-muted-foreground mr-1">01</span>
                 <IconFileText :size="14" class="mr-1" />
                 {{ t('forum.tabs.overview') }}
               </TabsTrigger>
-              <TabsTrigger
-                value="comments"
-                class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
-              >
-                <span class="text-[var(--foreground-muted)] mr-1">02</span>
+              <TabsTrigger value="comments" class="h-7 px-3">
+                <span class="text-muted-foreground mr-1">02</span>
                 <IconMessage :size="14" class="mr-1" />
                 {{ t('forum.tabs.comments') }}
               </TabsTrigger>
-              <TabsTrigger
-                value="audit"
-                class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
-              >
-                <span class="text-[var(--foreground-muted)] mr-1">03</span>
+              <TabsTrigger value="audit" class="h-7 px-3">
+                <span class="text-muted-foreground mr-1">03</span>
                 <IconHistory :size="14" class="mr-1" />
                 {{ t('forum.tabs.audit') }}
               </TabsTrigger>
@@ -199,68 +191,38 @@ async function handleFlagPost(id: string | number, reason?: string) {
         <div v-if="post" class="flex items-center gap-3">
           <!-- Status Badges -->
           <div class="hidden sm:flex items-center gap-2">
-            <TerminalBadge v-if="post.isPinned" variant="info" :label="t('forum.status.pinned')" />
-            <TerminalBadge
-              v-if="post.isLocked"
-              variant="warning"
-              :label="t('forum.status.locked')"
-            />
-            <TerminalBadge
+            <StatusBadge v-if="post.isPinned" variant="info" :label="t('forum.status.pinned')" />
+            <StatusBadge v-if="post.isLocked" variant="warning" :label="t('forum.status.locked')" />
+            <StatusBadge
               v-if="post.isFlagged"
               variant="error"
               pulse
               :label="t('forum.status.flagged')"
             />
-            <TerminalBadge
-              v-if="post.isDeleted"
-              variant="error"
-              :label="t('forum.status.deleted')"
-            />
+            <StatusBadge v-if="post.isDeleted" variant="error" :label="t('forum.status.deleted')" />
           </div>
 
           <!-- Action Buttons -->
           <template v-if="canModerate">
-            <Button
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-info-mark)] hover:text-foreground-strong"
-              @click="togglePin"
-            >
+            <Button variant="outline" size="sm" @click="togglePin">
               <IconPin class="h-3.5 w-3.5 mr-1.5" />
               <span class="uppercase tracking-wider">{{
                 post.isPinned ? t('forum.actions.unpin') : t('forum.actions.pin')
               }}</span>
             </Button>
 
-            <Button
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--border-subtle)] hover:border-[var(--status-warning-mark)] hover:text-foreground-strong"
-              @click="toggleLock"
-            >
+            <Button variant="outline" size="sm" @click="toggleLock">
               <IconLock class="h-3.5 w-3.5 mr-1.5" />
               <span class="uppercase tracking-wider">{{
                 post.isLocked ? t('forum.actions.unlock') : t('forum.actions.lock')
               }}</span>
             </Button>
 
-            <Button
-              v-if="post.isFlagged"
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--status-success-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-success-mark)_10%,_transparent)]"
-              @click="unflagPost"
-            >
+            <Button v-if="post.isFlagged" variant="outline" size="sm" @click="unflagPost">
               <IconFlag class="h-3.5 w-3.5 mr-1.5" />
               <span class="uppercase tracking-wider">{{ t('forum.actions.unflag') }}</span>
             </Button>
-            <Button
-              v-else
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--status-warning-mark)] text-foreground-strong hover:bg-[color-mix(in_oklch,_var(--status-warning-mark)_10%,_transparent)]"
-              @click="flagDialogOpen = true"
-            >
+            <Button v-else variant="outline" size="sm" @click="flagDialogOpen = true">
               <IconFlag class="h-3.5 w-3.5 mr-1.5" />
               <span class="uppercase tracking-wider">{{ t('forum.actions.flag') }}</span>
             </Button>
@@ -268,9 +230,9 @@ async function handleFlagPost(id: string | number, reason?: string) {
 
           <Button
             v-if="canDelete"
-            variant="terminal"
+            variant="outline"
             size="sm"
-            class="h-8 w-8 p-0 border-[var(--status-error-mark)] text-[var(--status-error-mark)] hover:bg-[color-mix(in_oklch,_var(--status-error-mark)_10%,_transparent)]"
+            class="w-8 p-0"
             @click="deleteDialogOpen = true"
           >
             <IconTrash class="h-4 w-4" />
@@ -279,32 +241,19 @@ async function handleFlagPost(id: string | number, reason?: string) {
       </div>
 
       <!-- Mobile Tabs (Below Header) -->
-      <div
-        class="md:hidden border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-1 bg-[var(--surface-sunken)]"
-      >
+      <div class="md:hidden border-t border-border dark:border-border p-1 bg-muted">
         <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
-          <TabsList
-            class="w-full h-9 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]"
-          >
-            <TabsTrigger
-              value="overview"
-              class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
-            >
-              <span class="text-[var(--foreground-muted)] mr-1">01</span>
+          <TabsList class="w-full h-9">
+            <TabsTrigger value="overview" class="flex-1 h-7">
+              <span class="text-muted-foreground mr-1">01</span>
               {{ t('forum.tabs.overview') }}
             </TabsTrigger>
-            <TabsTrigger
-              value="comments"
-              class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
-            >
-              <span class="text-[var(--foreground-muted)] mr-1">02</span>
+            <TabsTrigger value="comments" class="flex-1 h-7">
+              <span class="text-muted-foreground mr-1">02</span>
               {{ t('forum.tabs.comments') }}
             </TabsTrigger>
-            <TabsTrigger
-              value="audit"
-              class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
-            >
-              <span class="text-[var(--foreground-muted)] mr-1">03</span>
+            <TabsTrigger value="audit" class="flex-1 h-7">
+              <span class="text-muted-foreground mr-1">03</span>
               {{ t('forum.tabs.audit') }}
             </TabsTrigger>
           </TabsList>
@@ -320,27 +269,19 @@ async function handleFlagPost(id: string | number, reason?: string) {
         class="flex flex-col items-center justify-center py-24 text-center"
       >
         <div
-          class="w-12 h-12 border border-[var(--status-error-mark)] flex items-center justify-center mb-3"
+          class="w-12 h-12 border border-status-error-mark flex items-center justify-center mb-3"
         >
-          <IconFileText :size="24" class="text-[var(--status-error-mark)]" />
+          <IconFileText :size="24" class="text-status-error-mark" />
         </div>
-        <h2 class="text-sm font-semibold mb-1 font-data">{{ t('forum.error.loadingPost') }}</h2>
-        <p class="text-xs text-[var(--foreground-muted)] mb-4 font-data">{{ forumStore.postError }}</p>
+        <h2 class="text-sm font-semibold mb-1 font-mono">{{ t('forum.error.loadingPost') }}</h2>
+        <p class="text-xs text-muted-foreground mb-4 font-mono">
+          {{ forumStore.postError }}
+        </p>
         <div class="flex gap-2">
-          <Button
-            variant="terminal"
-            size="sm"
-            class="font-data text-xs border-[var(--border-subtle)]"
-            @click="router.push({ name: 'forum-posts' })"
-          >
+          <Button variant="outline" size="sm" @click="router.push({ name: 'forum-posts' })">
             {{ t('forum.error.back') }}
           </Button>
-          <Button
-            variant="terminal"
-            size="sm"
-            class="font-data text-xs border-[var(--primary)] text-[var(--primary)]"
-            @click="refresh"
-          >
+          <Button variant="outline" size="sm" @click="refresh">
             {{ t('forum.error.retry') }}
           </Button>
         </div>
@@ -350,33 +291,26 @@ async function handleFlagPost(id: string | number, reason?: string) {
       <div v-else-if="isInitialLoad || forumStore.postLoading" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-8 space-y-4">
-            <Skeleton class="h-12 w-3/4 rounded-none" />
-            <Skeleton class="h-64 w-full rounded-none" />
+            <Skeleton class="h-12 w-3/4" />
+            <Skeleton class="h-64 w-full" />
           </div>
           <div class="lg:col-span-4 space-y-4">
-            <Skeleton class="h-32 w-full rounded-none" />
-            <Skeleton class="h-32 w-full rounded-none" />
+            <Skeleton class="h-32 w-full" />
+            <Skeleton class="h-32 w-full" />
           </div>
         </div>
       </div>
 
       <!-- Not Found State -->
       <div v-else-if="!post" class="flex flex-col items-center justify-center py-24 text-center">
-        <div
-          class="w-12 h-12 border border-[var(--border-subtle)] flex items-center justify-center mb-3"
-        >
-          <IconFileText :size="24" class="text-[var(--foreground-muted)]" />
+        <div class="w-12 h-12 border border-border flex items-center justify-center mb-3">
+          <IconFileText :size="24" class="text-muted-foreground" />
         </div>
-        <h2 class="text-sm font-semibold mb-1 font-data">{{ t('forum.error.postNotFound') }}</h2>
-        <p class="text-xs text-[var(--foreground-muted)] mb-4">
+        <h2 class="text-sm font-semibold mb-1 font-mono">{{ t('forum.error.postNotFound') }}</h2>
+        <p class="text-xs text-muted-foreground mb-4">
           {{ t('forum.error.notFoundDescription') }}
         </p>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs border-[var(--border-subtle)]"
-          @click="router.push({ name: 'forum-posts' })"
-        >
+        <Button variant="outline" size="sm" @click="router.push({ name: 'forum-posts' })">
           {{ t('forum.error.backToForumPosts') }}
         </Button>
       </div>

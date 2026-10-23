@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 
 // Shared types (User, LoginCredentials, LoginResponse, RegisterRequest, Permission)
+export { withBrowserSessionLock } from './browserSessionLock'
 export {
   type AuthStatus,
   type LoginCredentials,
@@ -10,23 +11,22 @@ export {
   type LoginResponse,
   type User,
   type Permission,
-} from './types';
+  type SignedInAccount,
+} from './types'
 
 // Cookie parsing utilities (exact name matching, not prefix-based)
-export {
-  parseCookies,
-  hasCookie,
-  getCookie,
-  buildCookieHeader,
-} from './cookie';
+export { parseCookies, hasCookie, getCookie, buildCookieHeader } from './cookie'
 
 // CSRF token manager (survives page refresh via refreshFromResponse)
-import { createCsrfTokenManager as _createCsrfTokenManager, type CsrfTokenManager } from './csrf';
+import {
+  createCsrfTokenManager as _createCsrfTokenManager,
+  type CsrfTokenManager,
+} from './csrf'
 export {
   createCsrfTokenManager,
   hasCsrfCookie,
   type CsrfTokenManager,
-} from './csrf';
+} from './csrf'
 
 // Lazy memo singleton — every `import { csrfManager } from '@ulticode/auth-core'`
 // binds to the same instance, so `csrfManager.setToken(...)` from one caller is
@@ -36,29 +36,30 @@ export {
 //
 // Method forwarding is via closures so the proxy shape matches `CsrfTokenManager`
 // exactly; callers keep using `csrfManager.getToken()` / `.refreshFromResponse(...)`.
-let _csrfInstance: CsrfTokenManager | null = null;
+let _csrfInstance: CsrfTokenManager | null = null
 function _getCsrfSingleton(): CsrfTokenManager {
   if (_csrfInstance === null) {
-    _csrfInstance = _createCsrfTokenManager();
+    _csrfInstance = _createCsrfTokenManager()
   }
-  return _csrfInstance;
+  return _csrfInstance
 }
 export const csrfManager: CsrfTokenManager = {
   getToken: () => _getCsrfSingleton().getToken(),
   setToken: (token) => _getCsrfSingleton().setToken(token),
   clearToken: () => _getCsrfSingleton().clearToken(),
-  refreshFromResponse: (response) => _getCsrfSingleton().refreshFromResponse(response),
-};
+  refreshFromResponse: (response) =>
+    _getCsrfSingleton().refreshFromResponse(response),
+}
 // Convenience wrappers preserved so legacy `import { getCsrfToken } from '...utils/csrf'`
 // call sites (socket.ts, useContestSocket.ts) migrate with one import-path change.
 export function getCsrfToken(): string | null {
-  return csrfManager.getToken();
+  return csrfManager.getToken()
 }
 export function setCsrfToken(token: string): void {
-  csrfManager.setToken(token);
+  csrfManager.setToken(token)
 }
 export function clearCsrfToken(): void {
-  csrfManager.clearToken();
+  csrfManager.clearToken()
 }
 
 // Auth state machine
@@ -68,13 +69,13 @@ export {
   type AuthState,
   authStateMachine,
   createAuthStateMachine,
-} from './auth-state';
+} from './auth-state'
 
 // CSRF axios interceptor
 export {
   createCsrfAxiosInterceptor,
   type CsrfInterceptors,
-} from './axiosCsrfInterceptor';
+} from './axiosCsrfInterceptor'
 
 // Permission checker
 export {
@@ -87,14 +88,14 @@ export {
   checkPermission,
   checkRole,
   checkAnyRole,
-} from './permission';
+} from './permission'
 
 // 401 auto-refresh coordinator
 export {
   createRefreshAccessToken,
   type RefreshResponse,
-} from './refreshCoordinator';
-export { rawAxios } from './rawAxios';
+} from './refreshCoordinator'
+export { rawAxios } from './rawAxios'
 export {
   setOnAuthFailure,
   clearOnAuthFailure,
@@ -102,7 +103,7 @@ export {
   triggerAuthFailure,
   type AuthFailureReason,
   type AuthFailureHandler,
-} from './auth-failure';
+} from './auth-failure'
 
 // Utility — className concatenation (clsx + tailwind-merge).
 // Single source of truth; `console/src/lib/utils.ts` and

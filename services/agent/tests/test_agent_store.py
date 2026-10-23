@@ -515,6 +515,145 @@ def test_conversation_turns_are_owner_scoped_ordered_and_deleted_without_touchin
     store.close()
 
 
+def test_cancelled_turn_lock_blocks_new_turn_across_store_instances(tmp_path):
+    first_store = WorkflowStore(tmp_path / "conversation-lock.sqlite3")
+    second_store = WorkflowStore(tmp_path / "conversation-lock.sqlite3")
+    conversation_id = str(uuid.uuid4())
+    first_store.create_conversation(conversation_id, "owner", str(uuid.uuid4()), "Review", now=1.0)
+    turn = first_store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), str(uuid.uuid4()), "First question", now=2.0,
+    )
+    first_store.start_conversation_turn(
+        conversation_id, turn["turn_id"], "owner", turn["run_id"], now=3.0,
+    )
+
+    with first_store.thread_lock(turn["turn_id"]):
+        cancelled = second_store.cancel_conversation_turn(
+            conversation_id, turn["turn_id"], "owner", now=4.0,
+        )
+        assert cancelled["status"] == "cancelled"
+        with pytest.raises(Conflict, match="conversation_turn_active"):
+            second_store.delete_conversation(conversation_id, "owner")
+        assert second_store.get_conversation(conversation_id, "owner") is not None
+        with pytest.raises(Conflict, match="conversation_turn_active"):
+            second_store.create_conversation_turn(
+                conversation_id, "owner", str(uuid.uuid4()), str(uuid.uuid4()),
+                "Second question", now=5.0,
+            )
+
+    created = second_store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), str(uuid.uuid4()),
+        "Second question", now=6.0,
+    )
+    assert created["status"] == "queued"
+    first_store.close()
+    second_store.close()
+
+
+def test_cancelled_process_blocks_admission_and_deletion_until_exit(tmp_path):
+    store = WorkflowStore(tmp_path / "state.sqlite3")
+    conversation_id = str(uuid.uuid4())
+    store.create_conversation(conversation_id, "owner", str(uuid.uuid4()), "Review", now=1.0)
+    turn = store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), "first", "First", now=2.0,
+    )
+    store.start_conversation_turn(conversation_id, turn["turn_id"], "owner", turn["run_id"], now=3.0)
+    script = """
+import fcntl, os, sys
+fd = os.open(sys.argv[1], os.O_CREAT | os.O_RDWR, 0o600)
+fcntl.flock(fd, fcntl.LOCK_EX)
+print('LOCKED', flush=True)
+sys.stdin.read()
+"""
+    proc = subprocess.Popen(
+        [sys.executable, "-I", "-c", script, str(tmp_path / f"{turn['turn_id']}.lock")],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+    )
+    try:
+        assert proc.stdout is not None
+        with selectors.DefaultSelector() as selector:
+            selector.register(proc.stdout, selectors.EVENT_READ)
+            assert selector.select(timeout=5), "child did not acquire execution lock"
+        assert proc.stdout.readline().strip() == "LOCKED"
+        store.cancel_conversation_turn(conversation_id, turn["turn_id"], "owner", now=4.0)
+        with pytest.raises(Conflict, match="conversation_turn_active"):
+            store.delete_conversation(conversation_id, "owner")
+        with pytest.raises(Conflict, match="conversation_turn_active"):
+            store.create_conversation_turn(
+                conversation_id, "owner", str(uuid.uuid4()), "second", "Second", now=5.0,
+            )
+    finally:
+        proc.kill()
+        proc.wait(timeout=5)
+        proc.stdout.close()
+        proc.stdin.close()
+        store.close()
+    reopened = WorkflowStore(tmp_path / "state.sqlite3")
+    assert reopened.get_conversation_turn(conversation_id, turn["turn_id"], "owner")["status"] == "cancelled"
+    next_turn = reopened.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), "second", "Second", now=6.0,
+    )
+    assert reopened.start_conversation_turn(
+        conversation_id, next_turn["turn_id"], "owner", next_turn["run_id"], now=7.0,
+    )["status"] == "running"
+    reopened.close()
+
+
+@pytest.mark.parametrize("active_status", ["queued", "running", "cancelled"])
+def test_retry_cannot_bypass_another_active_turn(tmp_path, active_status):
+    store = WorkflowStore(tmp_path / "state.sqlite3")
+    conversation_id = str(uuid.uuid4())
+    store.create_conversation(conversation_id, "owner", str(uuid.uuid4()), "Review", now=1.0)
+    first = store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), "first", "First", now=2.0,
+    )
+    store.start_conversation_turn(conversation_id, first["turn_id"], "owner", first["run_id"], now=3.0)
+    store.fail_conversation_turn(
+        conversation_id, first["turn_id"], "owner", first["run_id"], "model_failed", now=4.0,
+    )
+    second = store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), "second", "Second", now=5.0,
+    )
+    with store.thread_lock(second["turn_id"]):
+        if active_status != "queued":
+            store.start_conversation_turn(
+                conversation_id, second["turn_id"], "owner", second["run_id"], now=6.0,
+            )
+        if active_status == "cancelled":
+            store.cancel_conversation_turn(conversation_id, second["turn_id"], "owner", now=7.0)
+        with pytest.raises(Conflict, match="conversation_turn_active"):
+            store.retry_conversation_turn(conversation_id, first["turn_id"], "owner", now=8.0)
+    assert store.get_conversation_turn(conversation_id, first["turn_id"], "owner")["status"] == "failed"
+    store.close()
+
+
+def test_dead_conversation_run_can_be_recovered_and_retried(tmp_path):
+    store = WorkflowStore(tmp_path / "conversation-recovery.sqlite3")
+    conversation_id = str(uuid.uuid4())
+    store.create_conversation(conversation_id, "owner", str(uuid.uuid4()), "Review", now=1.0)
+    turn = store.create_conversation_turn(
+        conversation_id, "owner", str(uuid.uuid4()), str(uuid.uuid4()), "First question", now=2.0,
+    )
+    started = store.start_conversation_turn(
+        conversation_id, turn["turn_id"], "owner", turn["run_id"], now=3.0,
+    )
+
+    recovered = store.recover_conversation_turn(
+        conversation_id, turn["turn_id"], "owner", now=4.0,
+    )
+    assert recovered["status"] == "failed"
+    assert recovered["failure_reason"] == "turn_interrupted"
+    retried = store.retry_conversation_turn(
+        conversation_id, turn["turn_id"], "owner", now=5.0,
+    )
+    assert retried["status"] == "queued"
+    assert retried["run_id"] != started["run_id"]
+    assert store.start_conversation_turn(
+        conversation_id, turn["turn_id"], "owner", retried["run_id"], now=6.0,
+    )["status"] == "running"
+    store.close()
+
+
 def test_conversation_turn_idempotency_and_cancel_fence(tmp_path):
     store = WorkflowStore(tmp_path / "state.sqlite3")
     conversation_id = str(uuid.uuid4())

@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import * as echarts from "echarts";
 import type { ECharts } from "echarts";
 import { Clock, Microchip } from "@lucide/vue";
@@ -77,7 +84,10 @@ async function applyAvatarMarkPoint(
 ) {
   let circularAvatar: string | null = null;
   try {
-    circularAvatar = await renderAvatarMarkPointDataUrl(avatarUrl, palette.series1);
+    circularAvatar = await renderAvatarMarkPointDataUrl(
+      avatarUrl,
+      palette.series1,
+    );
   } catch {
     return;
   }
@@ -86,7 +96,17 @@ async function applyAvatarMarkPoint(
   chart.setOption({
     series: [
       {
+        label: { show: false },
         markPoint: {
+          label: {
+            show: true,
+            position: "top",
+            formatter: t("problem.layout.userPosition"),
+            color: palette.muted,
+            fontFamily: palette.fontFamily,
+            fontWeight: "bold",
+            fontSize: 12,
+          },
           data: [
             {
               coord: [userIndex, paired[userIndex]?.count ?? 0],
@@ -109,7 +129,10 @@ function initRuntimeChart() {
     runtimeResizeObserver = null;
   }
   runtimeChart = echarts.init(runtimeChartRef.value);
-  runtimeResizeObserver = attachResizeObserver(runtimeChartRef.value, runtimeChart);
+  runtimeResizeObserver = attachResizeObserver(
+    runtimeChartRef.value,
+    runtimeChart,
+  );
   runtimeChart.setOption(
     buildDistributionChartOption(
       props.runtimePoints,
@@ -145,7 +168,10 @@ function initMemoryChart() {
     memoryResizeObserver = null;
   }
   memoryChart = echarts.init(memoryChartRef.value);
-  memoryResizeObserver = attachResizeObserver(memoryChartRef.value, memoryChart);
+  memoryResizeObserver = attachResizeObserver(
+    memoryChartRef.value,
+    memoryChart,
+  );
   memoryChart.setOption(
     buildDistributionChartOption(
       props.memoryPoints,
@@ -240,7 +266,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="space-y-4" data-e2e-locator="submission-performance-panel">
     <div
-      class="flex w-full flex-col gap-1.5 rounded-none border border-border bg-[var(--surface-sunken)]/35 p-2"
+      class="flex w-full flex-col gap-1.5 rounded-lg border border-border bg-muted/35 p-2"
     >
       <div class="flex items-center justify-between gap-1.5">
         <div class="flex w-full flex-wrap gap-2">
@@ -248,11 +274,11 @@ onBeforeUnmount(() => {
             role="button"
             tabindex="0"
             data-testid="runtime-tab"
-            class="group flex min-w-[240px] flex-1 cursor-pointer flex-col rounded-none border px-3 py-2 text-xs transition-colors"
+            class="group flex min-w-[240px] flex-1 cursor-pointer flex-col rounded-lg border px-3 py-2 text-xs transition-colors"
             :class="
               showRuntimeDetail
-                ? 'border-[var(--primary)] bg-[color-mix(in_oklch,var(--primary)_10%,transparent)] shadow-[inset_2px_0_0_var(--primary)]'
-                : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--primary)_45%,var(--border))] hover:bg-[var(--surface-sunken)]/50'
+                ? 'border-primary bg-[color-mix(in_oklch,var(--primary)_10%,transparent)] shadow-[inset_2px_0_0_var(--primary)]'
+                : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--primary)_45%,var(--border))] hover:bg-muted/50'
             "
             @click="selectChart('runtime')"
             @keydown.enter.prevent="selectChart('runtime')"
@@ -265,14 +291,12 @@ onBeforeUnmount(() => {
                   {{ t("problem.submissions.runtimeDistribution") }}
                 </div>
               </div>
-              <span
-                class="font-data text-2xs uppercase text-muted-foreground"
-              >
+              <span class="font-mono text-xs uppercase text-muted-foreground">
                 ms
               </span>
             </div>
             <div
-              class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-data tabular-nums"
+              class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono tabular-nums"
             >
               <span class="font-semibold text-foreground">{{
                 formatRuntime(props.runtime)
@@ -288,11 +312,11 @@ onBeforeUnmount(() => {
             role="button"
             tabindex="0"
             data-testid="memory-tab"
-            class="group flex min-w-[240px] flex-1 cursor-pointer flex-col rounded-none border px-3 py-2 text-xs transition-colors"
+            class="group flex min-w-[240px] flex-1 cursor-pointer flex-col rounded-lg border px-3 py-2 text-xs transition-colors"
             :class="
               showMemoryDetail
-                ? 'border-[var(--status-info-mark)] bg-[color-mix(in_oklch,var(--status-info-mark)_10%,transparent)] shadow-[inset_2px_0_0_var(--status-info-mark)]'
-                : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--status-info-mark)_45%,var(--border))] hover:bg-[var(--surface-sunken)]/50'
+                ? 'border-status-info-mark bg-[color-mix(in_oklch,var(--status-info-mark)_10%,transparent)] shadow-[inset_2px_0_0_var(--status-info-mark)]'
+                : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--status-info-mark)_45%,var(--border))] hover:bg-muted/50'
             "
             @click="selectChart('memory')"
             @keydown.enter.prevent="selectChart('memory')"
@@ -305,14 +329,12 @@ onBeforeUnmount(() => {
                   {{ t("problem.submissions.memoryDistribution") }}
                 </div>
               </div>
-              <span
-                class="font-data text-2xs uppercase text-muted-foreground"
-              >
+              <span class="font-mono text-xs uppercase text-muted-foreground">
                 MB
               </span>
             </div>
             <div
-              class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-data tabular-nums"
+              class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono tabular-nums"
             >
               <span class="font-medium text-foreground">{{
                 formatMemory(props.memory)
@@ -327,23 +349,17 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
-    <div
-      v-show="showRuntimeDetail"
-      class="rounded-none border border-border p-3"
-    >
+    <div v-show="showRuntimeDetail" class="rounded-lg border border-border p-3">
       <div
-        class="h-48 w-full"
+        class="h-56 w-full"
         ref="runtimeChartRef"
         data-testid="runtime-chart"
         style="touch-action: none; overflow: hidden; contain: content"
       ></div>
     </div>
-    <div
-      v-show="showMemoryDetail"
-      class="rounded-none border border-border p-3"
-    >
+    <div v-show="showMemoryDetail" class="rounded-lg border border-border p-3">
       <div
-        class="h-48 w-full"
+        class="h-56 w-full"
         ref="memoryChartRef"
         data-testid="memory-chart"
         style="touch-action: none; overflow: hidden; contain: content"

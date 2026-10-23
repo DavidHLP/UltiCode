@@ -25,7 +25,9 @@ interface ConfigWithCsrfMeta {
 }
 
 export interface CsrfInterceptors {
-  requestInterceptor: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig;
+  requestInterceptor: (
+    config: InternalAxiosRequestConfig,
+  ) => InternalAxiosRequestConfig;
   errorInterceptor: (error: AxiosError) => Promise<unknown>;
 }
 
@@ -35,7 +37,7 @@ export interface CsrfInterceptors {
  * - Error (401): refreshes access token via /auth/refresh (deduped),
  *   then replays the original request once. If refresh itself fails,
  *   triggers onAuthFailure (console/management handle the UX).
- * - Error (403 CSRF): fetches new CSRF via GET /auth/me, then replays once.
+ * - Error (403 CSRF): fetches new CSRF via public GET /auth/csrf, then replays once.
  *
  * @param csrfManager - The CSRF token manager instance
  * @param baseURL - The backend API base URL (e.g., 'http://localhost:9001').
@@ -57,7 +59,12 @@ export function createCsrfAxiosInterceptor(
     config: InternalAxiosRequestConfig,
   ): InternalAxiosRequestConfig {
     const method = config.method?.toUpperCase();
-    if (method && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+    if (
+      method &&
+      method !== 'GET' &&
+      method !== 'HEAD' &&
+      method !== 'OPTIONS'
+    ) {
       const token = csrfManager.getToken();
       if (token) {
         config.headers['X-CSRF-Token'] = token;
@@ -70,16 +77,18 @@ export function createCsrfAxiosInterceptor(
    * Retry on 401 (refresh access token) or 403 (refresh CSRF token) mismatches,
    * at most once per category per request, then propagate.
    */
-  async function errorInterceptor(
-    error: AxiosError,
-  ): Promise<unknown> {
-    const config = error.config as (InternalAxiosRequestConfig & ConfigWithCsrfMeta) | undefined;
+  async function errorInterceptor(error: AxiosError): Promise<unknown> {
+    const config = error.config as
+      (InternalAxiosRequestConfig & ConfigWithCsrfMeta) | undefined;
 
     // --- 401 path: refresh access token via /auth/refresh, then replay ---
     if (
       error.response?.status === 401 &&
       config &&
       !config._metadata?.refreshRetried &&
+      !/^\/auth\/(login|register|accounts(?:\/switch)?)$/.test(
+        config.url ?? '',
+      ) &&
       refreshAccessToken
     ) {
       // Mark BEFORE the await so a refresh that throws still leaves
@@ -108,13 +117,14 @@ export function createCsrfAxiosInterceptor(
       }
     }
 
-    // --- 403 path: refresh CSRF token via GET /auth/me, then replay ---
+    // --- 403 path: recover CSRF even after logging out the active account. ---
     if (
       error.response?.status === 403 &&
       config &&
       !config._metadata?.csrfRetried
     ) {
-      const errorData = error.response.data as Record<string, unknown> | undefined;
+      const errorData = error.response.data as
+        Record<string, unknown> | undefined;
       const isCsrfError =
         typeof errorData?.message === 'string' &&
         (errorData.message.includes('CSRF') || errorData.code === 40300);
@@ -129,19 +139,23 @@ export function createCsrfAxiosInterceptor(
           // 401 retry path above for the same fix.
           const { rawAxios } = await import('./rawAxios');
 
-          // Fetch fresh CSRF token via GET /auth/me (no CSRF validation on GET).
+          // Saved accounts remain usable without an active access token.
           // rawAxios already carries the API base URL, so a path-prefix baseURL
           // ('/api') must not be prefixed again — doing so resolved the request
-          // to /api/api/auth/me and the 403 recovery path never reached the
+          // to /api/api/auth/csrf and the recovery path never reached the
           // backend. Only an absolute origin needs to be spelled out here.
           const refreshUrl =
-            baseURL && /^https?:\/\//i.test(baseURL) ? `${baseURL}/auth/me` : '/auth/me';
-          // /auth/me answers with the `Result` envelope
-          // (`{ code, message, data: { user, csrfToken } }`), and rawAxios
+            baseURL && /^https?:\/\//i.test(baseURL)
+              ? `${baseURL}/auth/csrf`
+              : '/auth/csrf';
+          // /auth/csrf answers with the `Result` envelope
+          // (`{ code, message, data: { csrfToken } }`), and rawAxios
           // deliberately has no response-unwrapping interceptor — reading
           // `data.csrfToken` here would always be undefined and the stale
           // header would be replayed unchanged.
-          const meResponse = await rawAxios.get<{ data?: { csrfToken?: string } }>(refreshUrl);
+          const meResponse = await rawAxios.get<{
+            data?: { csrfToken?: string };
+          }>(refreshUrl);
           const refreshedToken = meResponse.data?.data?.csrfToken;
           if (refreshedToken) {
             csrfManager.refreshFromResponse({ csrfToken: refreshedToken });

@@ -8,10 +8,20 @@ import {
 import ProblemFilterPanel from "./components/ProblemFilterPanel.vue";
 import ProblemResultList from "./components/ProblemResultList.vue";
 import { useRouter } from "vue-router";
+import { computed } from "vue";
+import { useSidebar } from "@ulticode/design-system/ui/sidebar";
 
 const router = useRouter();
 
 const props = defineProps<ProblemExplorerProps>();
+const sidebar = useSidebar(null);
+const showCategoryFilter = computed(
+  () =>
+    props.problems !== undefined ||
+    !sidebar ||
+    sidebar.isMobile.value ||
+    sidebar.state.value === "collapsed",
+);
 
 const emit = defineEmits<{
   remove: [problem: Problem];
@@ -51,10 +61,11 @@ const handleRowClick = (problem: EnrichedProblem) => {
 </script>
 
 <template>
-  <section class="flex flex-col gap-6">
+  <section class="flex min-w-0 flex-col gap-4">
     <slot name="header" />
 
     <ProblemFilterPanel
+      :show-category-filter="showCategoryFilter"
       :selected-category="selectedCategory"
       :search-query="searchQuery"
       :active-filter-count="activeFilterCount"

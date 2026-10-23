@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import { CheckCircle2, Circle, ScrollText, XCircle } from "@lucide/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
 import {
   Empty,
   EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
-} from "@/components/ui/empty";
+} from "@ulticode/design-system/ui/empty";
 import { useBottomPanelStore } from "./test";
 import { useI18n } from "vue-i18n";
 import type {
@@ -83,16 +83,16 @@ const verdictLabel = computed(() => {
 // disagree with the submissions table. Covers every verdict incl. Sandbox
 // Error (neutral); unknown statuses fall back to muted.
 const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
-  success: "text-foreground-strong",
-  warning: "text-foreground-strong",
-  error: "text-foreground-strong",
+  success: "text-foreground",
+  warning: "text-foreground",
+  error: "text-foreground",
   // `info` and `electric` previously collapsed to the same CSS class — the
   // shared verdict map does not currently emit `info`, but if a future verdict
   // maps to it we want a visibly distinct token rather than silently
   // shadowing `electric`.
-  info: "text-foreground-strong",
-  purple: "text-foreground-strong",
-  electric: "text-[var(--accent-primary)]",
+  info: "text-foreground",
+  purple: "text-foreground",
+  electric: "text-primary",
   neutral: "text-muted-foreground",
 };
 
@@ -119,10 +119,7 @@ const selectCase = (label: string) => {
 
 <template>
   <div class="flex h-full flex-col gap-4">
-    <Empty
-      v-if="!props.runResult"
-      class="border border-border bg-muted/40 dark:bg-muted/20"
-    >
+    <Empty v-if="!props.runResult">
       <EmptyContent>
         <EmptyMedia variant="icon">
           <ScrollText class="h-6 w-6 text-muted-foreground" />
@@ -152,7 +149,7 @@ const selectCase = (label: string) => {
           props.runResult?.verdict === 'Compile Error' &&
           (props.runResult.errorMessage ?? props.runResult.error_message)
         "
-        class="rounded-none bg-[var(--status-error-mark)]/10 border border-[var(--status-error-mark)]/30 p-3 text-xs font-mono text-foreground-strong"
+        class="rounded-lg bg-status-error-mark/10 border border-status-error-mark/30 p-3 text-xs font-mono text-foreground"
       >
         {{ props.runResult.errorMessage ?? props.runResult.error_message }}
       </div>
@@ -166,7 +163,7 @@ const selectCase = (label: string) => {
               result.caseLabel === activeCaseLabel ? 'secondary' : 'ghost'
             "
             size="sm"
-            class="h-7 rounded-none px-3 text-xs font-medium"
+            class="px-3"
             :class="
               result.caseLabel === activeCaseLabel
                 ? 'text-foreground shadow-none'
@@ -213,7 +210,7 @@ const selectCase = (label: string) => {
                   <Input
                     :model-value="field.value"
                     readonly
-                    class="font-mono text-xs md:text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    class="md:text-sm"
                   />
                 </div>
               </template>
@@ -226,11 +223,7 @@ const selectCase = (label: string) => {
               <div class="text-xs font-medium text-muted-foreground">
                 {{ t("problem.layout.output") }} =
               </div>
-              <Input
-                :model-value="activeOutput"
-                readonly
-                class="font-mono text-xs md:text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
+              <Input :model-value="activeOutput" readonly class="md:text-sm" />
             </div>
 
             <div
@@ -243,7 +236,7 @@ const selectCase = (label: string) => {
               <Input
                 :model-value="activeResult.expectedOutput"
                 readonly
-                class="font-mono text-xs md:text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                class="md:text-sm"
               />
             </div>
           </div>

@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Badge } from "@ulticode/design-system/ui/badge";
+import { Button } from "@ulticode/design-system/ui/button";
+import { ChevronLeft, ChevronRight } from "@lucide/vue";
 import {
   Table,
   TableBody,
@@ -9,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@ulticode/design-system/ui/table";
 import { formatPenaltyTime } from "@/utils/datetime";
 import { useI18n } from "vue-i18n";
 import type { ContestRankingEntry, LiveRankingEntry } from "@/types/contest";
@@ -17,80 +23,90 @@ import type { ContestRankingEntry, LiveRankingEntry } from "@/types/contest";
 defineProps<{
   rankings: (ContestRankingEntry | LiveRankingEntry)[];
   getCountryFlag: (countryCode: string) => string;
+  page: number;
+  totalPages: number;
+  loading: boolean;
+  error: boolean;
+  paginated: boolean;
+}>();
+
+const emit = defineEmits<{
+  (event: "pageChange", page: number): void;
+  (event: "retry"): void;
 }>();
 
 const { t } = useI18n();
 </script>
 
 <template>
-  <Card
-    id="contest-ranking"
-    class="border border-border bg-surface dark:bg-surface-highlight shadow-[var(--shadow-float)] overflow-hidden rounded-none"
-  >
-    <CardHeader
-      class="flex flex-row items-center justify-between pb-3 border-b border-border bg-[var(--surface-highlight)]/50 dark:bg-background/50"
-    >
-      <CardTitle
-        class="text-xs font-bold font-mono uppercase tracking-widest text-foreground dark:text-foreground-strong"
-        >{{ t("contest.detail.leaderboard") }}</CardTitle
-      >
-      <Button
-        variant="outline"
-        size="sm"
-        class="rounded-none h-8 px-3 font-bold text-xs uppercase tracking-wider border border-border bg-transparent hover:bg-[var(--surface-highlight)] dark:hover:bg-background cursor-pointer"
-        >{{ t("contest.detail.viewAll") }}</Button
-      >
+  <Card id="contest-ranking" class="overflow-hidden">
+    <CardHeader class="flex flex-row items-center justify-between pb-3">
+      <CardTitle>{{ t("contest.detail.leaderboard") }}</CardTitle>
     </CardHeader>
     <CardContent class="p-0">
-      <Table>
-        <TableHeader
-          class="bg-[var(--surface-highlight)]/45 dark:bg-background/45 border-b border-border/40"
+      <div
+        v-if="error"
+        role="alert"
+        class="flex flex-wrap items-center gap-3 p-4 text-sm"
+      >
+        <span>{{ t("contest.error.rankingsLoadFailed") }}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="loading"
+          @click="emit('retry')"
+          >{{ t("common.actions.retry") }}</Button
         >
-          <TableRow class="hover:bg-transparent">
-            <TableHead
-              class="w-20 pl-6 font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
-              >{{ t("contest.detail.rankingHeaders.rank") }}</TableHead
-            >
-            <TableHead
-              class="font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
-              >{{ t("contest.detail.rankingHeaders.user") }}</TableHead
-            >
-            <TableHead
-              class="w-24 text-center font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
-              >{{ t("contest.detail.rankingHeaders.score") }}</TableHead
-            >
-            <TableHead
-              class="w-32 text-center font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
-              >{{ t("contest.detail.rankingHeaders.time") }}</TableHead
-            >
-            <TableHead
-              class="w-48 font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
-              >{{ t("contest.detail.rankingHeaders.problems") }}</TableHead
-            >
-            <TableHead
-              class="w-32 pr-6 text-right font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
-              >{{
-                t("contest.detail.rankingHeaders.problemsSolved")
-              }}</TableHead
-            >
+      </div>
+      <p
+        v-if="!rankings.length && !error"
+        role="status"
+        class="p-6 text-center text-sm text-muted-foreground"
+      >
+        {{
+          loading ? t("contest.loading.rankings") : t("contest.empty.rankings")
+        }}
+      </p>
+      <Table v-if="rankings.length">
+        <TableHeader>
+          <TableRow>
+            <TableHead class="w-20 pl-6 h-10">{{
+              t("contest.detail.rankingHeaders.rank")
+            }}</TableHead>
+            <TableHead class="h-10">{{
+              t("contest.detail.rankingHeaders.user")
+            }}</TableHead>
+            <TableHead class="w-24 text-center h-10">{{
+              t("contest.detail.rankingHeaders.score")
+            }}</TableHead>
+            <TableHead class="w-32 text-center h-10">{{
+              t("contest.detail.rankingHeaders.time")
+            }}</TableHead>
+            <TableHead class="w-48 h-10">{{
+              t("contest.detail.rankingHeaders.problems")
+            }}</TableHead>
+            <TableHead class="w-32 pr-6 text-right h-10">{{
+              t("contest.detail.rankingHeaders.problemsSolved")
+            }}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow
-            v-for="entry in rankings.slice(0, 20)"
+            v-for="entry in rankings"
             :key="entry.username"
-            class="group border-b border-border/30 last:border-b-0 hover:bg-[var(--surface-highlight)]/30 dark:hover:bg-background/30 transition-all transition-colors"
+            class="group last:border-b-0 dark:hover:bg-background/30"
           >
             <TableCell class="pl-6 py-3">
               <div
-                class="inline-flex h-9 w-9 items-center justify-center rounded-none font-black text-xs transition-all shadow-sm"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-lg font-black text-xs transition-all shadow-sm"
                 :class="{
-                  'bg-surface-highlight text-foreground-strong border border-[var(--rank-first)] scale-110':
+                  'bg-accent text-foreground border border-[var(--rank-first)] scale-110':
                     entry.rank === 1,
-                  'bg-surface-highlight text-foreground-strong border border-[var(--rank-second)] scale-105':
+                  'bg-accent text-foreground border border-[var(--rank-second)] scale-105':
                     entry.rank === 2,
-                  'bg-surface-highlight text-foreground-strong border border-[var(--rank-third)]': entry.rank === 3,
-                  'bg-surface-highlight text-foreground border border-control':
+                  'bg-accent text-foreground border border-[var(--rank-third)]':
+                    entry.rank === 3,
+                  'bg-accent text-foreground border border-input':
                     (entry.rank ?? 0) > 3,
                 }"
               >
@@ -105,22 +121,22 @@ const { t } = useI18n();
                       entry.avatar ||
                       'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2U1ZTdlYiI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTIiLz48L3N2Zz4='
                     "
-                    class="h-9 w-9 rounded-none border border-border bg-muted shadow-sm"
+                    class="h-9 w-9 rounded-lg border border-border bg-muted shadow-sm"
                     alt="Avatar"
                   />
                   <span
-                    class="absolute -bottom-1 -right-1 text-base shadow-sm bg-background rounded-none"
+                    class="absolute -bottom-1 -right-1 text-base shadow-sm bg-background rounded-lg"
                   >
                     {{ getCountryFlag(entry.country || "CN") }}
                   </span>
                 </div>
                 <div class="flex flex-col">
                   <span
-                    class="font-bold text-sm text-foreground dark:text-foreground-strong"
+                    class="font-bold text-sm text-foreground dark:text-foreground"
                     >{{ entry.username }}</span
                   >
                   <span
-                    class="text-2xs font-bold text-muted-foreground uppercase tracking-widest"
+                    class="text-xs font-bold text-muted-foreground uppercase tracking-widest"
                   >
                     {{ entry.ratingTitle || "NEWBIE" }}
                   </span>
@@ -144,7 +160,7 @@ const { t } = useI18n();
               <div class="flex flex-wrap gap-1">
                 <Badge
                   variant="secondary"
-                  class="min-w-[2rem] justify-center font-mono text-2xs h-6 rounded-none px-2 border border-border/40 bg-[var(--surface-highlight)] dark:bg-background text-foreground font-bold"
+                  class="min-w-[2rem] justify-center h-6 px-2"
                 >
                   {{ entry.problemsSolved }}
                 </Badge>
@@ -158,6 +174,37 @@ const { t } = useI18n();
           </TableRow>
         </TableBody>
       </Table>
+      <div
+        v-if="paginated"
+        class="flex flex-wrap items-center justify-between gap-3 border-t p-4"
+      >
+        <span
+          role="status"
+          aria-live="polite"
+          class="text-sm text-muted-foreground"
+          >{{
+            t("common.pagination.page", { current: page, total: totalPages })
+          }}</span
+        >
+        <div class="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            :aria-label="t('common.pagination.previousPage')"
+            :disabled="loading || page <= 1"
+            @click="emit('pageChange', page - 1)"
+            ><ChevronLeft class="h-4 w-4"
+          /></Button>
+          <Button
+            variant="outline"
+            size="icon"
+            :aria-label="t('common.pagination.nextPage')"
+            :disabled="loading || page >= totalPages"
+            @click="emit('pageChange', page + 1)"
+            ><ChevronRight class="h-4 w-4"
+          /></Button>
+        </div>
+      </div>
     </CardContent>
   </Card>
 </template>

@@ -4,13 +4,17 @@ import { useI18n } from 'vue-i18n'
 import DescriptionMarkdown, {
   type ProblemDescription,
 } from '@/components/problems/DescriptionMarkdown.vue'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { SemanticBadge } from '@/components/ui/terminal'
-import { DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ulticode/design-system/ui/collapsible'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Separator } from '@ulticode/design-system/ui/separator'
+import SemanticBadge from '@ulticode/badge-config/SemanticBadge.vue'
+import { DIFFICULTY_COLOR_MAP } from '@ulticode/badge-config'
 import type { ProblemDescriptionFormData } from '@/lib/schemas/problemDescription'
-import { IconChevronDown, IconLock } from '@tabler/icons-vue'
+import { ChevronDown as IconChevronDown, Lock as IconLock } from '@lucide/vue'
 
 const props = defineProps<{
   /** Problem description form data to preview */
@@ -44,16 +48,14 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
 </script>
 
 <template>
-  <div
-    class="live-preview-panel flex flex-col h-full bg-[var(--background)] border-l border-[var(--border)]"
-  >
+  <div class="live-preview-panel flex flex-col h-full bg-background border-l border-border">
     <!-- Header -->
-    <div class="shrink-0 border-b border-[var(--border)] bg-card px-5 py-4">
+    <div class="shrink-0 border-b border-border bg-card px-5 py-4">
       <div class="space-y-1 mb-3">
         <h2 class="text-base font-bold tracking-tight text-foreground font-sans">
           {{ data.title || t('problems.preview.untitled') }}
         </h2>
-        <p class="text-xxs font-mono text-[var(--foreground-muted)]">
+        <p class="text-xs font-mono text-muted-foreground">
           {{ data.slug || '—' }}
         </p>
       </div>
@@ -64,18 +66,11 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
           :label="t(`problems.difficulty.${normalizedDifficulty}`, normalizedDifficulty)"
           size="sm"
         />
-        <Badge
-          v-if="data.isPremium"
-          variant="outline"
-          class="bg-status-warning-surface text-foreground-strong border border-status-warning-mark text-2xs px-2 py-0.5 rounded-none font-mono"
-        >
+        <Badge v-if="data.isPremium" variant="outline" class="px-2 py-0.5">
           <IconLock class="h-3 w-3 mr-1 shrink-0" />
           {{ t('problems.badges.premium') }}
         </Badge>
-        <Badge
-          :variant="data.isPublished ? 'default' : 'outline'"
-          class="text-2xs px-2 py-0.5 capitalize rounded-none font-mono"
-        >
+        <Badge :variant="data.isPublished ? 'default' : 'outline'" class="px-2 py-0.5">
           {{ data.isPublished ? t('problems.published.published') : t('problems.published.draft') }}
         </Badge>
       </div>
@@ -84,7 +79,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
     <!-- Scrollable Content -->
     <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
       <!-- Summary -->
-      <div v-if="data.summary" class="border-l-2 border-[var(--border)] pl-3">
+      <div v-if="data.summary" class="border-l-2 border-border pl-3">
         <p class="text-xs text-muted-foreground font-mono leading-relaxed">
           {{ data.summary }}
         </p>
@@ -95,21 +90,16 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
 
       <!-- Hints (Collapsible) -->
       <template v-if="hasHints">
-        <Separator class="my-4 border-[var(--border)]" />
+        <Separator class="my-4" />
 
-        <Collapsible class="border border-[var(--border)] bg-card rounded-none overflow-hidden">
-          <CollapsibleTrigger
-            class="w-full bg-muted/15 border-b border-[var(--border)] px-4 py-2 text-left hover:bg-muted/20 transition-colors"
-          >
+        <Collapsible class="overflow-hidden">
+          <CollapsibleTrigger class="w-full px-4 py-2 text-left">
             <div class="flex items-center justify-between group cursor-pointer">
               <span
-                class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--foreground-strong)] flex items-center gap-2"
+                class="text-xs font-mono font-bold uppercase tracking-wider text-foreground flex items-center gap-2"
               >
                 {{ t('problems.display.hints') }}
-                <Badge
-                  variant="secondary"
-                  class="rounded-none shadow-none font-mono text-2xs px-1.5 py-0 border border-[var(--border)] bg-muted/30 text-[var(--foreground-strong)]"
-                >
+                <Badge variant="secondary" class="px-1.5 py-0">
                   {{ data.hints.length }}
                 </Badge>
               </span>
@@ -127,7 +117,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
                 class="text-xs text-muted-foreground p-3 bg-card flex items-start gap-2.5"
               >
                 <span
-                  class="font-mono text-xxs font-bold text-[var(--foreground-strong)] bg-[var(--surface-sunken)]/25 border border-[var(--border)] px-1.5 shrink-0 h-5 flex items-center justify-center rounded-none"
+                  class="font-mono text-xs font-bold text-foreground bg-muted/25 border border-border px-1.5 shrink-0 h-5 flex items-center justify-center rounded-lg"
                 >
                   {{ index + 1 }}
                 </span>

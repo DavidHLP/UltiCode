@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Input } from "@ulticode/design-system/ui/input";
+
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
@@ -7,9 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
+import { ScrollArea } from "@ulticode/design-system/ui/scroll-area";
 import {
   getTemplatesForLanguage,
   getTemplateCategories,
@@ -108,13 +110,13 @@ watch(isOpen, (open) => {
 
       <div class="grid grid-cols-2 gap-4 mt-4 h-[400px]">
         <!-- Template List -->
-        <div class="border rounded-none overflow-hidden flex flex-col">
+        <div class="border rounded-lg overflow-hidden flex flex-col">
           <div class="p-2 border-b bg-muted/50">
-            <input
+            <Input
               v-model="searchQuery"
               type="text"
               :placeholder="t('problem.editor.templates.searchPlaceholder')"
-              class="w-full px-3 py-1.5 text-sm bg-background border rounded-none outline-none focus:ring-2 focus:ring-ring"
+              class="w-full px-3 py-1.5 outline-none"
             />
           </div>
 
@@ -137,10 +139,11 @@ watch(isOpen, (open) => {
                 >
                   {{ group.label }}
                 </h4>
-                <button
+                <Button
+                  variant="outline"
                   v-for="template in group.items"
                   :key="template.id"
-                  class="w-full text-left px-3 py-2 rounded-none text-sm hover:bg-accent transition-colors"
+                  class="w-full text-left px-3 py-2"
                   :class="[
                     selectedTemplate?.id === template.id
                       ? 'bg-accent text-accent-foreground'
@@ -156,14 +159,14 @@ watch(isOpen, (open) => {
                   <p class="text-xs text-muted-foreground mt-0.5 ml-6">
                     {{ template.description }}
                   </p>
-                </button>
+                </Button>
               </div>
             </div>
           </ScrollArea>
         </div>
 
         <!-- Template Preview -->
-        <div class="border rounded-none overflow-hidden flex flex-col">
+        <div class="border rounded-lg overflow-hidden flex flex-col">
           <div class="p-2 border-b bg-muted/50">
             <span class="text-sm font-medium">{{
               t("problem.editor.templates.preview")

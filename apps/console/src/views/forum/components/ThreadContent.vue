@@ -5,14 +5,18 @@ import type {
   ForumThread,
   ForumPostMedia,
 } from "@/types/forum";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@ulticode/design-system/ui/avatar";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import { Share2, Pin, Lock } from "@lucide/vue";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { AspectRatio } from "@ulticode/design-system/ui/aspect-ratio";
 import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";
 import { useAvatar } from "@/composables/useAvatar";
-import { renderMarkdown } from '@ulticode/markdown-utils';
+import { renderMarkdown } from "@ulticode/markdown-utils";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
 import { toast } from "vue-sonner";
@@ -21,6 +25,7 @@ import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
   thread: ForumThread;
+  commentCount: number;
 }>();
 
 const { t, locale } = useI18n();
@@ -52,15 +57,15 @@ const emit = defineEmits<{
 
 const flairClasses: Record<ForumFlairType, string> = {
   announcement:
-    "bg-status-warning-surface text-foreground-strong border border-status-warning-mark",
+    "bg-status-warning-surface text-foreground border border-status-warning-mark",
   discussion:
-    "bg-status-info-surface text-foreground-strong border border-status-info-mark",
+    "bg-status-info-surface text-foreground border border-status-info-mark",
   showcase:
-    "bg-status-special-surface text-foreground-strong border border-status-special-mark",
+    "bg-status-special-surface text-foreground border border-status-special-mark",
   question:
-    "bg-status-success-surface text-foreground-strong border border-status-success-mark",
+    "bg-status-success-surface text-foreground border border-status-success-mark",
   hiring:
-    "bg-status-warning-surface text-foreground-strong border border-status-warning-mark",
+    "bg-status-warning-surface text-foreground border border-status-warning-mark",
 };
 
 const communityIcon = computed(() => props.thread.community?.icon || "");
@@ -85,9 +90,7 @@ const media = computed(
   () => props.thread.media as unknown as ForumPostMedia | undefined,
 );
 
-const commentsDisplay = computed(() =>
-  localStats.value.comments ? formatCount(localStats.value.comments) : "0",
-);
+const commentsDisplay = computed(() => formatCount(props.commentCount));
 
 const savesDisplay = computed(() =>
   localStats.value.saves ? formatCount(localStats.value.saves) : "0",
@@ -184,24 +187,24 @@ async function handleShare() {
     <div class="px-3 pt-4 sm:px-4 sm:pt-6">
       <div class="flex items-center gap-2 text-xs text-muted-foreground mb-2">
         <template v-if="communityIcon">
-          <Avatar class="h-9 w-9 rounded-none border border-border/40">
+          <Avatar class="h-9 w-9">
             <AvatarImage
               v-if="communityIcon"
               :src="communityIcon"
               :alt="thread.community?.name"
             />
-            <AvatarFallback class="text-xs">{{
+            <AvatarFallback>{{
               thread.community?.name?.charAt(0).toUpperCase()
             }}</AvatarFallback>
           </Avatar>
         </template>
         <template v-else>
-          <Avatar class="h-9 w-9 rounded-none border border-border/40">
+          <Avatar class="h-9 w-9">
             <AvatarImage
               :src="normalizedAvatar"
               :alt="thread.author?.username || 'user'"
             />
-            <AvatarFallback class="text-xs">{{ userInitials }}</AvatarFallback>
+            <AvatarFallback>{{ userInitials }}</AvatarFallback>
           </Avatar>
         </template>
 
@@ -234,7 +237,7 @@ async function handleShare() {
           v-if="thread.flair"
           variant="secondary"
           :class="[
-            'ml-auto sm:ml-2 rounded-none px-2 py-0 text-2xs h-5',
+            'ml-auto sm:ml-2 rounded-lg px-2 py-0 text-xs h-5',
             flairClasses[thread.flair.type],
           ]"
         >
@@ -252,17 +255,19 @@ async function handleShare() {
         <Badge
           v-if="thread.isPinned"
           :class="[
-            'flex items-center gap-1 rounded-none px-2 py-0.5 text-2xs uppercase font-bold border-0',
-            'bg-status-warning-surface text-foreground-strong',
+            'flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs uppercase font-bold border-0',
+            'bg-status-warning-surface text-foreground',
           ]"
         >
-          <Pin class="h-3 w-3 text-status-warning-mark" /> {{ t("forum.post.pinned") }}
+          <Pin class="h-3 w-3 text-status-warning-mark" />
+          {{ t("forum.post.pinned") }}
         </Badge>
         <span
           v-if="thread.isLocked"
-          class="inline-flex items-center gap-1 text-xxs font-medium text-foreground-strong"
+          class="inline-flex items-center gap-1 text-xs font-medium text-foreground"
         >
-          <Lock class="h-3 w-3 text-status-warning-mark" /> {{ t("forum.post.locked") }}
+          <Lock class="h-3 w-3 text-status-warning-mark" />
+          {{ t("forum.post.locked") }}
         </span>
       </div>
     </div>
@@ -271,24 +276,23 @@ async function handleShare() {
     <div class="px-4 sm:px-6 pb-2 space-y-4">
       <section v-if="thread.excerpt" class="markdown-view">
         <div
-          class="text-sm leading-relaxed text-foreground/90 prose prose-sm dark:prose-invert max-w-none"
+          class="text-sm leading-relaxed text-foreground/90 typeset typeset-docs max-w-none"
           v-html="renderMarkdown(thread.excerpt)"
         ></div>
       </section>
 
       <section v-if="media" class="mt-4">
         <div
-          class="overflow-hidden rounded-none border border-border/40 bg-muted/20"
+          class="overflow-hidden rounded-lg border border-border/40 bg-muted/20"
         >
           <AspectRatio
             v-if="media.type === 'image'"
             :ratio="media.ratio ?? 16 / 9"
-            class="bg-muted"
           >
             <img
               :src="media.src"
               :alt="media.alt ?? thread.title"
-              class="h-full w-full object-contain bg-surface/5"
+              class="h-full w-full object-contain bg-background/5"
             />
           </AspectRatio>
           <div
@@ -318,7 +322,7 @@ async function handleShare() {
                 :href="media.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="mt-2 text-[var(--primary)] hover:underline text-xs inline-flex items-center gap-1"
+                class="mt-2 text-primary hover:underline text-xs inline-flex items-center gap-1"
               >
                 {{ t("forum.actions.copyLink") }} <Share2 class="w-3 h-3" />
               </a>
@@ -333,10 +337,8 @@ async function handleShare() {
 
           <div v-else-if="media.type === 'text'" class="markdown-view">
             <div
-              class="p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-              v-html="
-                renderMarkdown(media.markdown || media.body || '')
-              "
+              class="p-4 text-sm leading-relaxed typeset typeset-docs max-w-none"
+              v-html="renderMarkdown(media.markdown || media.body || '')"
             ></div>
           </div>
 
@@ -370,7 +372,7 @@ async function handleShare() {
                 class="space-y-1"
               >
                 <div
-                  class="flex items-center justify-between text-xxs text-muted-foreground"
+                  class="flex items-center justify-between text-xs text-muted-foreground"
                 >
                   <span class="text-foreground">{{ option.label }}</span>
                   <span>{{
@@ -387,7 +389,7 @@ async function handleShare() {
                 </div>
               </li>
             </ul>
-            <p class="text-xxs text-muted-foreground">
+            <p class="text-xs text-muted-foreground">
               {{ media.totalVotes }} {{ t("forum.post.poll.votes") }}
               <span v-if="media.closesAt">
                 · {{ t("forum.post.poll.closes") }} {{ media.closesAt }}</span

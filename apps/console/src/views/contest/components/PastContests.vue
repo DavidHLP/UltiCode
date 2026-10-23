@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,9 +8,8 @@ import {
   Calendar,
   Clock,
 } from "@lucide/vue";
-import { useRouter } from "vue-router";
 import type { ContestListItem } from "@/types/contest";
-import { formatDateTime, getDurationMinutes } from "@/utils/datetime";
+import { formatDate, getDurationMinutes } from "@/utils/datetime";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -26,13 +25,12 @@ const emit = defineEmits<{
   retry: [];
 }>();
 
-const router = useRouter();
 const { t } = useI18n();
 
 // Simple pagination logic
 const visiblePages = computed(() => {
   const pages: (number | string)[] = [];
-  const total = props.totalPages;
+  const total = Math.max(1, props.totalPages);
   const current = props.currentPage;
 
   if (total <= 7) {
@@ -57,30 +55,22 @@ const visiblePages = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="@container/past min-w-0 space-y-6">
     <!-- Header -->
-    <div class="flex items-end justify-between">
+    <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="space-y-1">
-        <h2 class="text-2xl font-bold tracking-tight">
+        <h2 class="text-lg font-semibold tracking-tight">
           {{ t("contest.list.past") }}
         </h2>
         <p class="text-sm text-muted-foreground">
           {{ t("contest.list.pastSubtitle") }}
         </p>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        class="h-8 rounded-none border border-border bg-transparent shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs text-muted-foreground flex items-center gap-1.5 cursor-pointer font-mono"
-      >
-        <Trophy class="h-3.5 w-3.5 text-[var(--status-warning-mark)]" />
-        {{ t("contest.list.partner") }}
-      </Button>
     </div>
     <div
       v-if="error"
       role="alert"
-      class="flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground-strong"
+      class="flex items-center justify-between gap-4 border border-status-error-mark bg-status-error-surface px-4 py-3 text-sm text-foreground"
     >
       <p>{{ error }}</p>
       <Button type="button" variant="outline" size="sm" @click="emit('retry')">
@@ -90,41 +80,47 @@ const visiblePages = computed(() => {
 
     <!-- Contest List -->
     <div
-      class="flex flex-col rounded-none border border-border bg-card text-card-foreground shadow-[3px_3px_0px_0px_var(--border)] overflow-hidden"
+      class="flex flex-col rounded-lg border border-border bg-card text-card-foreground overflow-hidden"
     >
       <!-- Table Column Headers (Hidden on Mobile) -->
       <div
-        class="hidden sm:flex items-center gap-4 px-4 py-2.5 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-none"
+        class="hidden @3xl/past:flex items-center gap-4 px-4 py-2.5 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-lg"
       >
-        <div class="flex-1 text-left">Contest</div>
-        <div class="w-32 text-center">Date</div>
-        <div class="w-24 text-center">Duration</div>
-        <div class="w-24 text-center">Status</div>
-        <div class="w-28 text-right">Action</div>
+        <div class="flex-1 text-left">
+          {{ t("contest.list.tableHeaders.contest") }}
+        </div>
+        <div class="w-32 text-center">
+          {{ t("contest.list.tableHeaders.date") }}
+        </div>
+        <div class="w-24 text-center">
+          {{ t("contest.list.tableHeaders.duration") }}
+        </div>
+        <div class="w-40 text-right">
+          {{ t("contest.list.tableHeaders.action") }}
+        </div>
       </div>
 
-      <div
+      <RouterLink
         v-for="contest in contests"
         :key="contest.id"
-        class="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 transition-all hover:bg-muted/30 cursor-pointer border-b last:border-0"
-        @click="
-          router.push({
-            name: 'contest-detail',
-            params: { slug: contest.slug },
-          })
-        "
+        :to="{
+          name: 'contest-detail',
+          params: { slug: contest.slug },
+        }"
+        :aria-label="contest.title"
+        class="group flex flex-col @3xl/past:flex-row @3xl/past:items-center justify-between gap-4 p-4 transition-all hover:bg-muted/30 cursor-pointer border-b last:border-0 text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
       >
-        <div class="flex items-center gap-4 min-w-0 sm:flex-1">
+        <div class="flex items-center gap-4 min-w-0 @3xl/past:flex-1">
           <!-- Icon Box -->
           <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border border-border bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300"
           >
             <Trophy class="h-5 w-5" />
           </div>
 
           <!-- Info -->
           <span
-            class="truncate text-base font-bold leading-tight group-hover:text-primary transition-colors text-left"
+            class="min-w-0 break-words text-base font-bold leading-tight group-hover:text-primary transition-colors text-left"
           >
             {{ contest.title }}
           </span>
@@ -132,56 +128,53 @@ const visiblePages = computed(() => {
 
         <!-- Meta row (responsive layout) -->
         <div
-          class="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 text-xs font-mono"
+          class="flex flex-wrap @3xl/past:flex-nowrap @3xl/past:shrink-0 items-center justify-between @3xl/past:justify-end gap-4 text-xs font-mono"
         >
           <!-- Date -->
           <span
-            class="w-auto sm:w-32 text-left sm:text-center text-muted-foreground flex items-center gap-1.5"
+            class="w-auto @3xl/past:w-32 text-left @3xl/past:text-center text-muted-foreground flex items-center gap-1.5"
           >
             <Calendar
-              class="h-3.5 w-3.5 shrink-0 block sm:hidden text-muted-foreground/80"
+              class="h-3.5 w-3.5 shrink-0 block @3xl/past:hidden text-muted-foreground/80"
             />
-            {{ formatDateTime(contest.startTime).split(" ")[0] }}
+            {{ formatDate(contest.startTime) }}
           </span>
 
           <!-- Duration -->
           <span
-            class="w-auto sm:w-24 text-left sm:text-center text-muted-foreground flex items-center gap-1.5"
+            class="w-auto @3xl/past:w-24 text-left @3xl/past:text-center text-muted-foreground flex items-center gap-1.5"
           >
             <Clock
-              class="h-3.5 w-3.5 shrink-0 block sm:hidden text-muted-foreground/80"
+              class="h-3.5 w-3.5 shrink-0 block @3xl/past:hidden text-muted-foreground/80"
             />
             {{ getDurationMinutes(contest.startTime, contest.endTime) }}
             {{ t("contest.time.min_short") }}
           </span>
 
           <!-- Status -->
-          <div class="w-auto sm:w-24 flex justify-start sm:justify-center">
+          <div
+            class="hidden"
+          >
             <span
-              class="inline-flex items-center border border-border bg-muted/65 text-muted-foreground px-2 py-0.5 text-2xs font-bold uppercase tracking-wide rounded-none"
+              class="inline-flex items-center border border-border bg-muted/65 text-muted-foreground px-2 py-0.5 text-xs font-bold uppercase tracking-wide rounded-lg"
             >
               {{ t("contest.list.finished") }}
             </span>
           </div>
 
           <!-- Action -->
-          <div class="w-full sm:w-28 flex justify-end">
+          <div class="w-full @3xl/past:w-40 flex justify-end">
             <Button
+              as="span"
               variant="outline"
               size="sm"
-              class="rounded-none border-border shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs h-8 px-3"
-              @click.stop="
-                router.push({
-                  name: 'contest-detail',
-                  params: { slug: contest.slug },
-                })
-              "
+              class="pointer-events-none px-3"
             >
               {{ t("contest.types.virtual") }}
             </Button>
           </div>
         </div>
-      </div>
+      </RouterLink>
     </div>
 
     <!-- Loading State -->
@@ -193,18 +186,22 @@ const visiblePages = computed(() => {
     </div>
 
     <!-- Pagination -->
-    <div class="flex items-center justify-center gap-2 pt-4">
+    <div
+      v-if="totalPages > 1"
+      class="mx-auto grid w-fit max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 pt-4"
+    >
       <Button
         variant="outline"
         size="icon"
-        class="h-9 w-9"
-        :disabled="currentPage === 1 || loading"
+        class="w-9"
+        :aria-label="t('common.pagination.previousPage')"
+        :disabled="currentPage <= 1 || loading"
         @click="emit('update:currentPage', currentPage - 1)"
       >
         <ChevronLeft class="h-4 w-4" />
       </Button>
 
-      <div class="flex gap-1.5">
+      <div class="flex flex-wrap justify-center gap-1.5">
         <Button
           v-for="page in visiblePages"
           :key="page"
@@ -215,10 +212,10 @@ const visiblePages = computed(() => {
           :data-testid="
             page === currentPage ? 'past-contests-current-page' : undefined
           "
-          class="h-9 w-9 rounded-none text-xs"
+          class="w-9"
           :class="{
             'pointer-events-none': page === '...',
-            'border-[var(--status-warning-mark)] bg-status-warning-surface text-foreground-strong shadow-[2px_2px_0px_0px_var(--status-warning-mark)] hover:bg-status-warning-surface/80':
+            'border-status-warning-mark bg-status-warning-surface text-foreground shadow-[2px_2px_0px_0px_var(--status-warning-mark)] hover:bg-status-warning-surface/80':
               page === currentPage,
           }"
           @click="typeof page === 'number' && emit('update:currentPage', page)"
@@ -230,8 +227,9 @@ const visiblePages = computed(() => {
       <Button
         variant="outline"
         size="icon"
-        class="h-9 w-9"
-        :disabled="currentPage === totalPages || loading"
+        class="w-9"
+        :aria-label="t('common.pagination.nextPage')"
+        :disabled="currentPage >= Math.max(1, totalPages) || loading"
         @click="emit('update:currentPage', currentPage + 1)"
       >
         <ChevronRight class="h-4 w-4" />

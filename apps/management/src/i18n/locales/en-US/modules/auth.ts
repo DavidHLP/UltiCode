@@ -1,4 +1,14 @@
 export default {
+  accounts: {
+    title: 'Signed-in accounts',
+    add: 'Add account',
+    current: 'Current account',
+    loading: 'Loading accounts…',
+    failed: 'Unable to load or switch accounts.',
+    retry: 'Retry',
+    limit: 'Up to five accounts can be signed in.',
+    description: 'Sign in to another account. Your current account stays signed in.',
+  },
   // Layout
   layout: {
     systemOnline: 'System Online',

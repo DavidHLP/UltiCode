@@ -163,3 +163,38 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "com.squareup.okhttp3:okhttp"
         update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "uv"
+    directory: "/services/agent"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-agent:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "automated"]
+    open-pull-requests-limit: 5
+    rebase-strategy: "disabled"
+
+  - package-ecosystem: "pip"
+    directory: "/scripts/ci"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "automated"]
+    open-pull-requests-limit: 5
+    rebase-strategy: "disabled"
+
+  - package-ecosystem: "docker"
+    directories:
+      - "/services"
+      - "/apps/console"
+      - "/apps/management"
+    schedule:
+      interval: "weekly"
+    groups:
+      runtime-images:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "automated"]
+    open-pull-requests-limit: 5
+    rebase-strategy: "disabled"

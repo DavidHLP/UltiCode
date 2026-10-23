@@ -42,9 +42,9 @@ vi.mock("vue-router", () => ({
 }));
 
 const stubs = {
-  HoverCard: { template: "<div><slot /></div>" },
-  HoverCardTrigger: { template: "<div><slot /></div>" },
-  HoverCardContent: { template: "<div><slot /></div>" },
+  Tooltip: { template: "<div><slot /></div>" },
+  TooltipTrigger: { template: "<div><slot /></div>" },
+  TooltipContent: { template: "<div><slot /></div>" },
   Button: { template: "<button><slot /></button>" },
   Separator: { template: "<hr />" },
   Kbd: { template: "<kbd><slot /></kbd>" },
@@ -69,7 +69,7 @@ const makeProblem = ({ id, slug }: ProblemOverrides): ProblemDetail =>
     difficulty: "Easy",
     content: "",
     tags: [],
-  } as unknown as ProblemDetail);
+  }) as unknown as ProblemDetail;
 
 const makeContest = (slug: string, id = "contest-1"): ContestDetail =>
   ({
@@ -112,7 +112,7 @@ const makeContest = (slug: string, id = "contest-1"): ContestDetail =>
     problemIds: [],
     tags: [],
     userScore: 0,
-  } as unknown as ContestDetail);
+  }) as unknown as ContestDetail;
 
 const makeProblemSummary = (
   problemId: number,
@@ -199,7 +199,10 @@ function mountHeader(
           // $router is needed because the SFC uses $router.push in
           // some templates. We only implement `.push`; the rest of
           // the Router shape is irrelevant for this test.
-          $router: { push: routerPushMock } as unknown as Record<string, unknown>,
+          $router: { push: routerPushMock } as unknown as Record<
+            string,
+            unknown
+          >,
         },
       },
       mocks: {

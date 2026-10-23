@@ -3,18 +3,18 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import {
-  IconCheck,
-  IconX,
-  IconTrash,
-  IconEyeOff,
-  IconAlertCircle,
-  IconClock,
-  IconBan,
-  IconScale,
-  IconUser,
-} from '@tabler/icons-vue'
+  Check as IconCheck,
+  X as IconX,
+  Trash as IconTrash,
+  EyeOff as IconEyeOff,
+  AlertCircle as IconAlertCircle,
+  Clock as IconClock,
+  Ban as IconBan,
+  Scale as IconScale,
+  User as IconUser,
+} from '@lucide/vue'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
 import { type ModerationAction, ModerationActionType } from '@/api/admin/moderation'
 
 interface Props {
@@ -28,57 +28,57 @@ const { t } = useI18n()
 const actionConfig = computed(() => ({
   [ModerationActionType.DELETED]: {
     icon: IconTrash,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
   },
   [ModerationActionType.HIDDEN]: {
     icon: IconEyeOff,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
   },
   [ModerationActionType.RESTORED]: {
     icon: IconCheck,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
   },
   [ModerationActionType.WARNED]: {
     icon: IconAlertCircle,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
   },
   [ModerationActionType.TEMP_BANNED]: {
     icon: IconClock,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-warning-mark)_15%,_transparent)]',
   },
   [ModerationActionType.PERM_BANNED]: {
     icon: IconBan,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
   },
   [ModerationActionType.DISMISSED]: {
     icon: IconX,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
   },
   [ModerationActionType.RESOLVED]: {
     icon: IconCheck,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_PENDING]: {
     icon: IconScale,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-special-mark)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_APPROVED]: {
     icon: IconCheck,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-success-mark)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_REJECTED]: {
     icon: IconX,
-    color: 'text-foreground-strong',
+    color: 'text-foreground',
     bg: 'bg-[color-mix(in_oklch,_var(--status-error-mark)_15%,_transparent)]',
   },
 }))
@@ -87,8 +87,8 @@ function getActionConfig(actionType: ModerationActionType) {
   return (
     actionConfig.value[actionType] || {
       icon: IconCheck,
-      color: 'text-[var(--foreground-muted)]',
-      bg: 'bg-[var(--surface-sunken)]',
+      color: 'text-muted-foreground',
+      bg: 'bg-muted',
     }
   )
 }
@@ -110,13 +110,11 @@ function getRelativeTime(date: Date | string): string {
 </script>
 
 <template>
-  <Card
-    class="border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
-  >
+  <Card>
     <CardHeader class="pb-3">
-      <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
-        <IconClock class="h-4 w-4 text-[var(--foreground-muted)]" />
-        <span class="text-[var(--foreground-muted)]">
+      <CardTitle class="flex items-center gap-2">
+        <IconClock class="h-4 w-4 text-muted-foreground" />
+        <span class="text-muted-foreground">
           {{ t('moderation.detail.actionsTitle', { count: actions.length }) }}
         </span>
       </CardTitle>
@@ -124,7 +122,7 @@ function getRelativeTime(date: Date | string): string {
     <CardContent>
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-8">
-        <div class="animate-pulse text-xs font-data text-[var(--foreground-muted)]">
+        <div class="animate-pulse text-xs font-mono text-muted-foreground">
           {{ t('moderation.terminal.loading') }}
         </div>
       </div>
@@ -134,8 +132,8 @@ function getRelativeTime(date: Date | string): string {
         v-else-if="actions.length === 0"
         class="flex flex-col items-center justify-center py-8 text-center"
       >
-        <IconClock class="h-8 w-8 text-[var(--foreground-muted)] mb-2" />
-        <p class="text-xs font-data text-[var(--foreground-muted)]">
+        <IconClock class="h-8 w-8 text-muted-foreground mb-2" />
+        <p class="text-xs font-mono text-muted-foreground">
           {{ t('moderation.detail.noActions') }}
         </p>
       </div>
@@ -143,7 +141,7 @@ function getRelativeTime(date: Date | string): string {
       <!-- Timeline -->
       <div v-else class="relative space-y-4">
         <!-- Timeline line -->
-        <div class="absolute left-4 top-0 bottom-0 w-px bg-[var(--border-subtle)]" />
+        <div class="absolute left-4 top-0 bottom-0 w-px bg-border" />
 
         <!-- Action items -->
         <div v-for="action in actions" :key="action.id" class="relative flex gap-4">
@@ -152,7 +150,7 @@ function getRelativeTime(date: Date | string): string {
             :class="[
               'relative z-10 flex h-8 w-8 items-center justify-center rounded-full border',
               getActionConfig(action.action).bg,
-              'border-[var(--border-subtle)]',
+              'border-border',
             ]"
           >
             <component
@@ -168,7 +166,7 @@ function getRelativeTime(date: Date | string): string {
                 <p class="text-sm font-medium">
                   {{ t(`moderation.actions.${action.action}`, action.action) }}
                 </p>
-                <div class="flex items-center gap-2 mt-1 text-xs text-[var(--foreground-muted)]">
+                <div class="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                   <IconUser class="h-3 w-3" />
                   <span>
                     {{
@@ -177,8 +175,8 @@ function getRelativeTime(date: Date | string): string {
                       t('moderation.unknownReporter')
                     }}
                   </span>
-                  <span class="text-[var(--foreground-muted)]">•</span>
-                  <span class="font-data tabular-nums">
+                  <span class="text-muted-foreground">•</span>
+                  <span class="font-mono tabular-nums">
                     {{ getRelativeTime(action.createdAt) }}
                   </span>
                 </div>
@@ -188,15 +186,15 @@ function getRelativeTime(date: Date | string): string {
             <!-- Note -->
             <div
               v-if="action.note"
-              class="mt-2 p-2 border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--background)]"
+              class="mt-2 p-2 border border-border dark:border-border bg-background"
             >
-              <p class="text-xs text-[var(--foreground)]">{{ action.note }}</p>
+              <p class="text-xs text-foreground">{{ action.note }}</p>
             </div>
 
             <!-- Duration (for temp bans) -->
             <div
               v-if="action.durationDays && action.action === ModerationActionType.TEMP_BANNED"
-              class="mt-2 text-xs text-foreground-strong"
+              class="mt-2 text-xs text-foreground"
             >
               {{ t('moderation.detail.duration') }}:
               {{ t('moderation.detail.days', { count: action.durationDays }) }}

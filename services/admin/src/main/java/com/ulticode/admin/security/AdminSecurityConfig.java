@@ -41,7 +41,7 @@ public class AdminSecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/api/v1/admin/health",
-                        "/api/v1/admin/health/ready").permitAll()
+                        "/api/v1/admin/health/ready", "/api/v1/public/features/agent").permitAll()
                 .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .anyRequest().denyAll()
             )

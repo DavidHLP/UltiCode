@@ -11,15 +11,15 @@ import type { AchievementProgress } from "@/types/achievement";
 import FollowButton from "@/components/follow/FollowButton.vue";
 import StatsCard from "@/components/dashboard/StatsCard.vue";
 import AchievementCard from "@/components/achievement/AchievementCard.vue";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@ulticode/design-system/ui/skeleton";
+import { Button } from "@ulticode/design-system/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@ulticode/design-system/ui/card";
 import {
   Activity,
   Trophy,
@@ -95,22 +95,20 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div
-    class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8"
-  >
-    <Card v-if="error" class="rounded-none border-destructive/40 bg-card">
+  <div class="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <Card v-if="error">
       <CardContent class="flex flex-col items-center p-8 text-center">
         <p class="text-muted-foreground">{{ error }}</p>
-        <Button variant="outline" class="mt-4 rounded-none" @click="$router.go(0)">
+        <Button variant="outline" class="mt-4" @click="$router.go(0)">
           {{ t("personal.social.retry") }}
         </Button>
       </CardContent>
     </Card>
 
     <template v-else-if="loading">
-      <div class="rounded-none border bg-card p-6 shadow-[var(--shadow-float)]">
+      <div class="rounded-lg border bg-card p-6 shadow-[var(--shadow-float)]">
         <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <Skeleton class="h-28 w-28 rounded-none" />
+          <Skeleton class="h-28 w-28" />
           <div class="flex-1 space-y-3">
             <Skeleton class="h-8 w-56" />
             <Skeleton class="h-4 w-32" />
@@ -129,13 +127,13 @@ onMounted(async () => {
 
     <template v-else-if="profile">
       <section
-        class="relative overflow-hidden rounded-none border bg-card p-5 shadow-[var(--shadow-float)] md:p-7"
+        class="relative overflow-hidden rounded-lg border bg-card p-5 shadow-[var(--shadow-float)] md:p-7"
       >
         <div
           class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
         ></div>
         <div
-          class="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-[var(--status-success-mark)]/10 blur-3xl"
+          class="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-status-success-mark/10 blur-3xl"
         ></div>
 
         <div
@@ -150,16 +148,16 @@ onMounted(async () => {
                 v-if="profile.avatar"
                 :src="profile.avatar"
                 :alt="profile.username"
-                class="relative h-28 w-28 rounded-none border-4 border-background object-cover shadow-[var(--shadow-float)]"
+                class="relative h-28 w-28 rounded-lg border-4 border-background object-cover shadow-[var(--shadow-float)]"
               />
               <div
                 v-else
-                class="relative flex h-28 w-28 items-center justify-center rounded-none border-4 border-background bg-muted text-3xl font-bold text-foreground shadow-[var(--shadow-float)]"
+                class="relative flex h-28 w-28 items-center justify-center rounded-lg border-4 border-background bg-muted text-3xl font-bold text-foreground shadow-[var(--shadow-float)]"
               >
                 {{ (profile.name || profile.username).charAt(0).toUpperCase() }}
               </div>
               <span
-                class="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-none border-4 border-background bg-primary text-primary-foreground shadow-[var(--shadow-float)]"
+                class="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-lg border-4 border-background bg-primary text-primary-foreground shadow-[var(--shadow-float)]"
                 :title="t('personal.social.globalRank')"
               >
                 <Trophy class="h-4 w-4" />
@@ -189,7 +187,9 @@ onMounted(async () => {
                 </h1>
               </div>
 
-              <p class="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              <p
+                class="max-w-2xl text-sm leading-relaxed text-muted-foreground"
+              >
                 {{ profile.bio || t("personal.profile.noBio") }}
               </p>
 
@@ -243,7 +243,7 @@ onMounted(async () => {
           color="green"
         >
           <template #icon>
-            <Trophy class="h-5 w-5 text-[var(--status-success-mark)]" />
+            <Trophy class="h-5 w-5 text-status-success-mark" />
           </template>
         </StatsCard>
 
@@ -254,7 +254,7 @@ onMounted(async () => {
           color="blue"
         >
           <template #icon>
-            <Target class="h-5 w-5 text-[var(--accent-primary)]" />
+            <Target class="h-5 w-5 text-primary" />
           </template>
         </StatsCard>
 
@@ -269,7 +269,7 @@ onMounted(async () => {
           color="purple"
         >
           <template #icon>
-            <BarChart3 class="h-5 w-5 text-[var(--status-special-mark)]" />
+            <BarChart3 class="h-5 w-5 text-status-special-mark" />
           </template>
         </StatsCard>
 
@@ -280,7 +280,7 @@ onMounted(async () => {
           color="orange"
         >
           <template #icon>
-            <Flame class="h-5 w-5 text-[var(--status-warning-mark)]" />
+            <Flame class="h-5 w-5 text-status-warning-mark" />
           </template>
         </StatsCard>
 
@@ -307,10 +307,12 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
-        <Card class="rounded-none bg-card shadow-sm">
-          <CardHeader class="border-b border-border/50">
-            <CardTitle class="flex items-center gap-2 text-base">
+      <div
+        class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle class="flex items-center gap-2">
               <Activity class="h-4 w-4 text-primary" />
               {{ t("personal.profile.solvingProgress") }}
             </CardTitle>
@@ -343,14 +345,16 @@ onMounted(async () => {
             </div>
 
             <div class="space-y-2">
-              <div class="flex items-center justify-between text-xs font-medium">
+              <div
+                class="flex items-center justify-between text-xs font-medium"
+              >
                 <span class="text-muted-foreground">
                   {{ t("personal.social.acceptanceRate") }}
                 </span>
                 <span>{{ acceptanceRate }}%</span>
               </div>
               <div
-                class="h-2 overflow-hidden rounded-none bg-muted"
+                class="h-2 overflow-hidden rounded-lg bg-muted"
                 role="progressbar"
                 :aria-label="t('personal.social.acceptanceRate')"
                 :aria-valuenow="acceptanceRate"
@@ -358,7 +362,7 @@ onMounted(async () => {
                 aria-valuemax="100"
               >
                 <div
-                  class="h-full bg-[var(--status-success-mark)] transition-all duration-700"
+                  class="h-full bg-status-success-mark transition-all duration-700"
                   :style="{ width: `${acceptanceRate}%` }"
                 ></div>
               </div>
@@ -393,11 +397,11 @@ onMounted(async () => {
           </CardContent>
         </Card>
 
-        <Card class="rounded-none bg-card shadow-sm">
-          <CardHeader class="border-b border-border/50">
+        <Card>
+          <CardHeader>
             <div class="flex items-center justify-between gap-3">
-              <CardTitle class="flex items-center gap-2 text-base">
-                <Trophy class="h-4 w-4 text-[var(--status-warning-mark)]" />
+              <CardTitle class="flex items-center gap-2">
+                <Trophy class="h-4 w-4 text-status-warning-mark" />
                 {{ t("personal.social.achievements") }}
                 <span
                   v-if="earnedAchievements.length > 0"
@@ -409,7 +413,7 @@ onMounted(async () => {
               <Button
                 v-if="earnedAchievements.length > 0"
                 variant="link"
-                class="h-auto rounded-none p-0 text-xs text-primary"
+                class="h-auto p-0"
                 @click="$router.push('/personal/achievements')"
               >
                 {{ t("personal.social.viewAllAchievements") }}
@@ -425,7 +429,10 @@ onMounted(async () => {
                 :show-progress="false"
               />
             </div>
-            <div v-else class="border border-dashed p-8 text-center text-sm text-muted-foreground">
+            <div
+              v-else
+              class="border border-dashed p-8 text-center text-sm text-muted-foreground"
+            >
               {{ t("personal.social.noAchievements") }}
             </div>
           </CardContent>

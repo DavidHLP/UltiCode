@@ -2,15 +2,15 @@
 import { RouterView } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import SiteHeader from './SiteHeader.vue'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider } from '@ulticode/design-system/ui/sidebar'
 </script>
 
 <template>
-  <SidebarProvider>
+  <SidebarProvider class="uc-app-shell">
     <AppSidebar />
     <SidebarInset>
       <SiteHeader />
-      <main class="uc-page-main min-h-0 overflow-auto bg-[var(--background)]">
+      <main class="uc-page-main min-h-0 overflow-auto bg-background">
         <div
           class="uc-page-container uc-page-stack flex-1"
           style="max-width: var(--page-max-width)"

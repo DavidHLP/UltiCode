@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { IconCopy, IconCheck, IconCode, IconBrackets } from '@tabler/icons-vue'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Button } from '@ulticode/design-system/ui/button'
+import {
+  Copy as IconCopy,
+  Check as IconCheck,
+  Code as IconCode,
+  Brackets as IconBrackets,
+} from '@lucide/vue'
+
 import { getLanguageColor } from '@/lib/entities/language'
 import hljs from 'highlight.js'
 import { sanitizeCodeHtml } from '@/utils/sanitize'
@@ -42,7 +48,10 @@ const availableLanguages = computed(() => props.languages || [])
 watch(
   availableLanguages,
   (langs) => {
-    if (!selectedLanguage.value && langs.length > 0) {
+    if (
+      langs.length > 0 &&
+      !langs.some((lang) => lang.language.toLowerCase() === selectedLanguage.value.toLowerCase())
+    ) {
       selectedLanguage.value = langs[0]?.language || ''
     }
   },
@@ -155,7 +164,7 @@ async function copyToClipboard() {
     v-if="showLanguageSelector && !hasLanguages"
     class="flex flex-col items-center justify-center py-16 px-4 text-center"
   >
-    <div class="w-16 h-16 rounded-none bg-muted flex items-center justify-center mb-4">
+    <div class="w-16 h-16 rounded-lg bg-muted flex items-center justify-center mb-4">
       <IconCode class="h-8 w-8 text-muted-foreground" />
     </div>
     <h3 class="text-base font-semibold mb-2">
@@ -174,11 +183,12 @@ async function copyToClipboard() {
       class="flex items-center justify-between gap-4"
     >
       <div class="flex flex-wrap gap-2">
-        <button
+        <Button
+          variant="outline"
           v-for="lang in availableLanguages"
           :key="lang.id"
           :class="[
-            'px-3 py-1.5 rounded-none text-sm font-mono font-medium transition-all border',
+            'px-3 py-1.5 rounded-lg text-sm font-mono font-medium transition-all border',
             selectedLanguage.toLowerCase() === lang.language.toLowerCase()
               ? getLanguageColor(lang.language) + ' shadow-sm'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted border-transparent',
@@ -187,7 +197,7 @@ async function copyToClipboard() {
         >
           <IconBrackets class="h-3.5 w-3.5 mr-1.5 inline-block" />
           {{ lang.language }}
-        </button>
+        </Button>
       </div>
 
       <Button
@@ -206,11 +216,7 @@ async function copyToClipboard() {
     <!-- Single Language Header (for single-language scenarios) -->
     <div v-else-if="!showLanguageSelector" class="flex items-center justify-between gap-4">
       <div class="flex items-center gap-2">
-        <Badge
-          variant="outline"
-          class="font-mono text-sm px-3 py-1.5"
-          :class="getLanguageColor(displayLanguage)"
-        >
+        <Badge variant="outline" class="px-3 py-1.5" :class="getLanguageColor(displayLanguage)">
           <IconBrackets class="h-3.5 w-3.5 mr-1.5 inline-block" />
           {{ displayLanguage }}
         </Badge>
@@ -233,18 +239,15 @@ async function copyToClipboard() {
     </div>
 
     <!-- Code Display -->
-    <div
-      class="relative overflow-hidden border border-[var(--border-subtle)] bg-[var(--card)] dark:border-[var(--border-subtle)]"
-    >
+    <div class="relative overflow-hidden border border-border bg-card dark:border-border">
       <!-- Code Header -->
       <div
-        class="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--surface-sunken)] px-4 py-2.5 dark:border-[var(--border-subtle)]"
+        class="flex items-center justify-between border-b border-border bg-muted px-4 py-2.5 dark:border-border"
       >
         <div class="flex items-center gap-3">
           <Badge
             v-if="showLanguageSelector && hasLanguages"
             variant="outline"
-            class="font-mono text-xs"
             :class="getLanguageColor(displayLanguage)"
           >
             <IconBrackets class="h-3 w-3 mr-1" />
@@ -270,7 +273,7 @@ async function copyToClipboard() {
       <!-- Code Content -->
       <div
         v-if="hasCode"
-        class="code-viewer-surface overflow-x-auto border-t border-[var(--surface-highlight)] p-4 dark:border-[var(--border-subtle)]"
+        class="code-viewer-background overflow-x-auto border-t border-accent p-4 dark:border-border"
       >
         <pre class="text-sm font-mono whitespace-pre-wrap break-words"><code
           class="hljs"

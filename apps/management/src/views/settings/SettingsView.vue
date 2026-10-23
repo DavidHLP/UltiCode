@@ -3,9 +3,9 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { storeToRefs } from 'pinia'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ulticode/design-system/ui/tabs'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,17 +16,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+} from '@ulticode/design-system/ui/alert-dialog'
 import {
-  IconSettings,
-  IconMail,
-  IconClock,
-  IconUpload,
-  IconToggleLeft,
-  IconDeviceFloppy,
-  IconRefresh,
-  IconReload,
-} from '@tabler/icons-vue'
+  Settings as IconSettings,
+  Mail as IconMail,
+  Clock as IconClock,
+  Upload as IconUpload,
+  ToggleLeft as IconToggleLeft,
+  Save as IconDeviceFloppy,
+  RefreshCw as IconRefresh,
+  RotateCw as IconReload,
+} from '@lucide/vue'
 
 import GeneralSettings from './components/GeneralSettings.vue'
 import EmailSettings from './components/EmailSettings.vue'
@@ -38,17 +38,8 @@ import { useSystemSettingsStore } from '@/stores/admin/system-settings'
 const { t } = useI18n()
 
 const store = useSystemSettingsStore()
-const {
-  general,
-  email,
-  rateLimits,
-  uploads,
-  features,
-  loading,
-  saving,
-  clearingCache,
-  isDirty,
-} = storeToRefs(store)
+const { general, email, rateLimits, uploads, features, loading, saving, clearingCache, isDirty } =
+  storeToRefs(store)
 
 const activeTab = ref('general')
 const isLoaded = ref(false)
@@ -97,10 +88,10 @@ onMounted(async () => {
 
 <template>
   <div class="relative flex flex-col gap-4 w-full min-w-0">
-    <!-- Terminal Header -->
+    <!-- Page header -->
     <div
       :class="[
-        'border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--card)]',
+        'border border-border dark:border-border bg-card',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -108,10 +99,10 @@ onMounted(async () => {
       <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <div class="space-y-1">
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          <h1 class="text-xl font-medium tracking-tight text-foreground">
             {{ t('settings.title') }}
           </h1>
-          <p class="text-xs text-[var(--foreground-muted)]">{{ t('settings.description') }}</p>
+          <p class="text-xs text-muted-foreground">{{ t('settings.description') }}</p>
         </div>
       </div>
     </div>
@@ -128,25 +119,25 @@ onMounted(async () => {
       </div>
 
       <Tabs v-else v-model="activeTab" class="space-y-6">
-        <TabsList class="grid grid-cols-5 w-full max-w-2xl">
+        <TabsList class="grid auto-rows-8 w-full max-w-2xl grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 group-data-horizontal/tabs:h-auto">
           <TabsTrigger value="general">
-            <IconSettings class="h-4 w-4 mr-2" />
+            <IconSettings class="h-4 w-4" />
             {{ t('settings.tabs.general') }}
           </TabsTrigger>
           <TabsTrigger value="email">
-            <IconMail class="h-4 w-4 mr-2" />
+            <IconMail class="h-4 w-4" />
             {{ t('settings.tabs.email') }}
           </TabsTrigger>
           <TabsTrigger value="rateLimits">
-            <IconClock class="h-4 w-4 mr-2" />
+            <IconClock class="h-4 w-4" />
             {{ t('settings.tabs.rateLimits') }}
           </TabsTrigger>
           <TabsTrigger value="uploads">
-            <IconUpload class="h-4 w-4 mr-2" />
+            <IconUpload class="h-4 w-4" />
             {{ t('settings.tabs.uploads') }}
           </TabsTrigger>
           <TabsTrigger value="features">
-            <IconToggleLeft class="h-4 w-4 mr-2" />
+            <IconToggleLeft class="h-4 w-4" />
             {{ t('settings.tabs.features') }}
           </TabsTrigger>
         </TabsList>
@@ -185,7 +176,7 @@ onMounted(async () => {
             <CardTitle>{{ t('settings.actions.title') }}</CardTitle>
           </CardHeader>
           <CardContent class="flex items-center justify-between flex-wrap gap-4">
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
               <Button variant="outline" @click="onClearCache" :disabled="clearingCache">
                 <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': clearingCache }" />
                 {{ t('settings.actions.clearCache') }}

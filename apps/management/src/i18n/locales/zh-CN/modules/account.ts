@@ -31,6 +31,12 @@ export default {
     username: '用户名',
   },
 
+  placeholders: {
+    company: '您所在的公司',
+    location: '您所在的位置',
+    bio: '介绍一下自己...',
+  },
+
   actions: {
     save: '保存更改',
     cancel: '取消',

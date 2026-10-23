@@ -42,6 +42,10 @@ concurrency:
   group: deploy-${{ github.event.inputs.environment }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   deploy:
     name: Deploy to ${{ github.event.inputs.environment }}
@@ -53,6 +57,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate deployable service selection
+        env:
+          SELECTED_SERVICES: ${{ github.event.inputs.services }}
+          SKIP_MIGRATIONS: ${{ github.event.inputs.skip_migrations }}
+        run: |
+          require_admin=false
+          [[ "$SKIP_MIGRATIONS" == true ]] || require_admin=true
+          scripts/deploy/service-selection.sh validate "$SELECTED_SERVICES" true "$require_admin"
 
       - name: Resolve canonical migration manifest checksum
         id: schema
@@ -107,5 +122,6 @@ jobs:
 
       - name: Notify failure
         if: failure()
-        run: |
-          echo "::error::Deployment to ${{ github.event.inputs.environment }} failed. Check logs for details."
+        env:
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+        run: printf '::error::Deployment to %s failed. Check logs for details.\n' "$DEPLOY_ENVIRONMENT"

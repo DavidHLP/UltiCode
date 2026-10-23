@@ -2,24 +2,32 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateTimeByLocale } from '@/i18n/utils'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Badge } from '@ulticode/design-system/ui/badge'
+import { Card, CardContent, CardHeader } from '@ulticode/design-system/ui/card'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { IconSearch, IconDownload, IconChevronDown, IconChevronUp } from '@tabler/icons-vue'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
+import { Input } from '@ulticode/design-system/ui/input'
+import { ScrollArea } from '@ulticode/design-system/ui/scroll-area'
+import {
+  Search as IconSearch,
+  Download as IconDownload,
+  ChevronDown as IconChevronDown,
+  ChevronUp as IconChevronUp,
+} from '@lucide/vue'
+
 import { auditApi, type AuditLog, type AuditLogQueryParams } from '@/api/admin/audit'
 import { createCollectionSlice } from '@/stores/createCollectionSlice'
 import { useRemoteTable } from '@/composables/useRemoteTable'
 import { formatJson } from '@/views/audit/utils'
-import { SemanticBadge, getAuditActionColor } from '@/components/ui/terminal'
+import SemanticBadge from '@ulticode/badge-config/SemanticBadge.vue'
+import { getAuditActionColor } from '@ulticode/badge-config'
 
 const { t } = useI18n()
 
@@ -40,7 +48,6 @@ const props = withDefaults(defineProps<Props>(), {
   showFilters: true,
 })
 const hasEntity = computed(() => Boolean(props.entityType && props.entityId))
-
 
 const collection = createCollectionSlice<AuditLog, AuditLogQueryParams>({
   load: async (params = {}, signal) => {
@@ -168,33 +175,32 @@ function handleExport(): void {
       </div>
       <Select v-model="actionFilter">
         <SelectTrigger class="w-[180px]">
-          <SelectValue :placeholder="t('audit.filterAction')" />
+          <SelectValue :placeholder="t('audit.filterAction')">{{
+            actionFilter === 'all' ? t('audit.allActions') : formatAction(actionFilter)
+          }}</SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">{{ t('audit.allActions') }}</SelectItem>
-          <SelectItem value="CREATE_USER">{{ t('audit.actionTypes.CREATE_USER') }}</SelectItem>
-          <SelectItem value="UPDATE_USER">{{ t('audit.actionTypes.UPDATE_USER') }}</SelectItem>
-          <SelectItem value="DELETE_USER">{{ t('audit.actionTypes.DELETE_USER') }}</SelectItem>
-          <SelectItem value="BAN_USER">{{ t('audit.actionTypes.BAN_USER') }}</SelectItem>
-          <SelectItem value="UNBAN_USER">{{ t('audit.actionTypes.UNBAN_USER') }}</SelectItem>
-          <SelectItem value="GRANT_PERMISSION">{{
-            t('audit.actionTypes.GRANT_PERMISSION')
-          }}</SelectItem>
-          <SelectItem value="REVOKE_PERMISSION">{{
-            t('audit.actionTypes.REVOKE_PERMISSION')
-          }}</SelectItem>
+          <SelectGroup
+            ><SelectItem value="all">{{ t('audit.allActions') }}</SelectItem>
+            <SelectItem value="CREATE_USER">{{ t('audit.actionTypes.CREATE_USER') }}</SelectItem>
+            <SelectItem value="UPDATE_USER">{{ t('audit.actionTypes.UPDATE_USER') }}</SelectItem>
+            <SelectItem value="DELETE_USER">{{ t('audit.actionTypes.DELETE_USER') }}</SelectItem>
+            <SelectItem value="BAN_USER">{{ t('audit.actionTypes.BAN_USER') }}</SelectItem>
+            <SelectItem value="UNBAN_USER">{{ t('audit.actionTypes.UNBAN_USER') }}</SelectItem>
+            <SelectItem value="GRANT_PERMISSION">{{
+              t('audit.actionTypes.GRANT_PERMISSION')
+            }}</SelectItem>
+            <SelectItem value="REVOKE_PERMISSION">{{
+              t('audit.actionTypes.REVOKE_PERMISSION')
+            }}</SelectItem></SelectGroup
+          >
         </SelectContent>
       </Select>
       <Button variant="outline" size="sm" @click="loadAuditLogs">
         <IconSearch class="h-4 w-4 mr-1" />
         {{ t('common.search') }}
       </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        :disabled="!hasEntity"
-        @click="handleExport"
-      >
+      <Button variant="outline" size="sm" :disabled="!hasEntity" @click="handleExport">
         <IconDownload class="h-4 w-4 mr-1" />
         {{ t('audit.export') }}
       </Button>
@@ -209,10 +215,10 @@ function handleExport(): void {
     <div
       v-else-if="error"
       role="alert"
-      class="flex items-center justify-between border border-[var(--status-error-mark)] bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
+      class="flex items-center justify-between border border-status-error-mark bg-[color-mix(in_oklch,_var(--status-error-mark)_8%,_transparent)] p-4"
     >
-      <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
-      <Button variant="terminal" size="sm" @click="loadAuditLogs">
+      <span class="text-sm text-foreground">{{ error }}</span>
+      <Button variant="outline" size="sm" @click="loadAuditLogs">
         {{ t('common.retry') }}
       </Button>
     </div>
@@ -228,57 +234,58 @@ function handleExport(): void {
 
     <!-- Compact cards -->
     <div v-else class="space-y-2">
-      <Card
-        v-for="log in filteredLogs"
-        :key="log.id"
-        class="hover:shadow-sm transition-shadow border-[var(--border-subtle)] dark:border-[var(--border-subtle)]"
-      >
+      <Card v-for="log in filteredLogs" :key="log.id">
         <!-- Compact header: action + entity + time + performer in one line -->
         <CardHeader class="py-2 px-3">
-          <div class="flex items-center justify-between gap-2">
+          <div class="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <!-- Left: badges -->
-            <div class="flex items-center gap-2 min-w-0 flex-1">
+            <div class="order-1 flex min-w-0 items-center gap-2">
               <SemanticBadge
                 :color="getAuditActionColor(log.action)"
                 :label="formatAction(log.action)"
                 size="sm"
               />
-              <Badge v-if="log.entityType" variant="outline" class="text-xs px-1.5 py-0">
+              <Badge v-if="log.entityType" variant="outline" class="px-1.5 py-0">
                 {{ t(`audit.entityTypes.${log.entityType}`, log.entityType) }}
               </Badge>
-              <span class="text-xs text-[var(--foreground-muted)] font-data tabular-nums truncate">
-                {{ formatDateTimeByLocale(log.createdAt) }}
-              </span>
-              <span class="text-[var(--foreground-muted)] text-xs">·</span>
-              <span
-                v-if="log.performer"
-                class="text-xs text-[var(--foreground-strong)] dark:text-[var(--foreground-muted)] truncate"
-              >
-                {{ log.performer.username }}
-              </span>
-              <span v-else class="text-xs text-[var(--foreground-muted)]">System</span>
             </div>
 
             <!-- Right: expand toggle + change count -->
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="order-2 ml-auto flex flex-shrink-0 items-center gap-2 sm:order-3">
               <span
                 v-if="!expandedLogs.has(log.id) && getChangesSummary(log).count > 0"
-                class="text-xs text-[var(--foreground-muted)]"
+                class="text-xs text-muted-foreground"
               >
                 {{ getChangesSummary(log).label }}
               </span>
-              <Button variant="ghost" size="sm" class="h-6 w-6 p-0" @click="toggleExpand(log.id)">
+              <Button variant="ghost" size="sm" class="w-6 p-0" @click="toggleExpand(log.id)">
                 <component
                   :is="expandedLogs.has(log.id) ? IconChevronUp : IconChevronDown"
                   class="h-3 w-3"
                 />
               </Button>
             </div>
+
+            <div
+              class="order-3 flex w-full min-w-0 items-center gap-1 sm:order-2 sm:w-auto sm:flex-1"
+            >
+              <span class="text-xs text-muted-foreground font-mono tabular-nums shrink-0">
+                {{ formatDateTimeByLocale(log.createdAt) }}
+              </span>
+              <span class="text-muted-foreground text-xs">·</span>
+              <span
+                v-if="log.performer"
+                class="text-xs text-foreground dark:text-muted-foreground min-w-0 truncate"
+              >
+                {{ log.performer.username }}
+              </span>
+              <span v-else class="text-xs text-muted-foreground">System</span>
+            </div>
           </div>
 
           <!-- ID row when expanded -->
           <div v-if="expandedLogs.has(log.id)" class="flex items-center gap-2 mt-1">
-            <span class="text-xs text-[var(--foreground-muted)] font-data">
+            <span class="text-xs text-muted-foreground font-mono">
               ID: {{ log.id.slice(0, 8) }}
             </span>
           </div>
@@ -289,10 +296,10 @@ function handleExport(): void {
           <div class="space-y-2">
             <!-- Performer info -->
             <div v-if="log.performer" class="flex items-center gap-2 text-xs">
-              <Badge variant="secondary" class="text-xs">
+              <Badge variant="secondary">
                 {{ t(`users.filters.role.${log.performer.role}`, log.performer.role) }}
               </Badge>
-              <span class="font-medium text-[var(--foreground-strong)] dark:text-[var(--border-subtle)]">{{
+              <span class="font-medium text-foreground dark:text-border">{{
                 log.performer.name || log.performer.username
               }}</span>
             </div>
@@ -300,33 +307,27 @@ function handleExport(): void {
             <!-- Changes section -->
             <div v-if="log.oldValues || log.newValues" class="space-y-2">
               <div v-if="log.oldValues" class="space-y-1">
-                <span class="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider">
+                <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {{ t('audit.oldValues') }}
                 </span>
-                <div
-                  class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
-                >
-                  <ScrollArea class="h-[120px] w-full rounded-none">
-                    <pre
-                      class="p-2 text-xs font-data leading-relaxed text-foreground-strong"
-                      >{{ formatJson(log.oldValues) }}</pre
-                    >
+                <div class="rounded-lg border border-border dark:border-border bg-muted">
+                  <ScrollArea class="h-[120px] w-full">
+                    <pre class="p-2 text-xs font-mono leading-relaxed text-foreground">{{
+                      formatJson(log.oldValues)
+                    }}</pre>
                   </ScrollArea>
                 </div>
               </div>
 
               <div v-if="log.newValues" class="space-y-1">
-                <span class="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider">
+                <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {{ t('audit.newValues') }}
                 </span>
-                <div
-                  class="rounded-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface-sunken)]"
-                >
-                  <ScrollArea class="h-[120px] w-full rounded-none">
-                    <pre
-                      class="p-2 text-xs font-data leading-relaxed text-foreground-strong"
-                      >{{ formatJson(log.newValues) }}</pre
-                    >
+                <div class="rounded-lg border border-border dark:border-border bg-muted">
+                  <ScrollArea class="h-[120px] w-full">
+                    <pre class="p-2 text-xs font-mono leading-relaxed text-foreground">{{
+                      formatJson(log.newValues)
+                    }}</pre>
                   </ScrollArea>
                 </div>
               </div>
@@ -335,9 +336,9 @@ function handleExport(): void {
             <!-- Metadata: IP and userAgent -->
             <div
               v-if="log.ipAddress || log.userAgent"
-              class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--foreground-muted)] pt-1"
+              class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1"
             >
-              <span v-if="log.ipAddress" class="font-data">
+              <span v-if="log.ipAddress" class="font-mono">
                 {{ t('audit.ipAddress') }}: {{ log.ipAddress }}
               </span>
               <span v-if="log.userAgent" class="truncate max-w-[300px]" :title="log.userAgent">

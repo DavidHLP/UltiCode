@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { AccountSwitcher } from '@ulticode/auth-ui'
+import { accountSessions } from '@/api/accountSessions'
+
 import {
   systemPermissionRules,
   problemPermissionRules,
@@ -16,24 +19,23 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchPalette } from '@/composables/useSearchPalette'
 import {
-  IconCode,
-  IconDashboard,
-  IconFileDescription,
-  IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings,
-  IconUsers,
-  IconHistory,
-  IconMessageCircle,
-  IconMessages,
-  IconTrophy,
-  IconTags,
-  IconBell,
-  IconChartBar,
-} from '@tabler/icons-vue'
+  Code as IconCode,
+  LayoutDashboard as IconDashboard,
+  FileText as IconFileDescription,
+  CircleHelp as IconHelp,
+  ListChecks as IconListDetails,
+  Flag as IconReport,
+  Search as IconSearch,
+  Settings as IconSettings,
+  Users as IconUsers,
+  History as IconHistory,
+  MessageCircle as IconMessageCircle,
+  MessagesSquare as IconMessages,
+  Trophy as IconTrophy,
+  Tags as IconTags,
+  Bell as IconBell,
+  ChartBar as IconChartBar,
+} from '@lucide/vue'
 
 import NavMain from './NavMain.vue'
 import NavSecondary from './NavSecondary.vue'
@@ -44,12 +46,9 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
-} from '@/components/ui/sidebar'
-
-const { toggleSidebar } = useSidebar()
+  SidebarRail,
+} from '@ulticode/design-system/ui/sidebar'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -66,8 +65,9 @@ const commentCan = { comment: usePermissionMap(commentPermissionRules) }
 
 const user = computed(() => ({
   name: authStore.user?.name || 'Admin',
+  username: authStore.user?.username,
   email: authStore.user?.email || 'admin@ulticode.com',
-  avatar: authStore.user?.avatar || '/avatars/default.jpg',
+  avatar: authStore.user?.avatar || '',
   role: authStore.userRole || 'ADMIN',
 }))
 
@@ -201,9 +201,7 @@ const userSecurityItems = computed(() => {
       icon: IconReport,
     })
   }
-  if (
-    commentCan.comment.moderateForum.value || commentCan.comment.moderateSolution.value
-  ) {
+  if (commentCan.comment.moderateForum.value || commentCan.comment.moderateSolution.value) {
     moderationSubItems.push({
       title: t('nav.comments'),
       url: '/comments',
@@ -265,31 +263,23 @@ const navSecondary = computed(() => {
 </script>
 
 <template>
-  <Sidebar collapsible="icon">
-    <SidebarHeader>
+  <Sidebar collapsible="icon" class="uc-sidebar-shell">
+    <SidebarHeader class="uc-sidebar-header">
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton
-            :tooltip="t('nav.brandName')"
-            as-child
-            class="data-[slot=sidebar-menu-button]:!p-1.5"
-          >
-            <button type="button" @click="toggleSidebar">
-              <IconInnerShadowTop class="size-4 text-[var(--accent-primary)]" />
-              <span class="text-base font-semibold text-foreground">{{ t('nav.brandName') }}</span>
-            </button>
-          </SidebarMenuButton>
+          <AccountSwitcher :client="accountSessions" :account-name="user.name" admin-only />
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
-    <SidebarContent class="gap-0">
+    <SidebarContent class="uc-sidebar-content">
       <NavMain :items="overviewItems" :title="t('nav.overview')" />
       <NavMain :items="contentItems" :title="t('nav.content')" />
       <NavMain :items="userSecurityItems" :title="t('nav.usersAndSecurity')" />
       <NavSecondary :items="navSecondary" class="mt-auto" />
     </SidebarContent>
-    <SidebarFooter class="border-t border-[var(--border-subtle)] dark:border-[var(--border-subtle)] p-2">
+    <SidebarFooter class="p-2">
       <NavUser :user="user" />
     </SidebarFooter>
+    <SidebarRail />
   </Sidebar>
 </template>

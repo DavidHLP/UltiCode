@@ -1,10 +1,38 @@
-import { describe, expect, it } from 'vitest'
+import { shallowMount } from '@vue/test-utils'
+import { createI18n } from 'vue-i18n'
+import AreaChart from './AreaChart.vue'
+import { describe, expect, it, vi } from 'vitest'
 import {
   filterChartDataByPeriod,
   formatChartDateTick,
   type DatedChartPoint,
   type TimePeriod,
 } from './areaChartData'
+
+vi.mock('@unovis/vue', async () => {
+  const { defineComponent, h } = await import('vue')
+  return Object.fromEntries(
+    [
+      'VisArea',
+      'VisLine',
+      'VisScatter',
+      'VisCrosshair',
+      'VisAxis',
+      'VisXYContainer',
+      'VisTooltip',
+    ].map((name) => [
+      name,
+      defineComponent({
+        name,
+        props: ['x', 'y', 'color', 'template'],
+        setup:
+          (_, { slots }) =>
+          () =>
+            h('div', slots.default?.()),
+      }),
+    ]),
+  )
+})
 
 /**
  * Build a continuous daily series anchored at UTC midnight so the
@@ -102,5 +130,65 @@ describe('AreaChart date localization', () => {
 
   it('formats chart dates in English', () => {
     expect(formatChartDateTick(date, 'en-US')).toBe('May 31')
+  })
+})
+
+describe('AreaChart series accessors', () => {
+  it('passes scalar accessors and colors to each rendered series', async () => {
+    const point = { date: new Date('2026-09-28'), users: 8, submissions: 12 }
+    const wrapper = shallowMount(AreaChart, {
+      props: {
+        data: [point],
+        seriesKeys: ['users', 'submissions'],
+        config: {
+          users: { label: 'Users', color: 'var(--chart-1)' },
+          submissions: { label: 'Submissions', color: 'var(--chart-2)' },
+        },
+      },
+      global: {
+        plugins: [createI18n({ legacy: false, locale: 'en-US', messages: {} })],
+        stubs: {
+          ChartContainer: { template: '<div><slot /></div>' },
+          VisXYContainer: { template: '<div><slot /></div>' },
+          Card: { template: '<div><slot /></div>' },
+          CardContent: { template: '<div><slot /></div>' },
+        },
+      },
+    })
+    try {
+      for (const name of ['VisArea', 'VisLine', 'VisCrosshair']) {
+        const layer = wrapper.findComponent({ name })
+        expect(layer.props('x')(point)).toBe(point.date.getTime())
+        const accessors = layer.props('y')
+        expect(Array.isArray(accessors)).toBe(true)
+        expect(
+          accessors.map((accessor: (datum: typeof point) => number) => accessor(point)),
+        ).toEqual([8, 12])
+        expect(layer.props('color')([], 0)).toBe('var(--chart-1)')
+        expect(layer.props('color')([], 1)).toBe('var(--chart-2)')
+      }
+      expect(wrapper.findComponent({ name: 'VisTooltip' }).exists()).toBe(true)
+      const tooltip = wrapper.findComponent({ name: 'VisCrosshair' }).props('template')(point)
+      expect(tooltip).toContain('Users')
+      expect(tooltip).toContain('12')
+      const markers = wrapper.findAllComponents({ name: 'VisScatter' })
+      expect(markers).toHaveLength(2)
+      expect(markers[0]!.props('x')(point)).toBe(point.date.getTime())
+      expect(markers.map((marker) => marker.props('y')(point))).toEqual([8, 12])
+      expect(markers.map((marker) => marker.props('color'))).toEqual([
+        'var(--chart-1)',
+        'var(--chart-2)',
+      ])
+      await wrapper.setProps({
+        config: { users: { label: '<img src=x onerror=alert(1)>', color: 'var(--chart-1)' } },
+      })
+      const escapedTooltip = wrapper.findComponent({ name: 'VisCrosshair' }).props('template')(
+        point,
+      )
+      expect(escapedTooltip).toContain('&lt;img src=x onerror=alert(1)&gt;')
+      expect(escapedTooltip).not.toContain('<img')
+    } finally {
+      wrapper.unmount()
+    }
   })
 })

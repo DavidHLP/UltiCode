@@ -75,9 +75,6 @@ function mountBasicInfoSection(props = {}) {
     },
     global: {
       stubs: {
-        FormField: {
-          template: '<div><slot :componentField="{}" /></div>',
-        },
         FormItem: {
           template: '<div><slot /></div>',
         },

@@ -67,10 +67,10 @@ const planBarItems = computed<BarListItem[]>(() =>
       />
 
       <div
-        class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
+        class="border border-border dark:border-border/60 bg-card shadow-md overflow-hidden flex flex-col rounded-lg"
       >
         <div
-          class="pb-4 px-5 pt-5 bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
+          class="pb-4 px-5 pt-5 bg-background dark:bg-accent/10 border-b border-border dark:border-border/50"
         >
           <h3 class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
             {{ t('analytics.revenue.metrics') }}
@@ -78,33 +78,31 @@ const planBarItems = computed<BarListItem[]>(() =>
         </div>
         <div class="p-5 space-y-4 flex-1">
           <div
-            class="flex items-center justify-between py-2 border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)]"
+            class="flex items-center justify-between py-2 border-b border-accent dark:border-foreground"
           >
-            <span class="text-sm text-[var(--foreground-muted)]">{{ t('analytics.revenue.arpu') }}</span>
-            <span class="font-data tabular-nums font-medium">{{
+            <span class="text-sm text-muted-foreground">{{ t('analytics.revenue.arpu') }}</span>
+            <span class="font-mono tabular-nums font-medium">{{
               formatCurrency(report.arpu)
             }}</span>
           </div>
           <div
-            class="flex items-center justify-between py-2 border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)]"
+            class="flex items-center justify-between py-2 border-b border-accent dark:border-foreground"
           >
-            <span class="text-sm text-[var(--foreground-muted)]">{{
+            <span class="text-sm text-muted-foreground">{{
               t('analytics.revenue.churnRate')
             }}</span>
             <span
-              class="font-data tabular-nums font-medium"
-              :class="
-                report.churnRate > 5 ? 'text-foreground-strong' : 'text-foreground-strong'
-              "
+              class="font-mono tabular-nums font-medium"
+              :class="report.churnRate > 5 ? 'text-foreground' : 'text-foreground'"
             >
               {{ formatPercent(report.churnRate) }}
             </span>
           </div>
           <div class="flex items-center justify-between py-2">
-            <span class="text-sm text-[var(--foreground-muted)]">{{
+            <span class="text-sm text-muted-foreground">{{
               t('analytics.revenue.totalRevenue')
             }}</span>
-            <span class="font-data tabular-nums font-medium">{{
+            <span class="font-mono tabular-nums font-medium">{{
               formatCurrency(report.totalRevenue)
             }}</span>
           </div>

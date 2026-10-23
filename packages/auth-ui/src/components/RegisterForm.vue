@@ -19,6 +19,8 @@
  * Required additional key for submit failure:
  *   auth.messages.registerFailed
  */
+import { Alert, AlertDescription } from "@ulticode/design-system/ui/alert";
+import { FieldGroup } from "@ulticode/design-system/ui/field";
 import type { HTMLAttributes } from "vue";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
@@ -104,6 +106,7 @@ const loading = ref(false);
 
 async function handleSubmit(event: Event) {
   event.preventDefault();
+  if (loading.value) return;
   error.value = "";
 
   if (password.value !== confirmPassword.value) {
@@ -137,76 +140,81 @@ async function handleSubmit(event: Event) {
 </script>
 
 <template>
-  <form :class="cn('register-form', props.class)" @submit="handleSubmit">
+  <form :class="cn('flex flex-col gap-5', props.class)" @submit="handleSubmit">
     <!-- Header -->
-    <div class="register-form__header">
-      <h1 class="register-form__title">{{ t("auth.register.title") }}</h1>
-      <p class="register-form__subtitle">{{ t("auth.register.subtitle") }}</p>
+    <div class="flex flex-col gap-2">
+      <h1 class="text-2xl font-semibold">{{ t("auth.register.title") }}</h1>
+      <p class="text-sm text-muted-foreground">
+        {{ t("auth.register.subtitle") }}
+      </p>
     </div>
 
     <!-- Error Alert -->
-    <div v-if="error" class="register-form__error">
-      <span class="register-form__error-prefix">[ERROR]</span>
-      <span>{{ error }}</span>
-    </div>
+    <Alert v-if="error" variant="destructive" role="alert"
+      ><AlertDescription>{{ error }}</AlertDescription></Alert
+    >
 
-    <!-- Username Field -->
-    <AuthInput
-      v-model="username"
-      :label="t('auth.register.username')"
-      type="text"
-      autocomplete="username"
-      :placeholder="t('auth.register.usernamePlaceholder')"
-      :disabled="loading"
-      :error="props.fieldErrors.username"
-    />
+    <FieldGroup>
+      <!-- Username Field -->
+      <AuthInput
+        required
+        v-model="username"
+        :label="t('auth.register.username')"
+        type="text"
+        autocomplete="username"
+        :placeholder="t('auth.register.usernamePlaceholder')"
+        :disabled="loading"
+        :error="props.fieldErrors.username"
+      />
 
-    <!-- Name Field (optional; consumers may hide via :show-name="false") -->
-    <AuthInput
-      v-if="props.showName"
-      v-model="name"
-      :label="t('auth.register.name')"
-      type="text"
-      autocomplete="name"
-      :placeholder="t('auth.register.namePlaceholder')"
-      :disabled="loading"
-      :error="props.fieldErrors.name"
-    />
+      <!-- Name Field (optional; consumers may hide via :show-name="false") -->
+      <AuthInput
+        v-if="props.showName"
+        v-model="name"
+        :label="t('auth.register.name')"
+        type="text"
+        autocomplete="name"
+        :placeholder="t('auth.register.namePlaceholder')"
+        :disabled="loading"
+        :error="props.fieldErrors.name"
+      />
 
-    <!-- Email Field -->
-    <AuthInput
-      v-model="email"
-      :label="t('auth.register.email')"
-      type="email"
-      autocomplete="email"
-      :placeholder="t('auth.register.emailPlaceholder')"
-      :disabled="loading"
-      :error="props.fieldErrors.email"
-    />
+      <!-- Email Field -->
+      <AuthInput
+        v-model="email"
+        :label="t('auth.register.email')"
+        type="email"
+        autocomplete="email"
+        :placeholder="t('auth.register.emailPlaceholder')"
+        :disabled="loading"
+        :error="props.fieldErrors.email"
+      />
 
-    <!-- Password Field -->
-    <AuthInput
-      v-model="password"
-      :label="t('auth.register.password')"
-      type="password"
-      autocomplete="new-password"
-      :placeholder="t('auth.register.passwordPlaceholder')"
-      :disabled="loading"
-      :error="props.fieldErrors.password"
-    />
+      <!-- Password Field -->
+      <AuthInput
+        required
+        v-model="password"
+        :label="t('auth.register.password')"
+        type="password"
+        autocomplete="new-password"
+        :placeholder="t('auth.register.passwordPlaceholder')"
+        :disabled="loading"
+        :error="props.fieldErrors.password"
+      />
 
-    <!-- Confirm Password Field -->
-    <AuthInput
-      v-model="confirmPassword"
-      :label="t('auth.register.confirmPassword')"
-      type="password"
-      autocomplete="new-password"
-      :placeholder="t('auth.register.confirmPasswordPlaceholder')"
-      :disabled="loading"
-    />
-
+      <!-- Confirm Password Field -->
+      <AuthInput
+        required
+        v-model="confirmPassword"
+        :label="t('auth.register.confirmPassword')"
+        type="password"
+        autocomplete="new-password"
+        :placeholder="t('auth.register.confirmPasswordPlaceholder')"
+        :disabled="loading"
+      />
+    </FieldGroup>
     <!-- Submit Button -->
-    <AuthButton :loading="loading" class="register-form__submit">
+    <AuthButton :loading="loading" class="">
       <span>{{
         loading ? t("auth.register.submitting") : t("auth.register.submit")
       }}</span>
@@ -215,7 +223,7 @@ async function handleSubmit(event: Event) {
     <!-- Divider + OAuth (optional) -->
     <template v-if="!hideOAuth">
       <AuthDivider />
-      <div class="register-form__oauth-grid">
+      <div class="grid grid-cols-2 gap-3">
         <OAuthButton provider="github">GitHub</OAuthButton>
         <OAuthButton provider="google">Google</OAuthButton>
       </div>
@@ -228,97 +236,3 @@ async function handleSubmit(event: Event) {
     </div>
   </form>
 </template>
-
-<style scoped>
-.register-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.register-form__header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.25rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.register-form__title {
-  font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-bold);
-  letter-spacing: var(--uc-tracking-normal);
-  color: var(--foreground-strong);
-  line-height: 1.1;
-}
-
-.dark .register-form__title {
-  color: var(--foreground-strong);
-}
-
-.register-form__subtitle {
-  font-size: var(--uc-text-md);
-  color: var(--foreground);
-}
-
-.dark .register-form__subtitle {
-  color: var(--foreground-muted);
-}
-
-.register-form__error {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.875rem 1rem;
-  border-left: 3px solid var(--status-error-mark);
-  border-radius: var(--radius-md);
-  background: color-mix(in oklch, var(--status-error-mark) 8%, transparent);
-  color: var(--foreground-strong);
-  font-size: var(--uc-text-sm);
-  font-family: var(--uc-font-code);
-}
-
-.dark .register-form__error {
-  background: color-mix(in oklch, var(--status-error-mark) 15%, transparent);
-  border-left-color: var(--status-error-mark);
-}
-
-.register-form__error-prefix {
-  color: var(--status-error-mark);
-  font-weight: var(--uc-font-weight-semibold);
-}
-
-.register-form__submit {
-  margin-top: 0.5rem;
-}
-
-.register-form__signin {
-  font-size: var(--uc-text-md);
-  color: var(--foreground);
-  text-align: center;
-  font-family: var(--uc-font-code);
-}
-
-.dark .register-form__signin {
-  color: var(--foreground-muted);
-}
-
-.register-form__signin a {
-  color: var(--link-foreground);
-  text-decoration-color: var(--link-decoration);
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
-  font-weight: var(--uc-font-weight-bold);
-}
-
-.register-form__signin a:hover {
-  text-decoration: underline;
-}
-
-.register-form__oauth-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-</style>

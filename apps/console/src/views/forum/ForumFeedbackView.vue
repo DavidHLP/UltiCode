@@ -1,18 +1,24 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Textarea } from "@ulticode/design-system/ui/textarea";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Label } from "@ulticode/design-system/ui/label";
+import { Separator } from "@ulticode/design-system/ui/separator";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+  SelectGroup,
+} from "@ulticode/design-system/ui/select";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 
@@ -21,7 +27,6 @@ const { t } = useI18n();
 const feedbackType = ref<string>("bug");
 const subject = ref("");
 const description = ref("");
-const isSubmitting = ref(false);
 
 const feedbackTypes = computed(() => [
   { value: "bug", label: t("forum.feedback.types.bug") },
@@ -30,27 +35,19 @@ const feedbackTypes = computed(() => [
   { value: "content", label: t("forum.feedback.types.content") },
   { value: "other", label: t("forum.feedback.types.other") },
 ]);
+const selectedFeedbackTypeLabel = computed(
+  () =>
+    feedbackTypes.value.find((type) => type.value === feedbackType.value)
+      ?.label,
+);
 
-async function submitFeedback() {
+function submitFeedback() {
   if (!subject.value.trim() || !description.value.trim()) {
     toast.error(t("forum.feedback.fillRequired"));
     return;
   }
 
-  isSubmitting.value = true;
-
-  try {
-    toast.success(t("forum.feedback.success"));
-
-    // Reset form
-    subject.value = "";
-    description.value = "";
-    feedbackType.value = "bug";
-  } catch {
-    toast.error(t("forum.feedback.error"));
-  } finally {
-    isSubmitting.value = false;
-  }
+  toast.info(t("forum.feedback.unavailable"));
 }
 </script>
 
@@ -69,8 +66,8 @@ async function submitFeedback() {
 
     <Separator />
 
-    <div class="grid gap-8 md:grid-cols-3">
-      <Card class="md:col-span-2 border-none shadow-sm bg-muted/20">
+    <div class="grid gap-8 lg:grid-cols-3">
+      <Card class="lg:col-span-2">
         <CardHeader>
           <CardTitle>{{ t("forum.feedback.submitTitle") }}</CardTitle>
         </CardHeader>
@@ -79,19 +76,22 @@ async function submitFeedback() {
             <div class="space-y-2">
               <Label for="feedback-type">{{ t("forum.feedback.type") }}</Label>
               <Select v-model="feedbackType">
-                <SelectTrigger id="feedback-type" class="bg-background">
+                <SelectTrigger id="feedback-type">
                   <SelectValue
                     :placeholder="t('forum.feedback.typePlaceholder')"
-                  />
+                    >{{ selectedFeedbackTypeLabel }}</SelectValue
+                  >
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem
-                    v-for="type in feedbackTypes"
-                    :key="type.value"
-                    :value="type.value"
+                  <SelectGroup
+                    ><SelectItem
+                      v-for="type in feedbackTypes"
+                      :key="type.value"
+                      :value="type.value"
+                    >
+                      {{ type.label }}
+                    </SelectItem></SelectGroup
                   >
-                    {{ type.label }}
-                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -103,7 +103,6 @@ async function submitFeedback() {
                 v-model="subject"
                 :placeholder="t('forum.feedback.subjectPlaceholder')"
                 required
-                class="bg-background"
               />
             </div>
 
@@ -115,35 +114,26 @@ async function submitFeedback() {
                 :placeholder="t('forum.feedback.contentPlaceholder')"
                 rows="8"
                 required
-                class="bg-background resize-none"
+                class="resize-none"
               />
               <p class="text-xs text-muted-foreground">
                 {{ t("forum.feedback.bugHint") }}
               </p>
             </div>
 
-            <Button
-              type="submit"
-              :disabled="isSubmitting"
-              class="w-full h-11 rounded-full text-base font-bold"
-            >
-              <span v-if="isSubmitting">{{
-                t("forum.feedback.submitting")
-              }}</span>
-              <span v-else>{{ t("forum.feedback.submitButton") }}</span>
+            <Button type="submit" class="w-full">
+              {{ t("forum.feedback.submitButton") }}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       <div class="space-y-6">
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
-            <CardTitle class="text-base font-black uppercase tracking-widest">{{
-              t("forum.feedback.quickLinks")
-            }}</CardTitle>
+            <CardTitle>{{ t("forum.feedback.quickLinks") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-4 text-sm">
+          <CardContent class="space-y-4">
             <div class="group">
               <router-link
                 to="/forum/guidelines"
@@ -169,13 +159,11 @@ async function submitFeedback() {
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-muted/20">
+        <Card>
           <CardHeader>
-            <CardTitle class="text-base font-black uppercase tracking-widest">{{
-              t("forum.feedback.commonIssues")
-            }}</CardTitle>
+            <CardTitle>{{ t("forum.feedback.commonIssues") }}</CardTitle>
           </CardHeader>
-          <CardContent class="space-y-4 text-xs">
+          <CardContent class="space-y-4">
             <div>
               <p class="font-bold text-foreground/80">
                 {{ t("forum.feedback.issue1Title") }}

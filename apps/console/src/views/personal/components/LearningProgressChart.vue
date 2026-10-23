@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import * as echarts from "echarts";
+import { useResizeObserver } from "@vueuse/core";
 import { useI18n } from "vue-i18n";
+import { Button } from "@ulticode/design-system/ui/button";
 import { fetchLearningProgress } from "@/api/submission";
 import type { LearningProgress } from "@/api/submission";
 import { useChartPalette } from "@ulticode/design-system";
@@ -21,6 +23,7 @@ const chartRef = ref<HTMLDivElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
 const progressData = ref<LearningProgress | null>(null);
 const dataLoading = ref(true);
+const loadFailed = ref(false);
 const chartPalette = useChartPalette();
 
 const hasData = computed(
@@ -85,6 +88,7 @@ const initChart = () => {
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: "axis",
+      confine: true,
       backgroundColor: colors.background,
       borderColor: colors.tooltipBorder,
       borderRadius: 0,
@@ -110,7 +114,7 @@ const initChart = () => {
       left: "3%",
       right: "5%",
       bottom: "15%",
-      top: "10%",
+      top: 32,
       containLabel: true,
     },
     xAxis: {
@@ -131,7 +135,9 @@ const initChart = () => {
       {
         type: "value",
         name: t("personal.learning.problemsSolved"),
+        minInterval: 1,
         nameTextStyle: {
+          align: "left",
           color: colors.muted,
           fontSize: 10,
         },
@@ -155,6 +161,7 @@ const initChart = () => {
         type: "value",
         name: t("personal.learning.hours"),
         nameTextStyle: {
+          align: "right",
           color: colors.muted,
           fontSize: 10,
         },
@@ -182,11 +189,16 @@ const handleResize = () => {
   chartInstance?.resize();
 };
 
+useResizeObserver(chartRef, handleResize);
+
 const loadData = async () => {
   dataLoading.value = true;
+  loadFailed.value = false;
   try {
     progressData.value = await fetchLearningProgress();
   } catch (e) {
+    progressData.value = null;
+    loadFailed.value = true;
     console.error("Failed to load learning progress", e);
   } finally {
     dataLoading.value = false;
@@ -195,7 +207,6 @@ const loadData = async () => {
 
 onMounted(() => {
   loadData();
-  window.addEventListener("resize", handleResize);
 });
 
 watch([hasData, dataLoading], () => {
@@ -207,7 +218,6 @@ watch([hasData, dataLoading], () => {
 watch(chartPalette, () => initChart(), { flush: "post" });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", handleResize);
   chartInstance?.dispose();
   chartInstance = null;
 });
@@ -222,6 +232,18 @@ onUnmounted(() => {
       <div
         class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
       ></div>
+    </div>
+    <div
+      v-else-if="loadFailed"
+      role="alert"
+      class="flex min-h-[230px] flex-col items-center justify-center gap-3 text-center"
+    >
+      <p class="text-sm text-destructive [overflow-wrap:anywhere]">
+        {{ t("personal.learning.loadError") }}
+      </p>
+      <Button variant="outline" @click="loadData">
+        {{ t("common.actions.retry") }}
+      </Button>
     </div>
     <div
       v-else-if="!hasData"

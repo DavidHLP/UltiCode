@@ -2,17 +2,11 @@
 import { ref, onMounted, computed } from "vue";
 import { fetchProblems } from "@/api/problem";
 import type { Problem } from "@/types/problem";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Button } from "@ulticode/design-system/ui/button";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Check,
-  Search,
-  ArrowUpDown,
-  Filter,
-  ChevronRight,
-} from "@lucide/vue";
+import { ScrollArea } from "@ulticode/design-system/ui/scroll-area";
+import { Check, Search, ArrowUpDown, Filter, ChevronRight } from "@lucide/vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 
@@ -83,10 +77,10 @@ const navigateToProblem = (slug: string) => {
         </div>
         <div class="flex items-center text-xs text-muted-foreground">
           <div
-            class="w-3 h-3 rounded-full border border-[var(--status-success-mark)] mr-1.5 relative"
+            class="w-3 h-3 rounded-full border border-status-success-mark mr-1.5 relative"
           >
             <div
-              class="absolute inset-0 m-auto w-1.5 h-1.5 rounded-full bg-[var(--status-success-mark)]"
+              class="absolute inset-0 m-auto w-1.5 h-1.5 rounded-full bg-status-success-mark"
               v-if="filteredProblems.length > 0"
             ></div>
           </div>
@@ -107,21 +101,13 @@ const navigateToProblem = (slug: string) => {
           <Input
             v-model="searchQuery"
             :placeholder="t('problem.drawer.searchQuestions')"
-            class="pl-9 h-9 bg-muted/50 border-transparent rounded-full focus:bg-background focus:border-border transition-all placeholder:text-muted-foreground/70"
+            class="pl-9 placeholder:text-muted-foreground/70"
           />
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="h-9 w-9 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground"
-        >
+        <Button variant="ghost" size="icon" class="w-9">
           <ArrowUpDown class="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="h-9 w-9 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground"
-        >
+        <Button variant="ghost" size="icon" class="w-9">
           <Filter class="h-4 w-4" />
         </Button>
       </div>
@@ -144,7 +130,7 @@ const navigateToProblem = (slug: string) => {
             class="flex flex-col items-center justify-center py-12 space-y-3 text-muted-foreground"
           >
             <div
-              class="flex h-12 w-12 items-center justify-center rounded-none bg-muted/50 mb-2"
+              class="flex h-12 w-12 items-center justify-center rounded-lg bg-muted/50 mb-2"
             >
               <Search class="h-6 w-6 text-muted-foreground/50" />
             </div>
@@ -159,7 +145,7 @@ const navigateToProblem = (slug: string) => {
               Active row mirrors the "selected" pattern from
               ProblemSaveButton (`bg-primary/10 border-l-2 border-primary`)
               and the category filter so the highlight adapts to both
-              solarized themes. The inactive row keeps a transparent
+              color modes. The inactive row keeps a transparent
               `border-l-2` reserved so toggling active/inactive does not
               shift the row content.
             -->
@@ -184,7 +170,7 @@ const navigateToProblem = (slug: string) => {
                 <div class="shrink-0">
                   <Check
                     v-if="problem.status === 'solved'"
-                    class="h-4 w-4 text-[var(--status-success-mark)]"
+                    class="h-4 w-4 text-status-success-mark"
                   />
                   <div v-else class="h-4 w-4"></div>
                   <!-- Spacer -->
@@ -199,7 +185,7 @@ const navigateToProblem = (slug: string) => {
 
               <!-- Right: Difficulty -->
               <div class="shrink-0 ml-4 text-xs">
-                <span class="text-foreground-strong">
+                <span class="text-foreground">
                   {{
                     problem.difficulty === "EASY"
                       ? t("problem.difficulty.easy")

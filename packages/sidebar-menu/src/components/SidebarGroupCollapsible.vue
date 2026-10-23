@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
-import { CollapsibleRoot, type CollapsibleRootProps } from 'reka-ui'
-import { cn } from '../utils'
+import type { Component } from "vue";
+import type { CollapsibleRootProps } from "reka-ui";
+import { Collapsible as CollapsibleRoot } from "@ulticode/design-system/ui/collapsible";
+import { SidebarGroupLabel } from "@ulticode/design-system/ui/sidebar";
+import { cn } from "../utils";
 
 // Uncontrolled only — same rationale as SidebarParentItem: binding `:open`
 // makes reka treat CollapsibleRoot as controlled, and `:open="undefined"` makes
@@ -9,23 +11,26 @@ import { cn } from '../utils'
 // regression). Only `defaultOpen` / `disabled` are forwarded; `as` / `asChild`
 // are intentionally NOT forwarded (CollapsibleRoot stays the root), so the
 // prop type is narrowed to match what is actually bound.
-type ForwardedCollapsibleProps = Pick<CollapsibleRootProps, 'defaultOpen' | 'disabled'>
+type ForwardedCollapsibleProps = Pick<
+  CollapsibleRootProps,
+  "defaultOpen" | "disabled"
+>;
 
 const props = withDefaults(
   defineProps<
     ForwardedCollapsibleProps & {
       /** Optional group title rendered in the label row. */
-      title?: string
+      title?: string;
       /** Optional leading icon component for the title. */
-      icon?: Component
+      icon?: Component;
       /** Render the label in the active accent color (via [data-active]). */
-      active?: boolean
+      active?: boolean;
       /** Extra class applied to the label row. */
-      labelClass?: string
+      labelClass?: string;
     }
   >(),
   { defaultOpen: true, active: false },
-)
+);
 </script>
 
 <template>
@@ -36,14 +41,14 @@ const props = withDefaults(
     data-slot="collapsible"
     class="group/collapsible"
   >
-    <div
+    <SidebarGroupLabel
       v-if="title"
       :data-active="active ? 'true' : 'false'"
-      :class="cn('uc-sidebar-group-label flex items-center gap-1.5', labelClass)"
+      :class="cn('gap-2', labelClass)"
     >
       <component :is="icon" v-if="icon" class="size-3.5 shrink-0" />
       <span>{{ title }}</span>
-    </div>
+    </SidebarGroupLabel>
     <slot :open="open" />
   </CollapsibleRoot>
 </template>

@@ -90,7 +90,53 @@ def validate_trivy(report: object, ref: str) -> None:
         fail("Trivy report must contain at least one os-pkgs result")
 
 
-def verified_statement(output: str, kind: str, ref: str, source: str) -> object:
+def validate_buildkit_predicate(predicate: object, source_sha: str, dockerfile: str) -> None:
+    expected_sources = {
+        "git@github.com:DavidHLP/UltiCode.git",
+        "https://github.com/DavidHLP/UltiCode",
+        "https://github.com/DavidHLP/UltiCode.git",
+    }
+    try:
+        invocation = predicate["invocation"]
+        parameters = invocation["parameters"]
+        args = parameters["args"]
+        locals_ = parameters["locals"]
+        expected_dockerfile_dir = str(Path(dockerfile.removeprefix("./").strip("/")).parent)
+        metadata = predicate["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]
+        vcs = metadata["vcs"]
+        build_config = predicate["buildConfig"]
+        source_infos = metadata["source"]["infos"]
+        valid = (
+            predicate.get("buildType") == "https://mobyproject.org/buildkit@v1"
+            and isinstance(invocation.get("configSource"), dict)
+            and invocation["configSource"].get("entryPoint") == "Dockerfile"
+            and isinstance(parameters.get("frontend"), str) and bool(parameters["frontend"])
+            and isinstance(args, dict)
+            and "root" not in parameters
+            and not any(key.startswith("vcs:") for key in args)
+            and isinstance(locals_, list) and bool(locals_)
+            and all(isinstance(local, dict) and isinstance(local.get("name"), str) and local["name"] for local in locals_)
+            and vcs.get("localdir:dockerfile") == expected_dockerfile_dir
+            and vcs.get("source") in expected_sources
+            and vcs.get("revision") == source_sha
+            and isinstance(build_config.get("digestMapping"), dict)
+            and bool(build_config["digestMapping"])
+            and all(isinstance(digest, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
+                    and isinstance(step, str) and step for digest, step in build_config["digestMapping"].items())
+            and isinstance(build_config.get("llbDefinition"), list)
+            and bool(build_config["llbDefinition"])
+            and isinstance(source_infos, list)
+            and any(isinstance(info, dict) and info.get("filename") == "Dockerfile"
+                    and info.get("language") == "Dockerfile" and isinstance(info.get("data"), str)
+                    and info["data"] for info in source_infos)
+        )
+    except (KeyError, AttributeError, TypeError):
+        valid = False
+    if not valid:
+        fail("BuildKit provenance source, revision, recipe, or build type mismatch")
+
+
+def verified_statement(output: str, kind: str, ref: str, source: str, dockerfile: str) -> object:
     try:
         envelopes = json.loads(output)
     except json.JSONDecodeError as exc:
@@ -113,7 +159,10 @@ def verified_statement(output: str, kind: str, ref: str, source: str) -> object:
         if not isinstance(subjects, list) or len(subjects) != 1:
             continue
         subject = subjects[0]
-        if not isinstance(subject, dict) or subject.get("name") != ref.split("@", 1)[0]:
+        image_name = ref.split("@", 1)[0]
+        if not isinstance(subject, dict) or not isinstance(subject.get("name"), str):
+            continue
+        if subject["name"] != image_name and not subject["name"].startswith(f"pkg:docker/{image_name}@"):
             continue
         digest_map = subject.get("digest")
         if not isinstance(digest_map, dict) or digest_map.get("sha256") != ref.rsplit("sha256:", 1)[1]:
@@ -128,9 +177,8 @@ def verified_statement(output: str, kind: str, ref: str, source: str) -> object:
     if statement.get("predicateType") != expected_type:
         fail(f"verified {kind} predicate type mismatch")
     if kind == "slsaprovenance":
-        uri = statement.get("predicate", {}).get("invocation", {}).get("configSource", {}).get("uri") if isinstance(statement.get("predicate"), dict) else None
-        if uri != source:
-            fail("verified provenance source commit mismatch")
+        validate_buildkit_predicate(statement.get("predicate"), source.rsplit("@", 1)[1], dockerfile)
+
     return statement.get("predicate")
 
 def assert_outputs_unchanged(evidence: Path, outputs: dict[str, str]) -> None:
@@ -150,8 +198,9 @@ def write_outputs(evidence: Path, outputs: dict[str, str]) -> None:
                 stream.write(content)
 
 def require_serialized_github_writer() -> None:
-    expected_ref = "DavidHLP/UltiCode/.github/workflows/docker-publish.yml@refs/heads/main"
+    expected_ref = "DavidHLP/UltiCode/.github/workflows/ci.yml@refs/heads/main"
     if (os.environ.get("GITHUB_ACTIONS") != "true"
+            or os.environ.get("GITHUB_EVENT_NAME") != "push"
             or os.environ.get("GITHUB_REPOSITORY") != "DavidHLP/UltiCode"
             or os.environ.get("GITHUB_WORKFLOW_REF") != expected_ref
             or os.environ.get("GITHUB_REF") != "refs/heads/main"):
@@ -199,11 +248,10 @@ def read_candidate(directory: Path, service: dict[str, object], source_sha: str,
     sbom = load_json(expected_dir / f"{name}.spdx.json")
     provenance = load_json(expected_dir / f"{name}.provenance.json")
     validate_trivy(load_json(expected_dir / f"{name}.trivy.json"), ref)
-    source_uri = f"https://github.com/DavidHLP/UltiCode@{source_sha}"
-    if not isinstance(provenance, dict) or provenance.get("invocation", {}).get("configSource", {}).get("uri") != source_uri:
-        fail(f"{name} provenance source mismatch")
+    validate_buildkit_predicate(provenance, source_sha, str(service["dockerfile"]))
+
     return {"name": name, "ref": ref, "version": version, "sbom": sbom, "provenance": provenance,
-            "dir": expected_dir, "repo": repo, "digest": digest}
+            "dir": expected_dir, "repo": repo, "digest": digest, "dockerfile": service["dockerfile"]}
 
 
 def verify_all(candidate: dict[str, object], source_sha: str) -> None:
@@ -217,7 +265,7 @@ def verify_all(candidate: dict[str, object], source_sha: str) -> None:
         result = run([cosign, "verify-attestation", "--output", "json", "--type", kind, *common, ref])
         if result.returncode:
             fail(f"cosign {kind} attestation verification failed for {candidate['name']}")
-        verified = verified_statement(result.stdout or "", kind, ref, f"https://github.com/DavidHLP/UltiCode@{source_sha}")
+        verified = verified_statement(result.stdout or "", kind, ref, f"https://github.com/DavidHLP/UltiCode@{source_sha}", str(candidate["dockerfile"]))
         ensure_predicate_equal(expected, verified, kind)
 
 

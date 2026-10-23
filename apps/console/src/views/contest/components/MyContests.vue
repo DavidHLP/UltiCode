@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { createValueRequest } from "@ulticode/request-state";
+import RetryButton from "@/components/common/loading/RetryButton.vue";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { useRouter } from "vue-router";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@ulticode/design-system/ui/card";
+import { Badge } from "@ulticode/design-system/ui/badge";
 import ContestStatusBadge from "./ContestStatusBadge.vue";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@ulticode/design-system/ui/tabs";
 import { Calendar, Trophy } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
 
@@ -17,6 +28,7 @@ const tabRequest = createValueRequest({
   rethrow: true,
 });
 const loading = tabRequest.loading;
+const error = tabRequest.error;
 const activeTab = ref("registered");
 const { t, locale } = useI18n();
 
@@ -43,21 +55,16 @@ async function loadDataForTab(tab: string) {
   });
 }
 
-onMounted(async () => {
+async function loadActiveTab() {
   try {
     await loadDataForTab(activeTab.value);
   } catch {
     // Error handled by UI state.
   }
-});
+}
 
-watch(activeTab, async (newTab) => {
-  try {
-    await loadDataForTab(newTab);
-  } catch {
-    // Error handled by UI state.
-  }
-});
+onMounted(loadActiveTab);
+watch(activeTab, loadActiveTab);
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
@@ -77,22 +84,7 @@ function navigateToContest(slug: string) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-2xl font-bold">{{ t("contest.myContests.title") }}</h2>
-        <p class="text-muted-foreground">
-          {{ t("contest.myContests.subtitle") }}
-        </p>
-      </div>
-    </div>
-
-    <div v-if="loading" class="py-20 text-center">
-      <p class="text-muted-foreground">
-        {{ t("contest.myContests.loading") }}
-      </p>
-    </div>
-
-    <Tabs v-else v-model="activeTab" class="w-full">
+    <Tabs v-model="activeTab" class="w-full" :aria-busy="loading">
       <TabsList class="grid w-full max-w-md grid-cols-3">
         <TabsTrigger value="registered">{{
           t("contest.myContests.tabs.registered")
@@ -105,8 +97,33 @@ function navigateToContest(slug: string) {
         }}</TabsTrigger>
       </TabsList>
 
+      <p
+        v-if="loading"
+        role="status"
+        class="py-20 text-center text-muted-foreground"
+      >
+        {{ t("contest.myContests.loading") }}
+      </p>
+
+      <div
+        v-else-if="error"
+        role="alert"
+        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
+      >
+        <p
+          class="min-w-0 flex-1 text-sm text-destructive [overflow-wrap:anywhere]"
+        >
+          {{ t("contest.myContests.loadError") }}
+        </p>
+        <RetryButton @retry="!loading && loadActiveTab()" />
+      </div>
+
       <!-- Registered Contests -->
-      <TabsContent value="registered" class="space-y-4">
+      <TabsContent
+        v-if="!loading && !error"
+        value="registered"
+        class="space-y-4"
+      >
         <Card>
           <CardHeader>
             <CardTitle>{{ t("contest.myContests.registeredTitle") }}</CardTitle>
@@ -122,7 +139,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="contest in contestStore.registeredContests"
                 :key="contest.id"
-                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50 cursor-pointer"
+                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
                 @click="navigateToContest(contest.id)"
               >
                 <div class="space-y-1">
@@ -148,7 +165,11 @@ function navigateToContest(slug: string) {
       </TabsContent>
 
       <!-- Participated Contests -->
-      <TabsContent value="participated" class="space-y-4">
+      <TabsContent
+        v-if="!loading && !error"
+        value="participated"
+        class="space-y-4"
+      >
         <Card>
           <CardHeader>
             <CardTitle>{{ t("contest.myContests.historyTitle") }}</CardTitle>
@@ -164,7 +185,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="history in contestStore.contestHistory"
                 :key="history.contestId"
-                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50"
+                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50"
               >
                 <div class="flex-1 space-y-1">
                   <h3 class="font-semibold">{{ history.title }}</h3>
@@ -190,11 +211,7 @@ function navigateToContest(slug: string) {
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <Badge
-                    v-if="history.isRated"
-                    variant="outline"
-                    class="font-data text-2xs"
-                  >
+                  <Badge v-if="history.isRated" variant="outline">
                     {{ t("contest.list.rated") }}
                   </Badge>
                 </div>
@@ -205,7 +222,7 @@ function navigateToContest(slug: string) {
       </TabsContent>
 
       <!-- Virtual Contests -->
-      <TabsContent value="virtual" class="space-y-4">
+      <TabsContent v-if="!loading && !error" value="virtual" class="space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>{{ t("contest.myContests.virtualTitle") }}</CardTitle>
@@ -221,7 +238,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="contest in contestStore.virtualContests"
                 :key="contest.id"
-                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50 cursor-pointer"
+                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
                 @click="navigateToContest(contest.id)"
               >
                 <div class="space-y-1">

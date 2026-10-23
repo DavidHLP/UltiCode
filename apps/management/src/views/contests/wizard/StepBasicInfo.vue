@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { FieldLabel } from '@ulticode/design-system/ui/field'
+
+import { Input } from '@ulticode/design-system/ui/input'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+  SelectGroup,
+} from '@ulticode/design-system/ui/select'
 import { ContestType } from '@/api/admin/contests'
 import { useI18n } from 'vue-i18n'
 import type { BasicInfoSlice, BasicInfoPatch } from './useContestAuthoring'
@@ -40,68 +43,72 @@ function updateContestType(value: ContestType): void {
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-      <span class="terminal-comment">basic_info</span>
+      <span class="text-sm text-muted-foreground">{{ t('contests.wizard.basics') }}</span>
     </div>
 
     <!-- Title Field -->
     <div class="space-y-2">
-      <label class="terminal-label">{{ t('contests.basics.title') }}</label>
+      <FieldLabel>{{ t('contests.basics.title') }}</FieldLabel>
       <Input
         :model-value="slice.title"
         @update:model-value="updateTitle($event)"
         :placeholder="t('contests.basics.titlePlaceholder')"
-        class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
       />
-      <span class="terminal-comment text-xs">{{ t('contests.basics.titleDescription') }}</span>
+      <span class="text-sm text-muted-foreground text-xs">{{
+        t('contests.basics.titleDescription')
+      }}</span>
     </div>
 
     <!-- Slug Field -->
     <div class="space-y-2">
-      <label class="terminal-label">{{ t('contests.basics.slug') }}</label>
+      <FieldLabel>{{ t('contests.basics.slug') }}</FieldLabel>
       <Input
         :model-value="slice.slug"
         @update:model-value="updateSlug($event)"
         :placeholder="t('contests.basics.slugPlaceholder')"
-        class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)]"
       />
-      <span class="terminal-comment text-xs">{{ t('contests.basics.slugDescription') }}</span>
+      <span class="text-sm text-muted-foreground text-xs">{{
+        t('contests.basics.slugDescription')
+      }}</span>
     </div>
 
     <!-- Type Field -->
     <div class="space-y-2">
-      <label class="terminal-label">{{ t('contests.basics.type') }}</label>
+      <FieldLabel>{{ t('contests.basics.type') }}</FieldLabel>
       <Select
         :model-value="slice.contestType"
         @update:model-value="updateContestType($event as ContestType)"
       >
-        <SelectTrigger
-          class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm"
-        >
+        <SelectTrigger>
           <SelectValue :placeholder="t('contests.basics.typePlaceholder')" />
         </SelectTrigger>
-        <SelectContent class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)]">
-          <SelectItem
-            v-for="fmt in CONTEST_FORMATS"
-            :key="fmt"
-            :value="fmt"
-            class="font-data text-xs cursor-pointer"
+        <SelectContent>
+          <SelectGroup
+            ><SelectItem
+              v-for="fmt in CONTEST_FORMATS"
+              :key="fmt"
+              :value="fmt"
+              class="cursor-pointer"
+            >
+              {{ t(`contests.basics.types.${fmt}`, fmt) }}
+            </SelectItem></SelectGroup
           >
-            {{ t(`contests.basics.types.${fmt}`, fmt) }}
-          </SelectItem>
         </SelectContent>
       </Select>
-      <span class="terminal-comment text-xs">{{ t('contests.basics.typeDescription') }}</span>
+      <span class="text-sm text-muted-foreground text-xs">{{
+        t('contests.basics.typeDescription')
+      }}</span>
     </div>
 
     <!-- Description Field -->
     <div class="space-y-2">
-      <label class="terminal-label">{{ t('contests.basics.description') }}</label>
+      <FieldLabel>{{ t('contests.basics.description') }}</FieldLabel>
       <Textarea
         :model-value="slice.description"
         @update:model-value="updateDescription($event)"
         :placeholder="t('contests.basics.descriptionPlaceholder')"
         rows="4"
-        class="border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] font-data text-sm focus:border-[var(--primary)] resize-none"
+        class="resize-none"
       />
     </div>
   </div>

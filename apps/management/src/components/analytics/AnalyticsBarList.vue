@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCompactNumber } from '@/i18n/utils'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@ulticode/design-system/ui/card'
+import { formatCompactNumber, formatNumberByLocale } from '@/i18n/utils'
 
 export interface BarListItem {
   id: string | number
@@ -27,7 +33,7 @@ const props = withDefaults(
   {
     showValue: true,
     showPercentage: false,
-    color: 'color-mix(in oklch, var(--accent-primary) 35%, var(--border-subtle))',
+    color: 'color-mix(in oklch, var(--primary) 35%, var(--border))',
     limit: 10,
     compact: false,
   },
@@ -45,38 +51,26 @@ const displayItems = computed(() => {
 </script>
 
 <template>
-  <Card
-    class="border border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/60 bg-card shadow-float overflow-hidden rounded-none"
-    :class="compact ? 'h-full gap-0 py-0' : 'h-full gap-0 py-0'"
-  >
-    <CardHeader
-      v-if="title"
-      class="bg-[var(--surface)] dark:bg-[var(--surface-highlight)]/10 border-b border-[var(--border-subtle)] dark:border-[var(--border-subtle)]/50"
-      :class="compact ? 'px-4 py-3.5' : 'pb-4 pt-5 px-5'"
-    >
-      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
-        title
-      }}</CardTitle>
-      <CardDescription v-if="description" class="text-xs text-[var(--foreground-muted)] mt-1">
+  <Card class="overflow-hidden" :class="compact ? 'h-full gap-0 py-0' : 'h-full gap-0 py-0'">
+    <CardHeader v-if="title" :class="compact ? 'px-4 py-3.5' : 'pb-4 pt-5 px-5'">
+      <CardTitle>{{ title }}</CardTitle>
+      <CardDescription v-if="description" class="mt-1">
         {{ description }}
       </CardDescription>
     </CardHeader>
     <CardContent :class="compact ? 'p-4' : 'px-5 pb-5 pt-5'">
-      <div
-        v-if="displayItems.length === 0"
-        class="text-center py-8 text-[var(--foreground-muted)] text-sm"
-      >
+      <div v-if="displayItems.length === 0" class="text-center py-8 text-muted-foreground text-sm">
         {{ $t('common.noData') }}
       </div>
       <div v-else data-testid="bar-list" :class="compact ? 'space-y-2' : 'space-y-3'">
         <div
           v-for="(item, index) in displayItems"
           :key="item.id"
-          class="group flex items-center gap-3 py-1.5 transition-colors duration-150 hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--foreground-strong)]/30 -mx-2 px-2 rounded-none"
+          class="group flex items-center gap-3 py-1.5 transition-colors duration-150 hover:bg-accent dark:hover:bg-foreground/30 -mx-2 px-2 rounded-lg"
         >
           <!-- Rank number -->
           <span
-            class="shrink-0 w-5 text-right font-data text-xs tabular-nums text-[var(--foreground-muted)]"
+            class="shrink-0 w-5 text-right font-mono text-xs tabular-nums text-muted-foreground"
           >
             {{ index + 1 }}
           </span>
@@ -84,20 +78,27 @@ const displayItems = computed(() => {
           <!-- Label and bar container -->
           <div class="flex-1 min-w-0">
             <!-- Label row -->
-            <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="text-sm font-medium text-foreground truncate">{{ item.label }}</span>
+            <div class="flex flex-wrap items-start justify-between gap-x-2 gap-y-1 mb-1">
+              <span class="min-w-0 flex-1 break-words text-sm font-medium text-foreground">{{
+                item.label
+              }}</span>
               <span
                 v-if="showValue"
-                class="shrink-0 font-data text-sm tabular-nums text-foreground"
+                class="shrink-0 font-mono text-sm tabular-nums text-foreground"
               >
-                {{ formatCompactNumber(item.value) }}
+                {{
+                  showPercentage
+                    ? formatNumberByLocale(item.value / 100, {
+                        style: 'percent',
+                        maximumFractionDigits: 1,
+                      })
+                    : formatCompactNumber(item.value)
+                }}
               </span>
             </div>
 
             <!-- Progress bar -->
-            <div
-              class="relative h-1.5 bg-[var(--surface-highlight)] dark:bg-[var(--foreground-strong)] rounded-full overflow-hidden"
-            >
+            <div class="relative h-1.5 bg-accent dark:bg-foreground rounded-full overflow-hidden">
               <div
                 class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
                 :style="{
@@ -108,7 +109,7 @@ const displayItems = computed(() => {
             </div>
 
             <!-- Subtitle if provided -->
-            <p v-if="item.subtitle" class="text-xs text-[var(--foreground-muted)] mt-1 truncate">
+            <p v-if="item.subtitle" class="text-xs text-muted-foreground mt-1 truncate">
               {{ item.subtitle }}
             </p>
           </div>

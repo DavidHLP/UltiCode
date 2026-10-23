@@ -4,6 +4,10 @@ import { createI18n } from 'vue-i18n'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AuditReportView from './AuditReportView.vue'
 import { auditApi, type AuditStats } from '@/api/admin/audit'
+import auditEn from '@/i18n/locales/en-US/modules/audit'
+import auditZh from '@/i18n/locales/zh-CN/modules/audit'
+import reportEn from '@/i18n/locales/en-US/modules/audit-report'
+import reportZh from '@/i18n/locales/zh-CN/modules/audit-report'
 type AuditApiModule = { auditApi: typeof auditApi }
 
 vi.mock('@/api/admin/audit', async () => {
@@ -18,6 +22,12 @@ vi.mock('@/api/admin/audit', async () => {
 })
 
 const SlotStub = { template: '<div><slot /></div>' }
+const SelectStub = {
+  name: 'ReportSelectStub',
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+  template: '<div><slot /></div>',
+}
 const ButtonStub = {
   inheritAttrs: false,
   emits: ['click'],
@@ -39,7 +49,7 @@ const i18n = createI18n({
   locale: 'en-US',
   missingWarn: false,
   fallbackWarn: false,
-  messages: { 'en-US': {} },
+  messages: { 'en-US': {}, 'zh-CN': {} },
 })
 
 const stats: AuditStats = {
@@ -62,13 +72,13 @@ function mountReport() {
         CardHeader: SlotStub,
         CardTitle: SlotStub,
         Input: InputStub,
-        Label: SlotStub,
+        Label: { template: '<label><slot /></label>' },
         RotateCcw: true,
-        Select: SlotStub,
+        Select: SelectStub,
         SelectContent: SlotStub,
         SelectItem: SlotStub,
         SelectTrigger: SlotStub,
-        SelectValue: SlotStub,
+        SelectValue: { template: '<span data-test="report-selected-label"><slot /></span>' },
       },
     },
   })
@@ -83,6 +93,36 @@ describe('AuditReportView stats loading', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(auditApi.getAuditStats).mockResolvedValue(stats)
+  })
+
+  it('associates filter labels and updates current selections with the locale', async () => {
+    i18n.global.setLocaleMessage('en-US', { audit: auditEn, auditReport: reportEn })
+    i18n.global.setLocaleMessage('zh-CN', { audit: auditZh, auditReport: reportZh })
+    const wrapper = mountReport()
+    try {
+      await flushPromises()
+      const labels = () =>
+        wrapper.findAll('[data-test="report-selected-label"]').map((node) => node.text())
+      expect(labels()).toEqual([auditEn.filters.allEntityTypes, reportEn.selectEntityTypeFirst])
+      for (const label of wrapper.findAll('label')) {
+        const target = label.attributes('for')
+        expect(target).toBeTruthy()
+        expect(wrapper.find(`#${target}`).exists()).toBe(true)
+      }
+      const selects = wrapper.findAllComponents(SelectStub)
+      selects[0]?.vm.$emit('update:modelValue', 'PROBLEM')
+      await flushPromises()
+      selects[1]?.vm.$emit('update:modelValue', 'UPDATE_PROBLEM')
+      await flushPromises()
+      expect(labels()).toEqual([auditEn.entityTypes.PROBLEM, auditEn.actionTypes.UPDATE_PROBLEM])
+      i18n.global.locale.value = 'zh-CN'
+      await flushPromises()
+      expect(labels()).toEqual([auditZh.entityTypes.PROBLEM, auditZh.actionTypes.UPDATE_PROBLEM])
+    } finally {
+      wrapper.unmount()
+      i18n.global.locale.value = 'en-US'
+      i18n.global.setLocaleMessage('en-US', {})
+    }
   })
 
   it('sends the shared normalized query without pagination', async () => {
@@ -134,5 +174,27 @@ describe('AuditReportView stats loading', () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('42')
     wrapper.unmount()
+  })
+
+  it('does not present old statistics as results after a failed query', async () => {
+    const wrapper = mountReport()
+    try {
+      await flushPromises()
+      expect(wrapper.text()).toContain('42')
+      vi.mocked(auditApi.getAuditStats).mockRejectedValueOnce(new Error('stats unavailable'))
+      await applyButton(wrapper)?.trigger('click')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('stats unavailable')
+      expect(wrapper.text()).not.toContain('42')
+      expect(wrapper.text()).not.toContain('auditReport.noData')
+      expect(wrapper.text()).toContain('—')
+
+      await applyButton(wrapper)?.trigger('click')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      expect(wrapper.text()).toContain('42')
+    } finally {
+      wrapper.unmount()
+    }
   })
 })

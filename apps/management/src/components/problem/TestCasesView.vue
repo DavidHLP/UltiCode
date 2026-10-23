@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Button } from '@/components/ui/button'
+import { Button } from '@ulticode/design-system/ui/button'
 import type { TestCaseExample } from './TestCasesEditor.vue'
 
 const props = defineProps<{
@@ -52,7 +52,7 @@ const selectCase = (id: string) => {
           :key="testCase.id"
           :variant="testCase.id === activeId ? 'secondary' : 'ghost'"
           size="sm"
-          class="h-8 rounded-none px-3 text-xs font-medium"
+          class="px-3"
           :class="
             testCase.id === activeId
               ? 'text-foreground shadow-none'
@@ -65,21 +65,19 @@ const selectCase = (id: string) => {
       </div>
 
       <!-- Active Case Content -->
-      <div v-if="activeCase" class="space-y-4 p-4 border rounded-none bg-muted/10">
+      <div v-if="activeCase" class="space-y-4 p-4 border rounded-lg bg-muted/10">
         <div class="space-y-2">
           <p class="text-xs font-medium text-muted-foreground uppercase">Input</p>
-          <pre
-            class="text-xs bg-muted p-3 rounded-none border overflow-x-auto whitespace-pre-wrap"
-            >{{ activeCase.input }}</pre
-          >
+          <pre class="text-xs bg-muted p-3 rounded-lg border overflow-x-auto whitespace-pre-wrap">{{
+            activeCase.input
+          }}</pre>
         </div>
 
         <div class="space-y-2">
           <p class="text-xs font-medium text-muted-foreground uppercase">Output</p>
-          <pre
-            class="text-xs bg-muted p-3 rounded-none border overflow-x-auto whitespace-pre-wrap"
-            >{{ activeCase.output }}</pre
-          >
+          <pre class="text-xs bg-muted p-3 rounded-lg border overflow-x-auto whitespace-pre-wrap">{{
+            activeCase.output
+          }}</pre>
         </div>
 
         <div v-if="activeCase.explanation" class="space-y-2">

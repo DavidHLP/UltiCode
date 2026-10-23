@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import { computed, type Component } from "vue";
 
 interface Props {
@@ -27,11 +27,11 @@ const isButton = computed(() => props.variant === "button");
     :is="isButton ? Button : 'div'"
     :variant="isButton ? 'ghost' : undefined"
     :size="isButton ? 'sm' : undefined"
-    class="rounded-none flex items-center transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)] h-8 select-none border border-[var(--border-subtle)] dark:border-[var(--border-subtle)] bg-[var(--surface)] dark:bg-[var(--surface-highlight)] hover:bg-[var(--surface-highlight)] dark:hover:bg-[var(--border-subtle)] hover:border-[var(--border-subtle)] dark:hover:border-[var(--foreground-muted)]"
+    class="rounded-lg flex items-center transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)] h-8 select-none border border-border dark:border-border bg-background dark:bg-accent hover:bg-accent dark:hover:bg-border hover:border-border dark:hover:border-muted-foreground"
     :class="[
       isButton
-        ? 'text-[var(--foreground-muted)] hover:text-[var(--foreground-strong)]'
-        : 'text-[var(--foreground-muted)]/70',
+        ? 'text-muted-foreground hover:text-foreground'
+        : 'text-muted-foreground/70',
       active && isButton
         ? activeClass ||
           'text-primary hover:text-primary bg-primary/10 hover:bg-primary/20 border-primary/10 font-medium'
@@ -43,14 +43,11 @@ const isButton = computed(() => props.variant === "button");
     <component :is="icon" v-if="icon" class="h-4 w-4" />
     <span
       v-if="count !== undefined && count !== ''"
-      class="font-data font-bold text-xxs tracking-tight tabular-nums"
+      class="font-mono font-bold text-xs tracking-tight tabular-nums"
     >
       {{ count }}
     </span>
-    <span
-      v-if="label"
-      class="hidden sm:inline text-xxs font-bold opacity-80"
-    >
+    <span v-if="label" class="hidden sm:inline text-xs font-bold opacity-80">
       {{ label }}
     </span>
   </component>

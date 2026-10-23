@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { IconCalendar, IconClock, IconTrophy, IconUsers } from '@tabler/icons-vue'
+import {
+  Calendar as IconCalendar,
+  Clock as IconClock,
+  Trophy as IconTrophy,
+  Users as IconUsers,
+} from '@lucide/vue'
+
 import type { Contest } from '@/api/admin/contests'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 
@@ -12,34 +18,30 @@ defineProps<{
   <div class="space-y-6">
     <div class="grid gap-6 md:grid-cols-2">
       <!-- Details Card - Terminal Style -->
-      <div
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
-      >
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">details</span>
+      <div class="border border-border dark:border-foreground bg-card">
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{ $t('contests.detail.overview') }}</span>
         </div>
         <div class="p-4 space-y-4">
           <div class="space-y-2">
-            <span class="terminal-label">{{ $t('contests.detail.description') }}</span>
-            <p class="text-sm text-[var(--foreground)] whitespace-pre-wrap font-data">
+            <span class="text-sm font-medium">{{ $t('contests.detail.description') }}</span>
+            <p class="text-sm text-foreground whitespace-pre-wrap font-mono">
               {{ contest.description || $t('contests.detail.noDescription') }}
             </p>
           </div>
-          <div class="border-t border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] pt-4">
+          <div class="border-t border-border dark:border-foreground pt-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <span class="terminal-label">{{ $t('contests.detail.slug') }}</span>
-                <p class="font-data text-sm text-[var(--foreground-strong)]">{{ contest.slug }}</p>
+                <span class="text-sm font-medium">{{ $t('contests.detail.slug') }}</span>
+                <p class="font-mono text-sm text-foreground">{{ contest.slug }}</p>
               </div>
               <div>
-                <span class="terminal-label">{{ $t('contests.detail.visibility') }}</span>
-                <p class="font-data text-sm">
-                  <span v-if="contest.isVisible" class="text-[var(--foreground-strong)]">
+                <span class="text-sm font-medium">{{ $t('contests.detail.visibility') }}</span>
+                <p class="font-mono text-sm">
+                  <span v-if="contest.isVisible" class="text-foreground">
                     {{ $t('contests.detail.statusPublished') }}
                   </span>
-                  <span v-else class="text-[var(--foreground-muted)]">{{
+                  <span v-else class="text-muted-foreground">{{
                     $t('contests.detail.statusHidden')
                   }}</span>
                 </p>
@@ -50,67 +52,63 @@ defineProps<{
       </div>
 
       <!-- Stats & Schedule Card - Terminal Style -->
-      <div
-        class="border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--card)]"
-      >
-        <div
-          class="border-b border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment">stats_and_schedule</span>
+      <div class="border border-border dark:border-foreground bg-card">
+        <div class="border-b border-border dark:border-foreground px-4 py-2 bg-muted">
+          <span class="text-sm text-muted-foreground">{{ $t('contests.details.statistics') }} / {{ $t('contests.reviewStep.schedule') }}</span>
         </div>
-        <div class="p-4 space-y-4">
+        <div class="@container p-4 space-y-4">
           <!-- Schedule Info -->
           <div class="space-y-3">
             <div
-              class="flex items-center justify-between border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2"
+              class="flex items-center justify-between border-b border-accent dark:border-foreground pb-2"
             >
               <div class="flex items-center gap-2">
-                <IconCalendar class="h-4 w-4 text-[var(--foreground-muted)]" />
-                <span class="font-data text-xs text-[var(--foreground-muted)] uppercase">{{
+                <IconCalendar class="h-4 w-4 text-muted-foreground" />
+                <span class="font-mono text-xs text-muted-foreground uppercase">{{
                   $t('contests.detail.startTime')
                 }}</span>
               </div>
-              <span class="font-data text-sm tabular-nums">
+              <span class="font-mono text-sm tabular-nums">
                 {{ formatDateTimeByLocale(contest.startTime) }}
               </span>
             </div>
             <div
-              class="flex items-center justify-between border-b border-[var(--surface-highlight)] dark:border-[var(--foreground-strong)] pb-2"
+              class="flex items-center justify-between border-b border-accent dark:border-foreground pb-2"
             >
               <div class="flex items-center gap-2">
-                <IconClock class="h-4 w-4 text-[var(--foreground-muted)]" />
-                <span class="font-data text-xs text-[var(--foreground-muted)] uppercase">{{
+                <IconClock class="h-4 w-4 text-muted-foreground" />
+                <span class="font-mono text-xs text-muted-foreground uppercase">{{
                   $t('contests.detail.duration')
                 }}</span>
               </div>
-              <span class="font-data text-sm tabular-nums">
-                {{ contest.duration }} {{ $t('common.minutes') }}
+              <span class="font-mono text-sm tabular-nums">
+                {{ contest.durationMinutes }} {{ $t('common.minutes') }}
               </span>
             </div>
           </div>
 
           <!-- Stats Grid -->
-          <div class="grid grid-cols-2 gap-3 pt-2">
+          <div class="grid grid-cols-1 @xs:grid-cols-2 gap-3 pt-2">
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-border dark:border-foreground bg-muted"
             >
-              <IconTrophy class="h-5 w-5 text-[var(--status-warning-mark)]" />
+              <IconTrophy class="h-5 w-5 shrink-0 text-status-warning-mark" />
               <div>
-                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                <div class="font-mono text-lg tabular-nums text-foreground">
                   {{ contest.problemCount || 0 }}
                 </div>
-                <div class="terminal-label">{{ $t('contests.detail.problems') }}</div>
+                <div class="text-sm font-medium">{{ $t('contests.detail.problems') }}</div>
               </div>
             </div>
             <div
-              class="flex items-center gap-3 p-3 border border-[var(--border-subtle)] dark:border-[var(--foreground-strong)] bg-[var(--surface-sunken)]"
+              class="flex items-center gap-3 p-3 border border-border dark:border-foreground bg-muted"
             >
-              <IconUsers class="h-5 w-5 text-[var(--status-info-mark)]" />
+              <IconUsers class="h-5 w-5 shrink-0 text-status-info-mark" />
               <div>
-                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                <div class="font-mono text-lg tabular-nums text-foreground">
                   {{ contest.participantCount || 0 }}
                 </div>
-                <div class="terminal-label">{{ $t('contests.detail.participants') }}</div>
+                <div class="text-sm font-medium">{{ $t('contests.detail.participants') }}</div>
               </div>
             </div>
           </div>

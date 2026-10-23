@@ -7,13 +7,14 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Textarea } from "@ulticode/design-system/ui/textarea";
+import { Label } from "@ulticode/design-system/ui/label";
 import { Loader2 } from "@lucide/vue";
 import { useI18n } from "vue-i18n";
+import colors from "tailwindcss/colors";
 import type {
   BookmarkFolder,
   CreateFolderInput,
@@ -57,7 +58,7 @@ const COLORS = [
   "fuchsia",
   "pink",
   "rose",
-];
+] as const;
 
 const isEdit = computed(() => !!props.folder);
 const title = computed(() =>
@@ -110,12 +111,10 @@ function handleClose() {
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[425px] rounded-none">
+    <DialogContent class="sm:max-w-[425px]">
       <DialogHeader>
-        <DialogTitle class="text-2xl font-black tracking-tight">{{
-          title
-        }}</DialogTitle>
-        <DialogDescription class="text-muted-foreground">
+        <DialogTitle>{{ title }}</DialogTitle>
+        <DialogDescription>
           {{
             isEdit
               ? t("bookmark.updateDetails")
@@ -126,53 +125,44 @@ function handleClose() {
 
       <form @submit.prevent="handleSubmit" class="space-y-6 py-4">
         <div class="space-y-2">
-          <Label
-            for="name"
-            class="text-2xs font-black uppercase tracking-widest text-muted-foreground/70"
-            >{{ t("bookmark.name") }}</Label
-          >
+          <Label for="name">{{ t("bookmark.name") }}</Label>
           <Input
             id="name"
             v-model="name"
             :placeholder="t('bookmark.placeholders.folderName')"
             :disabled="isSubmitting"
-            class="rounded-none border-muted-foreground/20 focus:ring-primary/20 h-11"
           />
         </div>
 
         <div class="space-y-2">
-          <Label
-            for="description"
-            class="text-2xs font-black uppercase tracking-widest text-muted-foreground/70"
-            >{{ t("bookmark.description") }}</Label
-          >
+          <Label for="description">{{ t("bookmark.description") }}</Label>
           <Textarea
             id="description"
             v-model="description"
             :placeholder="t('bookmark.placeholders.description')"
             :disabled="isSubmitting"
             rows="3"
-            class="rounded-none border-muted-foreground/20 focus:ring-primary/20 resize-none p-3"
+            class="resize-none p-3"
           />
         </div>
 
         <div class="space-y-4">
-          <Label
-            class="text-2xs font-black uppercase tracking-widest text-muted-foreground/70"
-            >{{ t("bookmark.colorAppearance") }}</Label
-          >
+          <Label>{{ t("bookmark.colorAppearance") }}</Label>
           <div class="grid grid-cols-6 gap-3">
-            <button
+            <Button
+              variant="outline"
               v-for="color in COLORS"
               :key="color"
               type="button"
-              class="h-8 w-8 rounded-full border-2 transition-all flex items-center justify-center relative group"
+              class="w-8 flex items-center justify-center relative group"
               :class="[
-                `bg-${color}-500 border-transparent`,
+                'border-transparent',
                 selectedColor === color
                   ? 'border-primary ring-2 ring-primary/20 scale-110'
                   : 'hover:scale-110',
               ]"
+              :style="{ backgroundColor: colors[color][500] }"
+              :aria-pressed="selectedColor === color"
               @click="selectedColor = color"
               :title="t(`bookmark.colors.${color}`)"
             >
@@ -180,36 +170,33 @@ function handleClose() {
                 v-if="selectedColor === color"
                 class="h-2 w-2 rounded-full bg-primary-foreground shadow-sm"
               ></div>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
               type="button"
-              class="h-8 w-8 rounded-full border-2 border-dashed transition-all bg-muted/50 flex items-center justify-center hover:bg-muted"
+              class="w-8 flex items-center justify-center"
               :class="[
                 !selectedColor
                   ? 'border-primary ring-2 ring-primary/20 scale-110'
                   : 'border-muted-foreground/30 hover:scale-110',
               ]"
               @click="selectedColor = null"
+              :aria-pressed="!selectedColor"
               :title="t('bookmark.noColor')"
             >
               <div class="h-4 w-0.5 bg-muted-foreground/40 rotate-45"></div>
-            </button>
+            </Button>
           </div>
         </div>
 
         <DialogFooter class="gap-2 sm:gap-0">
-          <Button
-            type="button"
-            variant="ghost"
-            @click="handleClose"
-            class="rounded-none font-bold"
-          >
+          <Button type="button" variant="ghost" @click="handleClose">
             {{ t("common.actions.cancel") }}
           </Button>
           <Button
             type="submit"
             :disabled="!name.trim() || isSubmitting"
-            class="rounded-none px-8 font-black"
+            class="px-8"
           >
             <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
             {{

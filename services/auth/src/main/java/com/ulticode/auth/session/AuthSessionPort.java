@@ -15,4 +15,5 @@ public interface AuthSessionPort {
     AuthSession completeRefresh(AuthAccountRecord account, String rotatedRefreshToken);
 
     AuthSession clearSession();
+    AuthSession csrfSession(String existingToken);
 }

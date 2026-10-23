@@ -91,11 +91,12 @@ assert_file_not_contains services/admin/src/main/java/com/ulticode/admin/securit
   "ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search" ]]
 [[ "$(devstack_backend_apps_for_mode dev-lite)" == "ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge" ]]
 [[ "$(devstack_apps_for_mode dev-full)" == \
-  "ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003" ]]
+  "ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003,ulticode-9004" ]]
 [[ "$(devstack_readiness ulticode-auth)" == "http|9101|/api/v1/auth/health/ready" ]]
 [[ "$(devstack_readiness ulticode-core)" == "http|9108|/api/v1/core/health/ready" ]]
 [[ "$(devstack_readiness ulticode-submission)" == "pm2" ]]
 [[ "$(devstack_readiness ulticode-9003)" == "http|9003|/" ]]
+[[ "$(devstack_readiness ulticode-9004)" == "http|9004|/landing/" ]]
 [[ "$(devstack_readiness_banner ulticode-judge)" == "Started BackendJudgeApplication" ]]
 [[ "$(devstack_readiness_banner ulticode-core)" == "Started CoreApplication" ]]
 [[ -z "$(devstack_readiness_banner ulticode-submission)" ]]
@@ -120,14 +121,14 @@ assert_scope_rejected() {
 [[ "$(devstack_mode_for_scope search)" == dev-full ]]
 [[ "$(devstack_mode_for_scope full-stack)" == dev-full ]]
 [[ "$(devstack_apps_for_scope app-journey)" == \
-  "ulticode-auth,ulticode-app,ulticode-notification,ulticode-submission,ulticode-judge,ulticode-9002" ]]
+  "ulticode-auth,ulticode-app,ulticode-notification,ulticode-submission,ulticode-judge,ulticode-9002,ulticode-9004" ]]
 [[ "$(devstack_apps_for_scope admin)" == \
   "ulticode-auth,ulticode-admin,ulticode-app,ulticode-notification,ulticode-submission,ulticode-9003" ]]
 [[ "$(devstack_apps_for_scope core)" == "ulticode-core,ulticode-judge" ]]
 [[ "$(devstack_apps_for_scope submission-judge)" == \
   "ulticode-app,ulticode-submission,ulticode-judge" ]]
 [[ "$(devstack_apps_for_scope search)" == \
-  "ulticode-auth,ulticode-app,ulticode-search,ulticode-9002" ]]
+  "ulticode-auth,ulticode-app,ulticode-search,ulticode-9002,ulticode-9004" ]]
 [[ "$(devstack_infra_for_scope dev-lite)" == "mysql,redis,nacos,rustfs" ]]
 [[ "$(devstack_infra_for_scope app-journey)" == "mysql,redis,nacos,rustfs" ]]
 [[ "$(devstack_infra_for_scope admin)" == "mysql,redis,nacos,rustfs" ]]
@@ -150,14 +151,16 @@ assert_scope_rejected unknown ulticode-auth
 
 resolved_scope="$(devstack_resolve_scope full-stack)"
 [[ "${resolved_scope%%$'\n'*}" == "scope=full-stack" ]]
-[[ "$resolved_scope" == *$'apps=ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003\n'* ]]
+[[ "$resolved_scope" == *$'apps=ulticode-auth,ulticode-admin,ulticode-app,ulticode-submission,ulticode-notification,ulticode-judge,ulticode-search,ulticode-9002,ulticode-9003,ulticode-9004\n'* ]]
 [[ "$resolved_scope" == *$'infra=mysql,redis,nacos,rustfs,meilisearch\n'* ]]
-[[ "$resolved_scope" == *'features=search=on;meili=on;judge=on;notification=on;frontend=console,management;observability=off' ]]
+[[ "$resolved_scope" == *'features=search=on;meili=on;judge=on;notification=on;frontend=console,management,landing;observability=off' ]]
+[[ "$(devstack_app_port ulticode-9004)" == 9004 ]]
+[[ "$(devstack_normalize_app landing)" == ulticode-9004 ]]
 [[ "$(devstack_scope_features core)" == 'search=on;meili=on;judge=on;notification=on;frontend=off;observability=off' ]]
 mapfile -t full_readiness < <(devstack_readiness_for_scope full-stack)
 mapfile -t full_ports < <(devstack_ports_for_scope full-stack)
-[[ "${#full_readiness[@]}" -eq 9 ]]
-[[ "${#full_ports[@]}" -eq 9 ]]
+[[ "${#full_readiness[@]}" -eq 10 ]]
+[[ "${#full_ports[@]}" -eq 10 ]]
 [[ "${full_ports[3]}" == "ulticode-submission|9106|Submission Owner" ]]
 [[ "${full_ports[5]}" == "ulticode-judge|9104|Judge Worker" ]]
 [[ "${full_ports[6]}" == "ulticode-search|9107|Search Worker" ]]

@@ -52,6 +52,8 @@ services:
     build:
       context: .
       dockerfile: apps/console/Dockerfile
+      args:
+        VITE_PLATFORM_URL: ${VITE_PLATFORM_URL:-}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
 

@@ -2,14 +2,20 @@
 import { ref, computed, inject, watch, nextTick, type Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@ulticode/design-system/ui/tabs";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+  SelectGroup,
+} from "@ulticode/design-system/ui/select";
 import { PanelComponentMapKey } from "@/features/layout/panels/panel-context";
 import {
   FileText,
@@ -97,23 +103,20 @@ if (resolvedInitial && tabIds.value.includes(resolvedInitial)) {
 }
 
 // Sync route -> activeTab
-watch(
-  [() => route.params.tab, tabIds],
-  ([newTab, ids]) => {
-    if (isUpdatingFromState.value) return;
-    let tabName = Array.isArray(newTab) ? newTab[0] : newTab;
-    if (contestId.value !== null && tabName === "solutions") {
-      tabName = "description";
-    }
-    if (tabName && ids.includes(tabName) && activeTab.value !== tabName) {
-      isUpdatingFromRoute.value = true;
-      activeTab.value = tabName;
-      nextTick(() => {
-        isUpdatingFromRoute.value = false;
-      });
-    }
-  },
-);
+watch([() => route.params.tab, tabIds], ([newTab, ids]) => {
+  if (isUpdatingFromState.value) return;
+  let tabName = Array.isArray(newTab) ? newTab[0] : newTab;
+  if (contestId.value !== null && tabName === "solutions") {
+    tabName = "description";
+  }
+  if (tabName && ids.includes(tabName) && activeTab.value !== tabName) {
+    isUpdatingFromRoute.value = true;
+    activeTab.value = tabName;
+    nextTick(() => {
+      isUpdatingFromRoute.value = false;
+    });
+  }
+});
 
 // Sync activeTab -> route
 watch(activeTab, (newTab) => {
@@ -154,20 +157,24 @@ const currentComponent = computed(() => {
       <div class="shrink-0 border-b px-2 py-2 sm:hidden">
         <Select v-model="activeTab">
           <SelectTrigger class="w-full">
-            <SelectValue :placeholder="t('common.labels.selectTab')" />
+            <SelectValue :placeholder="t('common.labels.selectTab')">{{
+              tabs.find((tab) => tab.id === activeTab)?.label
+            }}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem
-              v-for="tab in tabs"
-              :key="tab.id"
-              :value="tab.id"
-              class="flex items-center gap-2"
+            <SelectGroup
+              ><SelectItem
+                v-for="tab in tabs"
+                :key="tab.id"
+                :value="tab.id"
+                class="flex items-center gap-2"
+              >
+                <div class="flex items-center gap-2">
+                  <component :is="tab.icon" class="h-4 w-4" />
+                  <span>{{ tab.label }}</span>
+                </div>
+              </SelectItem></SelectGroup
             >
-              <div class="flex items-center gap-2">
-                <component :is="tab.icon" class="h-4 w-4" />
-                <span>{{ tab.label }}</span>
-              </div>
-            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -179,7 +186,7 @@ const currentComponent = computed(() => {
             v-for="tab in tabs"
             :key="tab.id"
             :value="tab.id"
-            class="flex items-center gap-1.5 px-3 py-1.5 text-xs whitespace-nowrap"
+            class="flex items-center gap-1.5 px-3 py-1.5 whitespace-nowrap"
           >
             <component :is="tab.icon" class="h-3.5 w-3.5" />
             <span class="hidden md:inline">{{ tab.label }}</span>

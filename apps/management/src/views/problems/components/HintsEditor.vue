@@ -2,9 +2,14 @@
 import { ref } from 'vue'
 import { useFieldArray } from 'vee-validate'
 import { useI18n } from 'vue-i18n'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { IconPlus, IconTrash, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
+import { Button } from '@ulticode/design-system/ui/button'
+import { Textarea } from '@ulticode/design-system/ui/textarea'
+import {
+  Plus as IconPlus,
+  Trash as IconTrash,
+  ArrowUp as IconArrowUp,
+  ArrowDown as IconArrowDown,
+} from '@lucide/vue'
 
 const props = defineProps<{
   name: string
@@ -47,9 +52,9 @@ function moveDown(index: number) {
     <!-- Empty state -->
     <div
       v-if="fields.length === 0"
-      class="flex flex-col items-center justify-center py-6 px-4 border border-dashed border-[var(--border)] bg-muted/5 gap-3 rounded-none"
+      class="flex flex-col items-center justify-center py-6 px-4 border border-dashed border-border bg-muted/5 gap-3 rounded-lg"
     >
-      <p class="text-xs text-[var(--foreground-muted)] text-muted-foreground font-mono text-center">
+      <p class="text-xs text-muted-foreground text-muted-foreground font-mono text-center">
         {{ t('problems.descriptionForm.hintsSection.empty') }}
       </p>
     </div>
@@ -61,14 +66,14 @@ function moveDown(index: number) {
         v-model="field.value"
         placeholder="Enter a hint to guide users toward the solution..."
         rows="2"
-        class="flex-1 font-mono text-sm bg-[var(--surface-sunken)]/25 border border-[var(--border)] focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring focus-visible:ring-offset-0 min-h-[50px] resize-y rounded-none shadow-none"
+        class="flex-1 min-h-[50px] resize-y"
       />
       <div class="flex flex-col gap-1 shrink-0">
         <Button
           type="button"
-          variant="terminal_ghost"
+          variant="ghost"
           size="icon-sm"
-          class="h-7 w-7"
+          class="w-7"
           aria-label="Move hint up"
           :disabled="index === 0"
           @click="moveUp(index)"
@@ -77,9 +82,9 @@ function moveDown(index: number) {
         </Button>
         <Button
           type="button"
-          variant="terminal_ghost"
+          variant="ghost"
           size="icon-sm"
-          class="h-7 w-7"
+          class="w-7"
           aria-label="Move hint down"
           :disabled="index === fields.length - 1"
           @click="moveDown(index)"
@@ -88,9 +93,9 @@ function moveDown(index: number) {
         </Button>
         <Button
           type="button"
-          variant="terminal_danger"
+          variant="destructive"
           size="icon-sm"
-          class="h-7 w-7 text-destructive"
+          class="w-7"
           aria-label="Delete hint"
           @click="deleteHint(index)"
         >
@@ -100,7 +105,7 @@ function moveDown(index: number) {
     </div>
 
     <!-- Add button -->
-    <Button type="button" variant="terminal" size="terminal" class="w-full" @click="addHint">
+    <Button type="button" variant="outline" size="default" class="w-full" @click="addHint">
       <IconPlus class="h-4 w-4 mr-2" />
       {{ t('problems.descriptionForm.hintsSection.add') }}
     </Button>

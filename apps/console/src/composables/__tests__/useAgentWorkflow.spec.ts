@@ -69,6 +69,29 @@ function thread(threadId: string, runId: string, status: AgentThread["status"]):
 }
 
 describe("useAgentWorkflow run isolation", () => {
+  it.each(["awaiting_confirmation", "failed", "cancelled"] as const)(
+    "refreshes terminal %s events without reporting a disconnection",
+    async (status) => {
+      vi.stubGlobal("EventSource", FakeEventSource);
+      const analyzing = thread("thread-a", "run-a", "analyzing");
+      vi.mocked(agentApi.getThread)
+        .mockResolvedValueOnce(analyzing)
+        .mockResolvedValueOnce(thread("thread-a", "run-a", status));
+      const scope = effectScope();
+      const workflow = scope.run(() => useAgentWorkflow())!;
+      await workflow.loadThread(analyzing.threadId);
+      const stream = FakeEventSource.instances[0];
+      stream.emit("terminal", { runId: analyzing.runId, status });
+      await vi.waitFor(() =>
+        expect(workflow.thread.value?.status).toBe(status),
+      );
+      stream.fail();
+      expect(stream.closed).toBe(true);
+      expect(workflow.error.value).toBe("");
+      scope.stop();
+    },
+  );
+
   afterEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
@@ -222,6 +245,23 @@ describe("useAgentWorkflow run isolation", () => {
       expect(workflow.error.value).toBe(expectedError);
       expect(workflow.thread.value?.status).toBe("failed");
     });
+    expect(stream.closed).toBe(true);
+    scope.stop();
+  });
+
+  it("refreshes the canonical thread when terminal arrives without a run id", async () => {
+    vi.stubGlobal("EventSource", FakeEventSource);
+    const analyzing = thread("thread-a", "run-a", "analyzing");
+    const saved = thread("thread-a", "run-a", "saved");
+    vi.mocked(agentApi.getThread).mockResolvedValueOnce(analyzing).mockResolvedValueOnce(saved);
+
+    const scope = effectScope();
+    const workflow = scope.run(() => useAgentWorkflow())!;
+    await workflow.loadThread(analyzing.threadId);
+    const stream = FakeEventSource.instances[0];
+    stream.emit("terminal", { status: "completed", seq: 3, reason: "completed", cancelRequested: false });
+
+    await vi.waitFor(() => expect(workflow.thread.value?.status).toBe("saved"));
     expect(stream.closed).toBe(true);
     scope.stop();
   });

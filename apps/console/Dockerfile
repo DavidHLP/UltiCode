@@ -4,17 +4,18 @@ FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a55
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN corepack enable && corepack prepare pnpm@11.0.0 --activate
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/console/package.json ./apps/console/
+COPY apps/landing/package.json ./apps/landing/
 COPY packages ./packages
 
-RUN corepack enable && corepack prepare pnpm@9 --activate && \
-    pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/console ./apps/console
+COPY apps/landing ./apps/landing
 
 RUN mkdir -p /app/node_modules/@ulticode && \
     ln -sfn /app/packages/auth-core /app/node_modules/@ulticode/auth-core && \
@@ -23,8 +24,9 @@ RUN mkdir -p /app/node_modules/@ulticode && \
 # Build application
 WORKDIR /app/apps/console
 ARG VITE_API_BASE_URL=/api
+ARG VITE_PLATFORM_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-RUN pnpm build
+RUN pnpm build && VITE_PLATFORM_URL="${VITE_PLATFORM_URL}" VITE_LANDING_BASE=/landing/ pnpm --dir ../landing build
 
 # Production stage - nginx
 FROM nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913 AS production
@@ -52,6 +54,7 @@ RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx /etc/ngin
 
 # Copy built application with proper ownership
 COPY --from=builder --chown=appuser:appgroup /app/apps/console/dist /usr/share/nginx/html
+COPY --from=builder --chown=appuser:appgroup /app/apps/landing/dist /usr/share/nginx/html/landing
 
 # Expose port
 EXPOSE 8080

@@ -7,12 +7,12 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+} from "@ulticode/design-system/ui/dialog";
+import { Button } from "@ulticode/design-system/ui/button";
+import { Input } from "@ulticode/design-system/ui/input";
+import { Label } from "@ulticode/design-system/ui/label";
+import { Textarea } from "@ulticode/design-system/ui/textarea";
+import { Switch } from "@ulticode/design-system/ui/switch";
 import { ref, watch } from "vue";
 
 const props = defineProps<{

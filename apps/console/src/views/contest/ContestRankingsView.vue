@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { Trophy, Globe, MapPin } from "@lucide/vue";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+import { Button } from "@ulticode/design-system/ui/button";
 import GlobalRanking from "./components/GlobalRanking.vue";
 import { useI18n } from "vue-i18n";
 import { useContestSocket } from "@/composables/contest/useContestSocket";
@@ -32,17 +31,37 @@ watch(isConnected, (connected) => {
 const liveRankings = ref<unknown[] | null>(null);
 const unsubscribeRanking = onRankingUpdate((data) => {
   if (Array.isArray(data)) liveRankings.value = data;
-  else if (data && typeof data === "object" && Array.isArray((data as { items?: unknown[] }).items)) {
+  else if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray((data as { items?: unknown[] }).items)
+  ) {
     liveRankings.value = (data as { items?: unknown[] }).items ?? null;
   }
 });
 
 const route = useRoute();
+const router = useRouter();
 const contestId = computed(() => String(route.params.id ?? ""));
 
-const { globalRankings, loadingRankings } = storeToRefs(contestStore);
+const {
+  globalRankings,
+  loadingRankings,
+  loadingMoreRankings,
+  loadMoreRankingsError,
+  hasMoreRankings,
+  error: rankingError,
+} = storeToRefs(contestStore);
 
-const scope = ref<"global" | "local">("global");
+const scope = computed<"global" | "local">({
+  get: () => (route.query.scope === "local" ? "local" : "global"),
+  set: (value) => {
+    void router.replace({ query: { ...route.query, scope: value } });
+  },
+});
+watch(scope, () => {
+  void loadRankings();
+});
 const initialLoading = ref(true);
 
 const userCountry = computed(() => {
@@ -118,21 +137,24 @@ onUnmounted(() => {
   unsubscribeRanking();
   void leaveContest();
 });
+function loadMoreRankings(): void {
+  void contestStore.loadMoreGlobalRankings().catch(() => {
+    // Preserve loaded rows; the store exposes the pagination error for retry.
+  });
+}
 </script>
 
 <template>
   <div
-    class="max-w-7xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10"
+    class="max-w-5xl mx-auto w-full min-w-0 space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10"
   >
     <div
       class="flex flex-col md:flex-row md:items-center justify-between gap-4"
     >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <Trophy class="h-8 w-8 text-[var(--status-warning-mark)]" />
-          <h1
-            class="text-3xl font-bold tracking-tight text-foreground-strong"
-          >
+          <Trophy class="h-8 w-8 text-status-warning-mark" />
+          <h1 class="text-3xl font-bold tracking-tight text-foreground">
             {{ t("contest.rankings.title") }}
           </h1>
         </div>
@@ -142,41 +164,28 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <Separator />
-
-    <div class="space-y-6">
-      <!-- Scope Toggle -->
-      <div
-        class="inline-flex bg-muted/50 p-1 h-12 rounded-none w-full sm:w-auto"
-      >
+    <div class="space-y-5">
+      <div class="inline-flex w-full rounded-lg bg-muted/50 p-1 sm:w-auto">
         <Button
           variant="ghost"
-          class="rounded-none px-6 font-bold gap-2"
-          :class="{
-            'bg-background shadow-[var(--shadow-float)]': scope === 'global',
-          }"
-          @click="
-            scope = 'global';
-            loadRankings();
-          "
+          class="gap-2"
+          :aria-pressed="scope === 'global'"
+          :class="{ 'bg-background': scope === 'global' }"
+          @click="scope = 'global'"
         >
           <Globe class="h-4 w-4" />
-          <span>{{ t("contest.rankings.global") }}</span>
+          {{ t("contest.rankings.global") }}
         </Button>
         <Button
           variant="ghost"
-          class="rounded-none px-6 font-bold gap-2"
-          :class="{
-            'bg-background shadow-[var(--shadow-float)]': scope === 'local',
-          }"
+          class="gap-2"
+          :aria-pressed="scope === 'local'"
+          :class="{ 'bg-background': scope === 'local' }"
           :disabled="!hasUserCountry"
-          @click="
-            scope = 'local';
-            loadRankings();
-          "
+          @click="scope = 'local'"
         >
           <MapPin class="h-4 w-4" />
-          <span>{{ t("contest.rankings.local") }}</span>
+          {{ t("contest.rankings.local") }}
         </Button>
       </div>
 
@@ -194,9 +203,19 @@ onUnmounted(() => {
       </div>
 
       <!-- Rankings Content -->
-      <div v-else class="grid gap-8 lg:grid-cols-12">
-        <div class="lg:col-span-8 lg:col-start-3">
-          <GlobalRanking :rankings="globalRankings" />
+      <div v-else class="min-w-0">
+        <div class="min-w-0">
+          <GlobalRanking
+            :show-header="false"
+            :rankings="globalRankings"
+            :has-more="hasMoreRankings"
+            :loading-more="loadingMoreRankings"
+            :load-more-error="Boolean(loadMoreRankingsError)"
+            @load-more="loadMoreRankings"
+            :scope="scope"
+            :error="Boolean(rankingError)"
+            @retry="loadRankings"
+          />
         </div>
       </div>
     </div>

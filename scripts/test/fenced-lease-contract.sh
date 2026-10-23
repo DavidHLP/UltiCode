@@ -38,7 +38,7 @@ contains scripts/runbooks/owner-migration-manifest.sh 'admin:owner-migration'
 contains scripts/runbooks/owner-backup-restore.sh 'admin:owner-backup'
 contains scripts/runbooks/owner-backup-restore.sh 'excluded_operational_tables'
 contains .github/actions/host-deploy/action.yml 'migration_mysql_bin'
-contains .github/actions/host-deploy/action.yml 'OWNER_MIGRATION_MYSQL_CONTAINER'
+contains scripts/deploy/deploy.sh 'OWNER_MIGRATION_MYSQL_CONTAINER'
 contains services/submission/src/main/java/com/ulticode/modules/submission/mapper/SubmissionMapper.java 'current_attempt_id = #{attemptId}'
 printf 'fenced lease wiring and non-singleton claim/CAS contract: PASS\n'
 

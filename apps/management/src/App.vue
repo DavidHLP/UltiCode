@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { watch } from 'vue'
+import { setAppearanceAccount } from '@ulticode/theme'
+import { useAuthStore } from '@/stores/auth'
+import AppearanceSettings from '@ulticode/design-system/AppearanceSettings.vue'
+import { useI18n } from 'vue-i18n'
 import 'vue-sonner/style.css'
 import { RouterView } from 'vue-router'
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster } from '@ulticode/design-system/ui/sonner'
+const { locale } = useI18n()
+const auth = useAuthStore()
+watch(() => auth.user?.id ?? null, setAppearanceAccount, { immediate: true, flush: 'sync' })
 </script>
 
 <template>
-  <!-- Garden paper grain (shared design system; see GARDEN_DESIGN_SPEC.md §5) -->
-  <div class="paper-texture-overlay" aria-hidden="true" />
   <RouterView />
+  <AppearanceSettings :locale="locale" />
   <Toaster />
 </template>
-
-<style scoped></style>

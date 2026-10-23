@@ -1,10 +1,10 @@
 # Build stage
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS builder
+FROM node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS builder
 
 WORKDIR /app
 
 # Install pnpm
-RUN corepack enable && corepack prepare pnpm@11.0.0 --activate
+RUN npm install --global pnpm@11.0.0
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/management/package.json ./apps/management/

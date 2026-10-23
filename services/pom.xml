@@ -76,7 +76,7 @@
 		<!-- OkHttp 5 ships an empty jar to Maven consumers; see the okhttp
 		     entry in dependencyManagement. -->
 		<okhttp.version>4.12.0</okhttp.version>
-		<japicmp.version>0.26.3</japicmp.version>
+		<japicmp.version>0.26.5</japicmp.version>
 		<coverage.bundle.minimum>0.50</coverage.bundle.minimum>
 		<!-- Submission has an explicit owner-specific floor because its current
 		     source-inclusive baseline is lower than the shared service floor. -->

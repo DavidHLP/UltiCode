@@ -1,0 +1,43 @@
+apps/console/package.json
+  s_0c602f7d95bd71::t_e6aa9648e3f084 48,51,65,71-73,77,87
+package.json
+  s_0c602f7d95bd71::t_5580cacdc44ff1 4-5
+packages/badge-config/package.json
+  s_0c602f7d95bd71::t_3f058f4e9c88d9 39
+apps/landing/package.json
+  s_0c602f7d95bd71::t_a2c905f8191a4f 18-19,26
+apps/management/package.json
+  s_0c602f7d95bd71::t_916cf372a7e275 64,70-72,74,77,83
+packages/app-bootstrap/package.json
+  s_0c602f7d95bd71::t_5effe45399ebae 20,25
+packages/auth-core/package.json
+  s_0c602f7d95bd71::t_a4c18fa087d3ab 37,48
+packages/auth-ui/package.json
+  s_0c602f7d95bd71::t_46bf36728a2414 28,30,36,42,49-50
+packages/design-system/package.json
+  s_0c602f7d95bd71::t_2b86857590b13d 38,42,60,65
+packages/locale-preference/package.json
+  s_0c602f7d95bd71::t_011529508f67c4 20,26
+packages/request-state/package.json
+  s_0c602f7d95bd71::t_f37f3e6e3ce247 20,26
+packages/sidebar-menu/package.json
+  s_0c602f7d95bd71::t_be698877e2045d 31,39,42,49
+packages/theme/package.json
+  s_0c602f7d95bd71::t_b5554d410cab0c 24,31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "63c3ba83adc0db25de6b9aa1a5731ed29d948f51",
+  "prompts": {},
+  "sessions": {
+    "s_0c602f7d95bd71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "238654f5-5c7e-40d5-82dd-0e3a1fcc2edc",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

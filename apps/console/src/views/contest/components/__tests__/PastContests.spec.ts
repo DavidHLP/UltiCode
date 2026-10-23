@@ -86,12 +86,17 @@ describe("PastContests", () => {
       },
     });
     expect(wrapper.text()).toContain("contest.list.tableHeaders.contest");
-    expect(wrapper.find('[aria-label="common.pagination.previousPage"]').exists()).toBe(false);
-    expect(wrapper.find('[aria-label="common.pagination.nextPage"]').exists()).toBe(false);
+    expect(
+      wrapper.find('[aria-label="common.pagination.previousPage"]').exists(),
+    ).toBe(false);
+    expect(
+      wrapper.find('[aria-label="common.pagination.nextPage"]').exists(),
+    ).toBe(false);
     await wrapper.setProps({ totalPages: 1 });
     expect(wrapper.find("[aria-current=page]").exists()).toBe(false);
     await wrapper.setProps({ totalPages: 3 });
-    const previous = () => wrapper.get('[aria-label="common.pagination.previousPage"]');
+    const previous = () =>
+      wrapper.get('[aria-label="common.pagination.previousPage"]');
     const next = () => wrapper.get('[aria-label="common.pagination.nextPage"]');
     expect(previous().attributes("disabled")).toBeDefined();
     expect(next().attributes("disabled")).toBeUndefined();

@@ -309,6 +309,17 @@ def main():
         assert result.returncode != 0 and "imagetools create" not in log.read_text()
         assert not (root / "release-manifest.txt").exists()
 
+        # Exercise actual compatibility v30 local-context shape through all-nine
+        # signature verification and promotion (registry/cosign remain stubbed).
+        for service in MATRIX:
+            path = root / f"candidate-evidence-{service['name']}/{service['name']}.provenance.json"
+            proof = canonical(path)
+            parameters = proof["invocation"]["parameters"]
+            vcs = proof["metadata"]["https://mobyproject.org/buildkit@v1#metadata"]["vcs"]
+            parameters["compatibilityVersion"] = 30
+            parameters["root"] = {"configSource": {"path": "Dockerfile"}, "request": {
+                "args": {**parameters["args"], **{f"vcs:{key}": value for key, value in vcs.items()}}}}
+            path.write_text(json.dumps(proof))
         # All-nine happy path creates tags then writes a complete nine-entry manifest.
         state.write_text("{}"); log.write_text("")
         result = call(root, bindir, state, log, "--execute", **GITHUB_WRITER)

@@ -30,6 +30,19 @@ def request(url: str, *, headers: dict[str, str] | None = None) -> bytes:
         raise ValueError(f"registry request failed: {url}: {exc}") from exc
 
 
+def valid_local_root(parameters: dict, vcs: dict, args: dict) -> bool:
+    """Validate BuildKit compatibility v30's redundant local recipe metadata."""
+    if "root" not in parameters:
+        return True
+    root = parameters["root"]
+    return (parameters.get("compatibilityVersion") == 30
+            and isinstance(root, dict)
+            and root.get("configSource") == {"path": "Dockerfile"}
+            and isinstance(root.get("request"), dict)
+            and root["request"].get("args") == {
+                **args, **{f"vcs:{key}": value for key, value in vcs.items()}})
+
+
 def validate_predicate(predicate: object, source_sha: str, repository: str, dockerfile: str) -> dict:
     expected_sources = {
         f"git@github.com:{repository}.git",
@@ -54,7 +67,7 @@ def validate_predicate(predicate: object, source_sha: str, repository: str, dock
                 or invocation["configSource"].get("entryPoint") != "Dockerfile"
                 or not isinstance(parameters.get("frontend"), str) or not parameters["frontend"]
                 or not isinstance(args, dict)
-                or "root" in parameters
+                or not valid_local_root(parameters, vcs, args)
                 or any(key.startswith("vcs:") for key in args)
                 or not isinstance(locals_, list) or not locals_
                 or not all(isinstance(local, dict) and isinstance(local.get("name"), str) and local["name"] for local in locals_)

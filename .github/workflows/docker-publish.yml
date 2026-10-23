@@ -151,7 +151,9 @@ jobs:
           jq -e . "$SBOM_PATH" >/dev/null
           cosign sign --yes "$IMAGE_REF"
           cosign attest --yes --type spdxjson --predicate "$SBOM_PATH" "$IMAGE_REF"
-          cosign attest --yes --type slsaprovenance --predicate "$PROVENANCE_PATH" "$IMAGE_REF"
+          # The alias uses a typed SLSA serializer that drops BuildKit metadata.
+          # The explicit URI retains the full predicate under the same type.
+          cosign attest --yes --type https://slsa.dev/provenance/v0.2 --predicate "$PROVENANCE_PATH" "$IMAGE_REF"
           cosign verify --certificate-identity "$SIGNER_IDENTITY" --certificate-oidc-issuer "$SIGNER_ISSUER" "$IMAGE_REF" >/dev/null
           cosign verify-attestation --type spdxjson --certificate-identity "$SIGNER_IDENTITY" --certificate-oidc-issuer "$SIGNER_ISSUER" "$IMAGE_REF" >/dev/null
           cosign verify-attestation --type slsaprovenance --certificate-identity "$SIGNER_IDENTITY" --certificate-oidc-issuer "$SIGNER_ISSUER" "$IMAGE_REF" >/dev/null

@@ -114,8 +114,10 @@ if args[0] == "verify-attestation":
     root=pathlib.Path(os.environ["EVIDENCE_ROOT"])/("candidate-evidence-"+name)
     suffix="spdx" if kind == "spdxjson" else "provenance"
     predicate=json.loads((root/(name+"."+suffix+".json")).read_text())
-    if kind == "slsaprovenance":
-        predicate.pop("subject", None)  # Cosign v2.5.3 unmarshals typed SLSA v0.2 predicate.
+    if kind == "slsaprovenance" and os.environ.get("COSIGN_FAIL") == "drop-predicate-subject":
+        predicate.pop("subject", None)
+    if kind == "slsaprovenance" and os.environ.get("COSIGN_FAIL") == "dropped-buildkit-metadata":
+        predicate["metadata"].pop("https://mobyproject.org/buildkit@v1#metadata", None)
     subject=ref.split("@",1)[0]
     if os.environ.get("COSIGN_FAIL") == "wrong-subject": subject=subject+"/other"
     if os.environ.get("COSIGN_FAIL") == "wrong-source" and kind == "slsaprovenance":
@@ -277,7 +279,7 @@ def main():
             proof["subject"] = [{"name": f"{PREFIX}/{name}", "digest": {"sha256": DIGEST[7:]}}]
             provenance_path.write_text(json.dumps(proof))
         extra_provenance_subject(root)
-        extra_result = call(root, bindir, state, log)
+        extra_result = call(root, bindir, state, log, COSIGN_FAIL="drop-predicate-subject")
         assert extra_result.returncode != 0
         assert "verified slsaprovenance predicate differs from candidate evidence" in extra_result.stderr
         assert "verify-attestation" in log.read_text() and "imagetools create" not in log.read_text()
@@ -332,6 +334,11 @@ def main():
             rejected = assert_reject_without_write(root, bindir, state, log, None, COSIGN_FAIL=mode)
             assert "verified slsaprovenance predicate differs from candidate evidence" in rejected.stderr
             assert "verify-attestation" in log.read_text()
+        # Reproduce the legacy Cosign typed serializer dropping the exact
+        # BuildKit namespace used for source/revision/recipe validation.
+        rejected = assert_reject_without_write(root, bindir, state, log, None, COSIGN_FAIL="dropped-buildkit-metadata")
+        assert "BuildKit provenance source, revision, recipe, or build type mismatch" in rejected.stderr
+        assert "verify-attestation" in log.read_text()
         # All-nine happy path creates tags then writes a complete nine-entry manifest.
         state.write_text("{}"); log.write_text("")
         result = call(root, bindir, state, log, "--execute", **GITHUB_WRITER)

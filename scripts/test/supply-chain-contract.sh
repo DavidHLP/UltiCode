@@ -147,6 +147,8 @@ workflow = Path(sys.argv[1]).read_text()
 assert 'workflow_call: {}' in workflow and '\n  push:' not in workflow, 'publisher must run only as a reusable workflow'
 assert 'Retrieve BuildKit provenance for pushed digest' in workflow
 assert 'jq -n --arg source' not in workflow, 'publisher must not fabricate provenance'
+assert 'cosign attest --yes --type https://slsa.dev/provenance/v0.2 --predicate "$PROVENANCE_PATH"' in workflow, 'sign the complete BuildKit predicate without the lossy typed SLSA alias'
+assert 'cosign attest --yes --type slsaprovenance ' not in workflow
 build_step = workflow.split('      - name: Build and push digest-only candidate\n', 1)[1].split('      - name:', 1)[0]
 assert re.search(r'^          context: \.$', build_step, re.MULTILINE), 'publish must use checkout context for the validated BuildKit recipe/VCS metadata'
 step = re.search(r'      - name: Normalize image repository\n        id: normalize\n        run: echo "image_name=\$\{GITHUB_REPOSITORY,,\}" >> "\$GITHUB_OUTPUT"\n', workflow)

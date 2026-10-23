@@ -100,7 +100,7 @@ describe("GlobalRanking", () => {
 
     expect(rankNodes.map((node) => node.text())).toEqual(["2", "1", "3"]);
     expect(
-      rankNodes.every((node) => node.classes().includes("opacity-20")),
+      rankNodes.every((node) => node.classes().includes("tabular-nums")),
     ).toBe(true);
   });
 

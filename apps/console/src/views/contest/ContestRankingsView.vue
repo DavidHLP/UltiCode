@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Trophy } from "@lucide/vue";
+import { Trophy, Globe, MapPin } from "@lucide/vue";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
+import { Button } from "@ulticode/design-system/ui/button";
 import GlobalRanking from "./components/GlobalRanking.vue";
 import { useI18n } from "vue-i18n";
 import { useContestSocket } from "@/composables/contest/useContestSocket";
@@ -164,6 +165,29 @@ function loadMoreRankings(): void {
     </div>
 
     <div class="space-y-5">
+      <div class="inline-flex w-full rounded-lg bg-muted/50 p-1 sm:w-auto">
+        <Button
+          variant="ghost"
+          class="gap-2"
+          :aria-pressed="scope === 'global'"
+          :class="{ 'bg-background': scope === 'global' }"
+          @click="scope = 'global'"
+        >
+          <Globe class="h-4 w-4" />
+          {{ t("contest.rankings.global") }}
+        </Button>
+        <Button
+          variant="ghost"
+          class="gap-2"
+          :aria-pressed="scope === 'local'"
+          :class="{ 'bg-background': scope === 'local' }"
+          :disabled="!hasUserCountry"
+          @click="scope = 'local'"
+        >
+          <MapPin class="h-4 w-4" />
+          {{ t("contest.rankings.local") }}
+        </Button>
+      </div>
 
       <!-- Loading State -->
       <div

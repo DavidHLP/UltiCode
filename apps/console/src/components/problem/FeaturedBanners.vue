@@ -51,7 +51,7 @@ const CARD_CONTENT_BASE = "relative z-10 flex h-full flex-col p-3";
 const ICON_BASE =
   "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border";
 const BADGE_BASE =
-  "shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-medium";
+  "shrink-0 rounded-md border px-1.5 py-0.5 text-xs font-medium";
 const GLOW_BASE =
   "absolute rounded-full blur-3xl transition-all duration-500 group-hover:scale-110";
 

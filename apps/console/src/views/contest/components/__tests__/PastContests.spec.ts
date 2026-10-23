@@ -18,7 +18,7 @@ vi.mock("@/i18n/utils/locale", () => ({
 }));
 
 describe("PastContests", () => {
-  it("renders the contest partner marker without interactive affordances", () => {
+  it("renders the past-contest heading without an unrelated partner marker", () => {
     const wrapper = mount(PastContests, {
       props: {
         contests: [],
@@ -27,12 +27,10 @@ describe("PastContests", () => {
         totalPages: 1,
       },
     });
-    const partner = wrapper.get('[data-slot="badge"]');
-
-    expect(partner.text()).toBe("contest.list.partner");
-    expect(partner.element.tagName.toLowerCase()).not.toBe("button");
-    expect(partner.attributes("tabindex")).toBeUndefined();
-    expect(partner.classes()).not.toContain("cursor-pointer");
+    expect(wrapper.get("h2").text()).toBe("contest.list.past");
+    expect(wrapper.text()).toContain("contest.list.pastSubtitle");
+    expect(wrapper.text()).not.toContain("contest.list.partner");
+    expect(wrapper.find('[data-slot="badge"]').exists()).toBe(false);
   });
 
   it("retains the complete date and provides keyboard-accessible contest links", () => {
@@ -78,7 +76,7 @@ describe("PastContests", () => {
     expect(card.get('[data-slot="button"]').element.tagName).toBe("SPAN");
   });
 
-  it("localizes the table headers and bounds an empty pager", () => {
+  it("localizes the table headers and hides empty or single-page pagination", async () => {
     const wrapper = mount(PastContests, {
       props: {
         contests: [],
@@ -88,17 +86,21 @@ describe("PastContests", () => {
       },
     });
     expect(wrapper.text()).toContain("contest.list.tableHeaders.contest");
-    expect(
-      wrapper
-        .get('[aria-label="common.pagination.previousPage"]')
-        .attributes("disabled"),
-    ).toBeDefined();
-    expect(
-      wrapper
-        .get('[aria-label="common.pagination.nextPage"]')
-        .attributes("disabled"),
-    ).toBeDefined();
-    expect(wrapper.get("[aria-current=page]").text()).toBe("1");
+    expect(wrapper.find('[aria-label="common.pagination.previousPage"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="common.pagination.nextPage"]').exists()).toBe(false);
+    await wrapper.setProps({ totalPages: 1 });
+    expect(wrapper.find("[aria-current=page]").exists()).toBe(false);
+    await wrapper.setProps({ totalPages: 3 });
+    const previous = () => wrapper.get('[aria-label="common.pagination.previousPage"]');
+    const next = () => wrapper.get('[aria-label="common.pagination.nextPage"]');
+    expect(previous().attributes("disabled")).toBeDefined();
+    expect(next().attributes("disabled")).toBeUndefined();
+    await next().trigger("click");
+    expect(wrapper.emitted("update:currentPage")).toEqual([[2]]);
+    await wrapper.setProps({ currentPage: 3 });
+    expect(previous().attributes("disabled")).toBeUndefined();
+    expect(next().attributes("disabled")).toBeDefined();
+    expect(wrapper.get("[aria-current=page]").text()).toBe("3");
     expect(en.list.tableHeaders).toEqual({
       contest: "Contest",
       date: "Date",

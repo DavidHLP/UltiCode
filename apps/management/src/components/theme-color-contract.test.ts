@@ -54,13 +54,13 @@ describe('management semantic color contracts', () => {
     expect(input).toContain('rounded-lg')
   })
 
-  it('uses semantic locale markers instead of emoji flags', () => {
+  it('uses native language names and a current-locale indicator', () => {
     const switcher = readSource('src/components/LanguageSwitcher.vue')
     const localeTypes = readSource('src/i18n/types.ts')
 
-    expect(switcher).toContain("localeConfig.code.split('-')[0].toUpperCase()")
-    expect(switcher).toContain('bg-muted')
-    expect(switcher).toContain('border-input')
+    expect(switcher).toContain('{{ localeConfig.nativeName }}')
+    expect(switcher).toContain('@click="setLocale(localeConfig.code)"')
+    expect(switcher).toContain('isCurrentLocale(localeConfig.code)')
     expect(switcher).toContain('@ulticode/design-system/ui/')
     expect(switcher).not.toContain('localeConfig.flag')
     expect(switcher).not.toContain('bg-[var(--primary)]')

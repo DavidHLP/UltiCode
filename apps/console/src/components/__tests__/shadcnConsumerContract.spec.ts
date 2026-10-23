@@ -63,9 +63,11 @@ describe("official shared component consumers", () => {
     );
   });
 
-  it("keeps locale markers textual and top-level navigation active for nested routes", () => {
+  it("keeps native language names textual and top-level navigation active for nested routes", () => {
     const language = app("components/LanguageSwitcher.vue");
-    expect(language).toContain('localeConfig.code.split("-")[0].toUpperCase()');
+    expect(language).toContain("{{ localeConfig.nativeName }}");
+    expect(language).toContain("@click=\"setLocale(localeConfig.code)\"");
+    expect(language).toContain("isCurrentLocale(localeConfig.code)");
     expect(language).not.toContain("localeConfig.flag");
     const layout = app("features/sider/AppLayout.vue");
     for (const path of ["/problemset", "/forum", "/contest"])

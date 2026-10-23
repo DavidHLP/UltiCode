@@ -232,8 +232,9 @@ function handlePostSave(postId: string, isSaved: boolean) {
 
 <template>
   <div
-    class="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 pt-8 pb-0 -mb-2 animate-in fade-in slide-in-from-bottom-4 duration-500"
+    class="@container/forum mx-auto w-full max-w-7xl min-w-0 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500"
   >
+    <div class="grid min-w-0 grid-cols-1 items-start gap-6 @3xl/forum:grid-cols-[minmax(0,1fr)_18rem]">
     <!-- Main Feed -->
     <main class="w-full min-w-0 flex-1 space-y-6">
       <div
@@ -314,10 +315,11 @@ function handlePostSave(postId: string, isSaved: boolean) {
 
     <!-- Right Sidebar -->
     <ForumSidebar
-      class="sticky top-24"
+      class="!hidden !w-full @3xl/forum:!block @3xl/forum:sticky @3xl/forum:top-20"
       :community="currentCommunity"
       :rules="communityRules"
       :links="communityLinks"
     />
+    </div>
   </div>
 </template>

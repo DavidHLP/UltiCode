@@ -434,26 +434,27 @@ const handleMobileTOCClick = (id: string) => {
       <!-- Table of Contents Widget -->
       <div
         v-if="headings.length > 1"
-        class="rounded-xl border bg-card text-card-foreground overflow-hidden bg-card border border-border p-4 self-stretch w-full max-w-[16rem]"
+        class="w-full max-w-[16rem] self-stretch px-2 py-3"
       >
         <div
-          class="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
+          class="mb-3 px-3 text-xs font-medium text-muted-foreground select-none"
         >
           {{ t("forum.sidebar.toc") }}
         </div>
-        <nav class="flex flex-col gap-1">
+        <nav :aria-label="t('forum.sidebar.toc')" class="flex flex-col gap-0.5 border-l border-border">
           <Button
-            variant="outline"
+            variant="ghost"
             v-for="h in headings"
             :key="h.id"
             type="button"
-            class="text-left py-1 px-2 select-none cursor-pointer"
+            class="h-auto min-h-8 w-full justify-start rounded-l-none border-l-2 border-transparent px-3 py-1.5 text-left text-sm whitespace-normal select-none cursor-pointer"
+            :aria-current="activeHeadingId === h.id ? 'location' : undefined"
             :class="[
               activeHeadingId === h.id
-                ? 'border-primary text-primary font-bold bg-primary/5'
-                : 'border-transparent text-muted-foreground font-medium',
+                ? 'border-l-primary bg-accent text-accent-foreground font-medium'
+                : 'text-muted-foreground hover:text-foreground',
             ]"
-            :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"
+            :style="{ paddingLeft: h.level === 3 ? '1.5rem' : '0.75rem' }"
             @click="scrollToHeading(h.id)"
           >
             {{ h.text }}

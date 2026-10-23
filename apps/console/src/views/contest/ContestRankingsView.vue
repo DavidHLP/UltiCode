@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Trophy, Globe, MapPin } from "@lucide/vue";
+import { Trophy } from "@lucide/vue";
 import { useContestRankingStore } from "@/stores/contestRanking";
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
-import { Separator } from "@ulticode/design-system/ui/separator";
-import { Button } from "@ulticode/design-system/ui/button";
 import GlobalRanking from "./components/GlobalRanking.vue";
 import { useI18n } from "vue-i18n";
 import { useContestSocket } from "@/composables/contest/useContestSocket";
@@ -147,7 +145,7 @@ function loadMoreRankings(): void {
 
 <template>
   <div
-    class="max-w-7xl mx-auto w-full min-w-0 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10"
+    class="max-w-5xl mx-auto w-full min-w-0 space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10"
   >
     <div
       class="flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -165,37 +163,7 @@ function loadMoreRankings(): void {
       </div>
     </div>
 
-    <Separator />
-
-    <div class="space-y-6">
-      <!-- Scope Toggle -->
-      <div class="inline-flex bg-muted/50 p-1 h-12 rounded-lg w-full sm:w-auto">
-        <Button
-          variant="ghost"
-          class="px-6 gap-2"
-          :aria-pressed="scope === 'global'"
-          :class="{
-            'bg-background shadow-[var(--shadow-float)]': scope === 'global',
-          }"
-          @click="scope = 'global'"
-        >
-          <Globe class="h-4 w-4" />
-          <span>{{ t("contest.rankings.global") }}</span>
-        </Button>
-        <Button
-          variant="ghost"
-          class="px-6 gap-2"
-          :aria-pressed="scope === 'local'"
-          :class="{
-            'bg-background shadow-[var(--shadow-float)]': scope === 'local',
-          }"
-          :disabled="!hasUserCountry"
-          @click="scope = 'local'"
-        >
-          <MapPin class="h-4 w-4" />
-          <span>{{ t("contest.rankings.local") }}</span>
-        </Button>
-      </div>
+    <div class="space-y-5">
 
       <!-- Loading State -->
       <div
@@ -211,9 +179,10 @@ function loadMoreRankings(): void {
       </div>
 
       <!-- Rankings Content -->
-      <div v-else class="grid min-w-0 gap-8 lg:grid-cols-12">
-        <div class="min-w-0 lg:col-span-8 lg:col-start-3">
+      <div v-else class="min-w-0">
+        <div class="min-w-0">
           <GlobalRanking
+            :show-header="false"
             :rankings="globalRankings"
             :has-more="hasMoreRankings"
             :loading-more="loadingMoreRankings"

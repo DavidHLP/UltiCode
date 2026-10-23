@@ -8,6 +8,8 @@ import { useI18n } from "vue-i18n";
 withDefaults(
   defineProps<{
     rankings: GlobalRankingEntry[];
+    compact?: boolean;
+    showHeader?: boolean;
     scope?: "global" | "local";
     error?: boolean;
     hasMore?: boolean;
@@ -16,6 +18,8 @@ withDefaults(
   }>(),
   {
     scope: "global",
+    compact: false,
+    showHeader: true,
     error: false,
     hasMore: false,
     loadingMore: false,
@@ -45,8 +49,9 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
   <div class="min-w-0 space-y-6">
     <!-- Podium Section -->
     <Card class="min-w-0">
-      <div class="p-6 text-center space-y-6">
+      <div class="p-4 text-center space-y-4">
         <div
+          v-if="showHeader"
           class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-dashed pb-3"
         >
           <h2
@@ -83,7 +88,7 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
         </p>
         <template v-else>
           <!-- Podium Visual -->
-          <div class="flex items-end justify-center gap-4 min-h-56 pt-10 pb-2">
+          <div v-if="!compact" class="mx-auto flex max-w-xl items-end justify-center gap-4 pt-8 pb-2">
             <!-- 2nd Place -->
             <div
               class="min-w-0 flex flex-1 flex-col items-center gap-1 relative group cursor-pointer"
@@ -127,13 +132,13 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
                 }}</span>
               </div>
               <div
-                class="h-20 w-full bg-muted/60 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-border border-b-0 relative overflow-hidden mt-1"
+                class="h-8 w-full bg-muted/60 rounded-lg border border-border relative overflow-hidden mt-1"
               >
                 <div
                   class="absolute inset-0 bg-background/5 skew-y-12 opacity-50"
                 ></div>
                 <div
-                  class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
+                  class="relative flex h-full items-center justify-center text-xl leading-none font-semibold tabular-nums text-muted-foreground"
                   data-testid="podium-rank-number"
                 >
                   2
@@ -189,13 +194,13 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
                 }}</span>
               </div>
               <div
-                class="h-28 w-full bg-status-warning-mark/5 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-status-warning-mark/30 border-b-0 relative overflow-hidden mt-1"
+                class="h-12 w-full bg-status-warning-mark/5 rounded-lg border border-status-warning-mark/30 relative overflow-hidden mt-1"
               >
                 <div
                   class="absolute inset-0 bg-background/10 skew-y-12 opacity-50"
                 ></div>
                 <div
-                  class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
+                  class="relative flex h-full items-center justify-center text-2xl leading-none font-semibold tabular-nums text-foreground"
                   data-testid="podium-rank-number"
                 >
                   1
@@ -246,13 +251,13 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
                 }}</span>
               </div>
               <div
-                class="h-12 w-full bg-[var(--rank-third)]/5 rounded-lg shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--rank-third)]/30 border-b-0 relative overflow-hidden mt-1"
+                class="h-8 w-full bg-[var(--rank-third)]/5 rounded-lg border border-[var(--rank-third)]/30 relative overflow-hidden mt-1"
               >
                 <div
                   class="absolute inset-0 bg-background/5 skew-y-12 opacity-50"
                 ></div>
                 <div
-                  class="absolute bottom-0 w-full text-center pb-2 opacity-20 font-black text-4xl text-foreground font-mono"
+                  class="relative flex h-full items-center justify-center text-xl leading-none font-semibold tabular-nums text-muted-foreground"
                   data-testid="podium-rank-number"
                 >
                   3
@@ -265,17 +270,18 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
             role="region"
             :aria-label="t('contest.ranking.title')"
             tabindex="0"
-            class="overflow-x-auto"
+            class="max-h-[60vh] overflow-auto"
+            :class="{ 'max-h-96': compact }"
           >
             <!-- Table Column Headers -->
             <div
-              class="min-w-96 flex items-center gap-3 px-2 py-2 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-lg mt-4"
+              class="sticky top-0 z-10 flex items-center gap-2 bg-card px-2 py-2 text-xs font-medium border-b border-border text-muted-foreground"
             >
               <span class="w-6 text-center">#</span>
               <span class="flex-1 text-left">{{
                 t("contest.ranking.user")
               }}</span>
-              <span class="w-20 text-center">{{
+              <span v-if="!compact" class="w-20 text-center">{{
                 t("contest.ranking.contests")
               }}</span>
               <span class="w-20 text-right">{{
@@ -284,15 +290,15 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
             </div>
 
             <!-- Rest of List -->
-            <div class="min-w-96 space-y-1 divide-y divide-border/40 mt-1">
+            <div class="space-y-1 divide-y divide-border/40 mt-1">
               <div
-                v-for="(user, index) in rankings.slice(3)"
+                v-for="(user, index) in compact ? rankings : rankings.slice(3)"
                 :key="user.username"
                 class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer group"
               >
                 <span
                   class="text-xs font-bold font-mono w-6 text-center text-muted-foreground group-hover:text-foreground transition-colors"
-                  >{{ index + 4 }}</span
+                  >{{ index + (compact ? 1 : 4) }}</span
                 >
                 <div class="flex-1 flex items-center gap-2 min-w-0 text-left">
                   <div
@@ -310,9 +316,11 @@ const rankingInitials = (ranking: GlobalRankingEntry): string => {
                     class="min-w-0 break-words text-sm font-medium group-hover:text-primary transition-colors"
                   >
                     {{ user.name || user.username }}
+                    <span v-if="compact" class="block text-xs font-normal text-muted-foreground">{{ t("contest.ranking.attended", { n: user.contestsAttended || 0 }) }}</span>
                   </span>
                 </div>
                 <span
+                  v-if="!compact"
                   class="w-20 text-center text-xs font-mono text-muted-foreground"
                 >
                   {{ user.contestsAttended || 0 }}

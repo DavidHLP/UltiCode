@@ -90,6 +90,7 @@ function loadMoreRankings(): void {
           {{ t("contest.list.subtitle") }}
         </p>
       </div>
+      <span class="shrink-0 self-start rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground md:self-center">{{ t("contest.list.partner") }}</span>
     </div>
 
     <Separator />
@@ -109,11 +110,17 @@ function loadMoreRankings(): void {
     <div v-else class="space-y-8">
       <RunningContests :contests="runningContests" />
       <UpcomingContests :contests="upcomingContests" />
+      <p v-if="contestStore.error" role="alert" class="text-sm text-destructive">{{ t("contest.list.loadError") }}</p>
+      <section v-else-if="!runningContests.length && !upcomingContests.length" class="rounded-lg border border-border bg-card p-5">
+        <h2 class="text-lg font-semibold">{{ t("contest.list.running") }} / {{ t("contest.list.upcoming") }}</h2>
+        <p class="mt-2 text-sm text-muted-foreground">{{ t("contest.list.noUpcomingHint") }}</p>
+      </section>
       <div
-        class="grid min-w-0 gap-8 @7xl/contest-home:grid-cols-[minmax(27rem,1fr)_minmax(0,2fr)]"
+      class="grid min-w-0 items-start gap-6 @3xl/contest-home:grid-cols-[minmax(0,1fr)_18rem]"
       >
-        <div class="min-w-0">
+        <div class="order-2 min-w-0 @3xl/contest-home:sticky @3xl/contest-home:top-20">
           <GlobalRanking
+            compact
             :rankings="globalRankings"
             :has-more="hasMoreRankings"
             :loading-more="loadingMoreRankings"
@@ -122,8 +129,11 @@ function loadMoreRankings(): void {
             :error="Boolean(rankingError)"
             @retry="retryRankings"
           />
+          <RouterLink to="/contest/rankings" class="mt-3 block text-center text-sm text-muted-foreground hover:text-foreground">
+            {{ t("contest.list.viewAll") }} →
+          </RouterLink>
         </div>
-        <div class="min-w-0">
+        <div class="order-1 min-w-0">
           <PastContests
             :contests="pastContests"
             :loading="pastLoading"

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Badge } from "@ulticode/design-system/ui/badge";
 import { Button } from "@ulticode/design-system/ui/button";
 import {
   ChevronLeft,
@@ -58,22 +57,15 @@ const visiblePages = computed(() => {
 <template>
   <div class="@container/past min-w-0 space-y-6">
     <!-- Header -->
-    <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="space-y-1">
-        <h2 class="text-2xl font-bold tracking-tight">
+        <h2 class="text-lg font-semibold tracking-tight">
           {{ t("contest.list.past") }}
         </h2>
         <p class="text-sm text-muted-foreground">
           {{ t("contest.list.pastSubtitle") }}
         </p>
       </div>
-      <Badge
-        variant="outline"
-        class="h-7 gap-1.5 rounded-lg bg-background px-2.5 dark:bg-input/30"
-      >
-        <Trophy aria-hidden="true" class="size-3 text-status-warning-mark" />
-        {{ t("contest.list.partner") }}
-      </Badge>
     </div>
     <div
       v-if="error"
@@ -88,7 +80,7 @@ const visiblePages = computed(() => {
 
     <!-- Contest List -->
     <div
-      class="flex flex-col rounded-lg border border-border bg-card text-card-foreground shadow-[3px_3px_0px_0px_var(--border)] overflow-hidden"
+      class="flex flex-col rounded-lg border border-border bg-card text-card-foreground overflow-hidden"
     >
       <!-- Table Column Headers (Hidden on Mobile) -->
       <div
@@ -102,9 +94,6 @@ const visiblePages = computed(() => {
         </div>
         <div class="w-24 text-center">
           {{ t("contest.list.tableHeaders.duration") }}
-        </div>
-        <div class="w-24 text-center">
-          {{ t("contest.list.tableHeaders.status") }}
         </div>
         <div class="w-40 text-right">
           {{ t("contest.list.tableHeaders.action") }}
@@ -164,7 +153,7 @@ const visiblePages = computed(() => {
 
           <!-- Status -->
           <div
-            class="w-auto @3xl/past:w-24 flex justify-start @3xl/past:justify-center"
+            class="hidden"
           >
             <span
               class="inline-flex items-center border border-border bg-muted/65 text-muted-foreground px-2 py-0.5 text-xs font-bold uppercase tracking-wide rounded-lg"
@@ -198,6 +187,7 @@ const visiblePages = computed(() => {
 
     <!-- Pagination -->
     <div
+      v-if="totalPages > 1"
       class="mx-auto grid w-fit max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 pt-4"
     >
       <Button

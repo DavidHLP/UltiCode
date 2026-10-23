@@ -17,18 +17,24 @@ if (input.tool_name === 'apply_patch') {
   files.push(toolInput.file_path);
 }
 
+const appFiles = { console: [], management: [] };
 for (const filename of new Set(files)) {
   const path = resolve(input.cwd ?? root, filename);
   if (!existsSync(path) || !statSync(path).isFile()) continue;
   const file = realpathSync(path);
-  for (const app of ['console', 'management']) {
+  for (const app of Object.keys(appFiles)) {
     const appRoot = resolve(root, 'apps', app);
     const local = relative(appRoot, file);
     if (isAbsolute(local) || local === '..' || local.startsWith(`..${sep}`)) continue;
-    execFileSync('pnpm', ['exec', 'prettier', '--write', '--ignore-unknown', '--', local], {
-      cwd: appRoot,
-      stdio: 'inherit',
-    });
+    appFiles[app].push(local);
     break;
   }
+}
+
+for (const [app, paths] of Object.entries(appFiles)) {
+  if (paths.length === 0) continue;
+  execFileSync('pnpm', ['exec', 'prettier', '--write', '--ignore-unknown', '--', ...paths], {
+    cwd: resolve(root, 'apps', app),
+    stdio: 'inherit',
+  });
 }

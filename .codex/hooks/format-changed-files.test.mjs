@@ -20,7 +20,7 @@ test('formats only changed app files and passes filenames without shell evaluati
     for (const name of names) writeFileSync(join(root, name), '');
     symlinkSync(join(root, 'outside.vue'), join(root, 'apps/console/escape.vue'));
     const run = (input, env = {}) => spawnSync(process.execPath, [join(hooks, 'format-changed-files.mjs')], {
-      input: JSON.stringify({ cwd: root, ...input }),
+      input: JSON.stringify({ cwd: root, tool_response: 'Success. Updated the following files:\n', ...input }),
       encoding: 'utf8',
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, CALL_LOG: log, ...env },
     });
@@ -31,6 +31,9 @@ test('formats only changed app files and passes filenames without shell evaluati
       { cwd: join(root, 'apps/console'), args: ['exec', 'prettier', '--write', '--ignore-unknown', '--', 'a $(touch injected).vue'] },
       { cwd: join(root, 'apps/management'), args: ['exec', 'prettier', '--write', '--ignore-unknown', '--', '-options.vue', 'other.vue'] },
     ]);
+    const beforeFailure = readFileSync(log, 'utf8');
+    assert.equal(run({ tool_name: 'apply_patch', tool_input: { command: `*** Update File: ${names[0]}\n` }, tool_response: 'apply_patch verification failed: Failed to find expected lines' }).status, 0);
+    assert.equal(readFileSync(log, 'utf8'), beforeFailure);
     assert.notEqual(run({ tool_name: 'Edit', tool_input: { file_path: names[0] } }, { FORMAT_EXIT: '1' }).status, 0);
   } finally {
     rmSync(root, { recursive: true, force: true });

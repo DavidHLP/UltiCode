@@ -9,6 +9,10 @@ const toolInput = input.tool_input;
 const files = [];
 
 if (input.tool_name === 'apply_patch') {
+  const result = input.tool_response;
+  const output = typeof result === 'string' ? result : result?.output ?? result?.stdout;
+  // shortcut: recognizes Codex's current success receipt, update if that output contract changes.
+  if (typeof output !== 'string' || !output.startsWith('Success. Updated the following files:\n')) process.exit(0);
   const patch = typeof toolInput === 'string' ? toolInput : toolInput?.command ?? '';
   for (const match of patch.matchAll(/^\*\*\* (?:Add File|Update File|Move to): (.+)$/gm)) {
     files.push(match[1]);

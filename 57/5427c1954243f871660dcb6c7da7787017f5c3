@@ -1,0 +1,23 @@
+services/app/app-web/pom.xml
+  s_0c602f7d95bd71::t_5df12abba1075a 242,256
+services/core/pom.xml
+  s_0c602f7d95bd71::t_a1c71be64f162a 122,134
+services/pom.xml
+  s_0c602f7d95bd71::t_7af619bbaff821 79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "575427c1954243f871660dcb6c7da7787017f5c3",
+  "prompts": {},
+  "sessions": {
+    "s_0c602f7d95bd71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "238654f5-5c7e-40d5-82dd-0e3a1fcc2edc",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -15,22 +15,22 @@
   },
   {
     "doc_id": "repository-architecture",
-    "version": "sha256-f1ea6b05896f8228864a2b5fb8f239d31a73f15e28d2757beee339f166ed7074",
-    "chunk_id": "repository-architecture:sha256-f1ea6b05896f8228864a2b5fb8f239d31a73f15e28d2757beee339f166ed7074:1",
+    "version": "sha256-9ae8657d7a83a51d8a5850b3bb724716d9d3ad63af94f8f062fa45ad11a48d90",
+    "chunk_id": "repository-architecture:sha256-9ae8657d7a83a51d8a5850b3bb724716d9d3ad63af94f8f062fa45ad11a48d90:1",
     "source_path": "docs/ARCHITECTURE.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
     "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
     "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
-    "source_position": "lines 160-160",
+    "source_position": "lines 161-161",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
     "content_digest": "sha256:7755ad4aef38f12ba6b28d1e631c0a67a5a0a2c24fce5c16ee515f67deed5857"
   },
   {
     "doc_id": "repository-development",
-    "version": "sha256-d75c94f10cf39cf8edffead09646493eba49bca1d37af1140cbd778584c1c427",
-    "chunk_id": "repository-development:sha256-d75c94f10cf39cf8edffead09646493eba49bca1d37af1140cbd778584c1c427:1",
+    "version": "sha256-ef87c2295aaa068fb36c14fc74acb7a0b7b11f6d7777683b53c5298f09692e60",
+    "chunk_id": "repository-development:sha256-ef87c2295aaa068fb36c14fc74acb7a0b7b11f6d7777683b53c5298f09692e60:1",
     "source_path": "docs/DEVELOPMENT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -39,7 +39,7 @@
     "source_position": "lines 5-14",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
-    "content_digest": "sha256:66a4a01de85f21052d5d603241ac54d7a0e6cc5ef5a2b01b935816a37e15ce2e"
+    "content_digest": "sha256:ac5c3f9a6fa17e2b771aff9ef6e737885331a81e93498cc7e4acd70905f80d08"
   },
   {
     "doc_id": "repository-operations",

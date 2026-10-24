@@ -257,19 +257,19 @@ any user code runs:
 
 ### 8.1 JVM conformance test (no Docker)
 
-`services/app/app-web/src/test/java/com/ulticode/modules/submission/contract/DFormEnvelopeContractTest.java`
+`services/judge-runtime/src/test/java/com/ulticode/modules/submission/contract/DFormEnvelopeContractTest.java`
 
 * Loads `golden/envelope.json` from the contract dir (path relative to the
   harness contract, mirrored into `src/test/resources` for the build).
-* Asserts `CodeExecutionHelperImpl.parseDEnvelope(...)` decodes it into
-  expected `RunResultDTO.RunCaseResult` values.
+* Asserts `DFormEnvelopeCodec.parseDEnvelope(...)` decodes it into
+  expected `JudgeRunResponse.RunCaseResult` values.
 * Asserts `buildDBatchInputsJson(...)` / `buildDInputsJson(...)` produce
   JSON that contains every field the schema requires (top-level +
   per-case).
 * Asserts every `status` value in §4 decodes via
   `SubmissionStatusCodec.fromWire(...)`.
 
-Runs in the regular unit-test lane (`./mvnw test`).
+Runs in the regular unit-test lane (`cd services && ./mvnw test`).
 
 ### 8.2 Sandbox conformance runner (manual / build-time)
 

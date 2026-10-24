@@ -1,118 +1,42 @@
-# UltiCode Garden Design System
+# Shared UI implementation reference
 
-Canonical visual reference from the standalone `apps/landing/src/views/landing/`
-components (LandingView, HeroSection, ProductProofSection, UseCasesSection,
-HumanControlSection, FinalStorySection, LandingHeader, LandingFooter). Landing
-owns its page, styles, copy, assets, and typography and does not import the shared
-theme or design system. Other apps consume their own compatible shared tokens.
-Implementation of the shared contracts lives in:
+The filename is retained for existing references. The former Garden/Solarized
+specification no longer describes the shared Console/Management implementation.
+Landing retains its independent design; its colors, typography, illustrations
+and motion are not the shared UI contract.
 
-- `packages/design-system/style.css` (color / radius / shadow tokens, light + dark)
-- `packages/theme/src/typography.css` (font families, sizes, type roles)
-- `packages/design-system/src/palette.ts` (runtime palette bridge for ECharts/Monaco)
+## Current sources of truth
 
-## 1. Palette - Light ("Parchment Garden")
+| Concern | Implementation |
+| --- | --- |
+| Semantic light/dark colors, appearance overrides, radii and layout | [style.css](../style.css) |
+| Appearance options, defaults and validation | [appearance-model.ts](../../theme/src/appearance-model.ts) |
+| Account-scoped storage and preview/apply/cancel | [appearance.ts](../../theme/src/appearance.ts) |
+| Shared typography | [typography.css](../../theme/src/typography.css) |
+| Integrated component implementations | [src/components/ui](../src/components/ui) |
+| Renderer fallbacks and CSS color conversion | [palette.ts](../src/palette.ts) |
+| Chart palette resolution | [chartPalette.ts](../src/chartPalette.ts) |
+| Monaco theme adapter | [monaco-theme.ts](../../../apps/console/src/utils/monaco-theme.ts) |
+| Presentation color checks | [color-contract.test.mjs](../test/color-contract.test.mjs) |
 
-Raw bridge scale (historical variable names `--solarized-*` are kept for
-compatibility; the values below replace Solarized):
+## Integration rules
 
-| Token                | Value     | Role                                  |
-| -------------------- | --------- | ------------------------------------- |
-| `--solarized-base03` | `#1c2412` | deepest olive ink; dark canvas anchor |
-| `--solarized-base02` | `#26301b` | dark elevated surface                 |
-| `--solarized-base01` | `#545c45` | brand olive; muted text on light      |
-| `--solarized-base00` | `#6a7259` | control borders, inputs, focus ring   |
-| `--solarized-base0`  | `#838f81` | dim sage-gray text                    |
-| `--solarized-base1`  | `#a2afa9` | sage                                  |
-| `--solarized-base2`  | `#eae8d8` | parchment highlight tint              |
-| `--solarized-base3`  | `#e3e1d1` | parchment page background             |
+Consume public semantic tokens and exported components. Do not reproduce
+hardcoded palette tables in applications or treat renderer fallback values as
+the active theme. The CSS foundation uses neutral OKLCH colors; allowlisted
+appearance choices adjust base, accent, chart, font, radius, density, menu and
+mode. The default medium radius is `0.625rem`, and the radius ladder is derived
+by multiplication rather than the former fixed Garden values.
 
-Semantic light mappings:
+Theme owns DOM application, account selection, browser persistence and
+bootstrap. Shared settings preview is reversible; Apply saves only when
+persistence succeeds, and Cancel restores the saved appearance. Landing does
+not participate in this lifecycle.
 
-- `--background: #e3e1d1`, `--surface-elevated/--card/--popover: #f7f6f0`
-- `--foreground: #19220e`, `--foreground-muted: #545c45`, dim: `#838f81`
-- `--primary: #545c45` (hover `#3e4433`), `--primary-foreground: #f7f6f0`
-- `--border-subtle: rgba(84,92,69,0.18)` via color-mix
-- Sky accent fill `#92b3cf`; readable info ink `#46769b`
-- Hero accent greens: dot `#588e67`, moss `#3f683b`; ochre `#6e5b28`; rust `#8f4822`
+Renderer adapters resolve computed semantic tokens with `readCssColor` and
+`UI_PALETTE` fallbacks. Status color needs a redundant non-color indication.
+Static color checks do not establish contrast or browser accessibility; validate
+those against the actual selected appearance.
 
-Status accents (light): success `#588e67`, warning `#9c7a14`, error `#8f4822`,
-info `#46769b`, special `#6c71c4`; marks are color-mixed toward base03 ink for
-WCAG AA; surfaces mix ~14% of the accent into `--surface`.
-
-## 2. Palette - Dark ("Night Garden")
-
-Derived dark variant consistent with the landing mood:
-
-- background `#161a10`, elevated/card/popover `#1f2617`, highlight `#26301b`
-- foreground `#e3e1d1`, muted `#a2afa9`
-- primary control inverted: parchment `#e3e1d1` on ink `#1c2412`
-- status marks lifted by mixing each accent toward base2 parchment
-
-## 3. Geometry
-
-- Radius ladder from `--radius: 0.5rem`: sm = 4px, md = 6px, lg = 8px (controls),
-  xl = calc(+12px) = 20px (cards/panels). Landing uses small=4, control=8,
-  card/panel=20.
-- Shadows: subtle `0 4px 20px -4px rgba(25,34,14,.10)`;
-  elevated/hover `0 12px 36px -8px rgba(25,34,14,.16)`.
-- The unprofiled foundation uses 1.6 line-height; active locale profiles tune
-  body/control leading and display tracking for zh-CN or en-US below.
-
-### 3.1 Locale metric profiles
-
-The shared Console/Management locale lifecycle writes `html[lang]`; the following
-profile values are selected by that attribute for those apps. Standalone Landing
-owns equivalent locale metrics in its own stylesheet and does not consume this
-package.
-
-| Locale  | Page gutter | Section gap | Control gap | Control height |       Panel padding |
-| ------- | ----------: | ----------: | ----------: | -------------: | ------------------: |
-| `zh-CN` |        1rem |     1.25rem |    0.375rem |         2.5rem | 0.625rem / 0.875rem |
-| `en-US` |     1.25rem |      1.5rem |      0.5rem |        2.25rem |    0.5rem / 0.75rem |
-
-The values are exposed as `--uc-layout-*` and `--uc-component-*` variables in
-`packages/design-system/style.css`; `.uc-page-main`, `.uc-page-container`,
-`.uc-page-stack`, terminal cards, tabs, and inputs consume them.
-
-## 4. Typography
-
-These font stacks are the shared Console/Management typography contract. The
-standalone Landing application owns equivalent font tokens locally:
-
-- `zh-CN` display/headings: `"Noto Serif SC", "Songti SC", "SimSun", "Instrument Serif", "Newsreader", Georgia, serif`; UI/body: `"Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Inter", system-ui, ...`
-- `en-US` display/headings: `"Instrument Serif", "Newsreader", Georgia, "Noto Serif SC", serif`; UI/body: `"Inter", system-ui, ... "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`
-- Code/data: `"JetBrains Mono", "Fira Code", monospace` with CJK fallbacks
-- The previous project-wide LXGW WenKai (楷体) contract is retired; all
-  `--uc-font-*` roles, Tailwind `font-mono`, Monaco editor fonts, and chart
-  font families now resolve through the stacks above.
-- Page titles and section titles use the display serif via
-  `--uc-font-display`.
-
-The shared theme profiles use 1.65/1.35/1.45 normal/tight/snug leading for
-`zh-CN` and 1.5/1.25/1.35 for `en-US`; Landing defines matching metrics in its
-own stylesheet. Console/Management locale switching uses the shared lifecycle;
-Landing updates its own document language and persists its own preference.
-
-Font loading is centralized in `packages/theme/src/typography.css`
-(jsDelivr @fontsource imports); app `index.html` Google Fonts links mirror it.
-
-## 5. Texture & Motion (app-wide)
-
-- Paper grain: fixed full-viewport dot grid
-  (`radial-gradient(ink 1px, transparent 0)` on a 4px tile) at opacity 0.035,
-  pointer-events none - exposed as `.paper-texture-overlay` from the design
-  system and mounted once per app root.
-- Reveal-on-scroll: `opacity 0 -> 1`, `translateY(18px) -> 0`,
-  0.75s `cubic-bezier(0.16, 1, 0.3, 1)`, always disabled under
-  `prefers-reduced-motion`. Utility class `.reveal-on-scroll` ships globally;
-  pages opt in per element.
-- The landing blueprint side frames stay landing-only decoration.
-
-## 6. Compatibility notes
-
-- `--solarized-*` custom property names are historical; their VALUES are the
-  garden palette above. `packages/design-system/src/palette.ts` mirrors the
-  same values for non-CSS renderers (ECharts, Monaco).
-- Monaco themes (`apps/console/src/utils/monaco-solarized-theme.ts`) consume
-  `SOLARIZED_PALETTE` and follow automatically.
+See the [package integration guide](../README.md) and
+[canonical development guide](../../../docs/DEVELOPMENT.md#共享-shadcn-vue-与外观设置).

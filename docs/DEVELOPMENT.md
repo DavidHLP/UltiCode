@@ -7,7 +7,7 @@
 ### 前置条件
 
 - Docker + Compose v2：MySQL、Redis、Nacos 和可选 MeiliSearch。
-- mise 管理的 Zulu Java 17、Node.js `>=22.12.0`、pnpm 10+、PM2、Docker Compose v2，以及 `curl`、`timeout`、`openssl`。
+- mise 管理的 Zulu Java 17、Node.js 22.x（当前锁定前端依赖要求该系列至少 22.22.2）、pnpm 11.0.0、PM2、Docker Compose v2，以及 `curl`、`timeout`、`openssl`。应用 manifest 的 `>=22.12.0` 是声明下限，不代表全部锁定依赖支持该版本。
 - 后端使用仓库内的 `services/mvnw`；不要用裸 Maven/Java 绕过启动入口。
 - 从仓库根目录执行脚本。`.env` 由 `scripts/dev/init-env.sh` 生成，不能提交。
 
@@ -16,7 +16,7 @@
 
 仓库提供 `.devcontainer/devcontainer.json`，固定 Java 17、Node 22、pnpm、
 mise、PM2、Maven wrapper 和 Docker-in-Docker。创建容器时只安装依赖和
-Maven 离线缓存，不启动全栈；容器启动后的默认检查仅执行
+Maven 离线缓存，不启动全栈；其 postCreateCommand 当前固定 pnpm 10.15.1，与前端 CI 的 11.0.0 不一致。需要复现 CI 时，应在容器内选择 pnpm 11.0.0 并确认 Node 22.x 至少为 22.22.2；不能将默认容器配置视为 CI 同版本环境。容器启动后的默认检查仅执行
 `./scripts/dev/test.sh unit`。运行真实 journey 必须显式选择 scope。
 
 mise Feature 使用 `ghcr.io/devcontainers-extra/features/mise:1`，配置与锁文件
@@ -196,8 +196,8 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，会被 CI 的
 共享 UI 升级范围包括 `apps/console/`、`apps/management/` 及其消费的 `packages/`。独立 `apps/landing/` 保留原有页面布局、字体、配色、插画、动效和响应式设计；页面、样式、双语文案与素材只由 Landing 应用持有，不接入共享设计系统、主题 bootstrap 或外观设置。未经用户明确要求，不得以平台 UI 统一或主题升级为由修改 Landing 设计。生产仍由现有 Console Nginx 在 `/landing/` 提供，应用入口和路由保持独立。
 沿用 Vue 3、TypeScript、Vite、Pinia、Vue Router、Tailwind CSS；通用组件统一使用 shadcn-vue；
 依赖的精确版本由根 `pnpm-lock.yaml` 固定，不另建 v2 应用、第二份 lock 或平行共享层。
-安装使用根目录 `pnpm install --frozen-lockfile`，Node.js 满足 `>=22.12.0`；
-与当前前端 CI 对齐的环境为 Node 22.x、pnpm 11。
+安装使用根目录 `pnpm install --frozen-lockfile`；前端 CI 选择 Node 22.x、固定 pnpm 11.0.0。
+当前锁定依赖在 Node 22 系列要求至少 22.22.2；应用 manifest 的 `>=22.12.0` 下限不能代替依赖引擎要求。Dev Container 的 pnpm 差异见前置环境说明。
 
 Management forms use patched Zod 4 through `src/lib/toTypedSchema.ts`, which preserves the
 vee-validate 4 form contract for parsed values, defaults, field errors and required metadata.
@@ -367,7 +367,7 @@ pnpm --dir packages/design-system test
 
 CLI 的版本与 `shadcn-vue/tailwind.css` 运行样式保持一致。该官方样式桥接 Reka 的 `data-state` / `data-orientation` 与 Nova 的状态变体，不能当作闲置 CLI 依赖删除。生成组件的内部 import 必须使用共享包公开子路径，不能绑定某个应用的 `@` 别名。仅集成的 Nova 组件风格和 Lucide 通用图标对外提供，不开放未集成风格；OAuth 等品牌标记保留其品牌图形。Monaco、ECharts、Unovis 通过共享语义 token 做最小适配。Monaco 按需加载已安装的 ESM 包与本地 Worker，不要求浏览器从外部 CDN 取得编辑器运行时。 题目工作台顶栏仅在宽桌面使用绝对居中的单行操作区，平板保留正常文档流与换行，避免英文导航、运行/提交和账户操作重叠。题目代码面板的命令组按容器宽度换行，保持自然高度，不把工具栏撑出边界或覆盖编辑器。 共享快捷键弹窗仅在 sm 以上扩大最大宽度，手机保留默认视口边距和整框滚动。
 
-外观状态、白名单解析、持久化与 DOM 应用归属 `packages/theme`，设置弹窗归属 `packages/design-system/AppearanceSettings.vue`。最终用户通过界面调整主题色、基础色、图表配色、原生字体栈、圆角、密度、菜单样式及明暗模式，无需 CLI 或构建。预览更新当前界面及 Portal；应用成功才保存，取消或关闭恢复已保存外观，恢复默认直接保存默认值。存储不可用时显示失败，不把内存回退当作持久化成功。状态语义色独立于主题色，设置不能输入任意 CSS、HTML、脚本或布局。
+外观状态、白名单解析、持久化与 DOM 应用归属 `packages/theme`，设置弹窗归属 `packages/design-system/src/components/appearance/AppearanceSettings.vue`。最终用户通过界面调整主题色、基础色、图表配色、原生字体栈、圆角、密度、菜单样式及明暗模式，无需 CLI 或构建。预览更新当前界面及 Portal；应用成功才保存，取消或关闭恢复已保存外观，恢复默认直接保存默认值。存储不可用时显示失败，不把内存回退当作持久化成功。状态语义色独立于主题色，设置不能输入任意 CSS、HTML、脚本或布局。
 
 偏好保存在当前浏览器、当前 origin 的 `ulticode-appearance:v1:` 命名空间中，并按经过认证的用户 ID 分区；访客使用独立分区。账号切换关闭预览并加载对应分区。`ulticode-appearance-account` 只用于首屏外观提示，不是认证凭证或授权来源。同源标签页通过 `storage` 事件同步；预览期间不覆盖草稿，取消时恢复最新已保存值。Landing 不读取或应用平台外观偏好，即使通过 Console 的同源 `/landing/` 入口访问，也保持独立设计；独立开发端口或跨域部署不能共享 localStorage。当前没有服务端偏好接口，不提供跨设备账户同步。
 

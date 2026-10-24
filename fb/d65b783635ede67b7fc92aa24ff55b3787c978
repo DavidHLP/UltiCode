@@ -1,0 +1,14 @@
+scripts/dev/docs-contract-test.sh
+  h_77173abe25c3ff 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fbd65b783635ede67b7fc92aa24ff55b3787c978",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

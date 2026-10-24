@@ -1,0 +1,27 @@
+services/admin/src/main/java/com/ulticode/modules/admin/controller/AdminUserController.java
+  s_aa33514364f4e1::t_bc9aba51c73ab6 85
+services/admin/src/main/java/com/ulticode/modules/admin/service/UserManagementService.java
+  s_aa33514364f4e1::t_f3ccf8a50bf8c7 7-8,37-41
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupServiceImpl.java
+  s_aa33514364f4e1::t_da2a6ab9e192f8 147-149
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminUserControllerAvatarTest.java
+  s_aa33514364f4e1::t_0c2813326c981e 33,35,37-38,44
+services/platform/common/src/main/java/com/ulticode/common/audit/AuditPolicy.java
+  s_aa33514364f4e1::t_b24432644892f5 84-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "57cd9a5d51e953e77fd21726098291b8b82bace8",
+  "prompts": {},
+  "sessions": {
+    "s_aa33514364f4e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b397a92-58ca-4252-8232-f281ba8d72e8",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

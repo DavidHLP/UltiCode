@@ -1,0 +1,14 @@
+services/core/src/test/java/com/ulticode/core/CoreOwnerContextManagerLifecycleTest.java
+  h_77173abe25c3ff 53-55,76-79,352,355,360-366
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "180b5ab13638b8922be0e355a2066bb4cf7379bb",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

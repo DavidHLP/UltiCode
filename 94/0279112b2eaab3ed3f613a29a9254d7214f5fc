@@ -1,0 +1,14 @@
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/DefaultAppUserWritePortTest.java
+  h_77173abe25c3ff 70-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "940279112b2eaab3ed3f613a29a9254d7214f5fc",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+docs/development/troubleshooting.md
+  h_77173abe25c3ff 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "634ede41d85326f7a6dcd670c3d616c47ec71e06",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+docs/project/current-status.md
+  h_77173abe25c3ff 3,51-66
+scripts/test/core-profile-contract.sh
+  h_77173abe25c3ff 17-18,22-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1e9bec45170ad71636b875f5ac154cb934f590ab",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

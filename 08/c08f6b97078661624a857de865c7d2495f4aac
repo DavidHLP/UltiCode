@@ -1,0 +1,32 @@
+pnpm-workspace.yaml
+  s_77cf8d3466fd0b::t_7eaa733fa355a5 21-23
+packages/markdown-utils/src/index.ts
+  s_77cf8d3466fd0b::t_f964ba7a57b0c8 380-382
+  s_77cf8d3466fd0b::t_ceb5a76f13cd4e 131
+  s_77cf8d3466fd0b::t_722058c481d6c5 27-29
+  s_77cf8d3466fd0b::t_358257d89eb7e4 154
+packages/markdown-utils/package.json
+  s_77cf8d3466fd0b::t_3a8fb8840899e6 20,23
+packages/markdown-utils/src/__tests__/renderMarkdown.test.ts
+  s_77cf8d3466fd0b::t_33404aa44ebd7d 268-345
+packages/design-system/package.json
+  s_77cf8d3466fd0b::t_37349381952996 56
+pnpm-lock.yaml
+  s_77cf8d3466fd0b::t_b2d7adff2ce226 14,604-605,696-697,705-706,3213-3214,4557-4558,4617-4618,4633-4634,5428-5429,7179,7181,7183,7185-7186,7189,7191,7193,7195,8671,10123,10125,10199,10201-10204,10206,10214,11120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "08c08f6b97078661624a857de865c7d2495f4aac",
+  "prompts": {},
+  "sessions": {
+    "s_77cf8d3466fd0b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7f8f65c0-b900-437b-bb19-db5140dfe58e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

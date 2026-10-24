@@ -1,0 +1,27 @@
+services/agent/src/authorized_budget_period.py
+  s_6d6301651c0f0a::t_a5ac13d4fedfe7 290-301,344-345
+services/agent/src/revalidation_history.py
+  s_6d6301651c0f0a::t_59ac7c9d7199af 335-346,350,355-359,455,469,473-474
+services/agent/tests/test_v16_confirmation_history.py
+  s_6d6301651c0f0a::t_60ec752123969e 88-104
+  s_6d6301651c0f0a::t_ef89c2277758df 13-18,23,26,35,39,44-45,52,63,65,67
+docs/DEVELOPMENT.md
+  s_6d6301651c0f0a::t_2442ee42071423 505,568-574
+  s_6d6301651c0f0a::t_b18cfbf99a4985 575
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31a6c748ed8370d3e02e665f2178516a9c2c61af",
+  "prompts": {},
+  "sessions": {
+    "s_6d6301651c0f0a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ba9-5111-7521-8e62-23c365e3933a",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

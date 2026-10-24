@@ -1,0 +1,30 @@
+services/agent/data/repository_corpus_manifest.json
+  s_e499758404cc02::t_4af7b67cd415ad 32-33
+apps/console/src/i18n/locales/en-US/agent.ts
+  s_e499758404cc02::t_0c92b6ce097174 94-97
+apps/console/src/i18n/locales/zh-CN/agent.ts
+  s_e499758404cc02::t_0c92b6ce097174 94-97
+apps/console/src/views/personal/__tests__/AgentConversationWorkspace.spec.ts
+  s_e499758404cc02::t_0c92b6ce097174 2,4,8-10,20-24,40-57,96-98,109-229
+  s_e499758404cc02::t_9e1df76553bc32 230
+docs/DEVELOPMENT.md
+  s_e499758404cc02::t_0c92b6ce097174 98-99
+apps/console/src/views/personal/AgentConversationWorkspace.vue
+  s_e499758404cc02::t_0c92b6ce097174 9-13,33,43-46,174-218,299,301,306,310-311,314,321,387,389-393,395-413,415-418,420,422,424-448,554,565,578-644,799-803,806-811,880-881,883,887
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1224e3471709fdeff0541ce78fb1f923338f571d",
+  "prompts": {},
+  "sessions": {
+    "s_e499758404cc02": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16489-07e7-7082-be14-f27e375f1da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

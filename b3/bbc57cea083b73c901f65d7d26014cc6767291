@@ -1,0 +1,19 @@
+services/agent/tests/test_e2e_account_isolation.py
+  s_7fda136455a0e8::t_ec7c55d38e245a 3982-4000
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b3bbc57cea083b73c901f65d7d26014cc6767291",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

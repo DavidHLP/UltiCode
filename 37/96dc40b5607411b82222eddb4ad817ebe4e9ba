@@ -1,0 +1,34 @@
+packages/theme/__tests__/appearance.spec.ts
+  s_a1bff620af9581::t_5129d5896c5009 23,27,35-36,57,61,65,67,71,73,86
+packages/theme/src/appearance-model.ts
+  s_a1bff620af9581::t_bc0b3d7be9e8ac 23-24
+apps/console/src/main.ts
+  s_a1bff620af9581::t_bc0b3d7be9e8ac 13,26,31
+apps/management/src/main.ts
+  s_a1bff620af9581::t_bc0b3d7be9e8ac 8
+  s_a1bff620af9581::t_cb992f5f34b2c7 9-13,23,27,29
+docs/DEVELOPMENT.md
+  s_a1bff620af9581::t_bc0b3d7be9e8ac 242-243
+packages/theme/bootstrap.js
+  s_a1bff620af9581::t_bc0b3d7be9e8ac 36
+apps/console/public/theme-bootstrap.js
+  s_a1bff620af9581::t_61e3e4c4103544 36
+apps/management/public/theme-bootstrap.js
+  s_a1bff620af9581::t_0c499266548fbc 36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3796dc40b5607411b82222eddb4ad817ebe4e9ba",
+  "prompts": {},
+  "sessions": {
+    "s_a1bff620af9581": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-8dcf1e3213ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

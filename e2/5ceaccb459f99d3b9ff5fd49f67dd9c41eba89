@@ -1,0 +1,24 @@
+services/agent/e2e_sourced_analysis.py
+  h_77173abe25c3ff 40-47
+services/agent/src/citation_integrity.py
+  h_77173abe25c3ff 4-7,13-17,26-43,54,66,68-70,77-82,84-86,89,91,99
+services/agent/src/sourced_analysis.py
+  h_77173abe25c3ff 8-9,27-31,47-52,67,69,72,75-79
+services/agent/tests/test_citation_integrity.py
+  h_77173abe25c3ff 3,10,28-31,54,57-58,60-65,68-69,71-73,76
+services/agent/tests/test_e2e_sourced_analysis.py
+  h_77173abe25c3ff 286-323
+services/agent/tests/test_sourced_analysis.py
+  h_77173abe25c3ff 19-24,56,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e25ceaccb459f99d3b9ff5fd49f67dd9c41eba89",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+services/agent/tests/test_vector_search.py
+  s_d7d89ac5ed97cf::t_8b12ef8c3ff100 197-237
+services/agent/data/repository_corpus_manifest.json
+  s_d7d89ac5ed97cf::t_9771803ad645d5 32-33
+docs/DEVELOPMENT.md
+  s_d7d89ac5ed97cf::t_8b12ef8c3ff100 200-201
+services/agent/src/vector_search.py
+  s_d7d89ac5ed97cf::t_8b12ef8c3ff100 14,21,217-234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ef44a4285bd2d1ec96b39643dce4da4335db040",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

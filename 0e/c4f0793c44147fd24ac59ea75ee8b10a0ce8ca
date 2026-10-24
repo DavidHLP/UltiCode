@@ -1,0 +1,19 @@
+services/agent/e2e_u03_workflow.py
+  s_97e7e78fbae3b7::t_9ca8eb3a3c6f51 1631-1634
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0ec4f0793c44147fd24ac59ea75ee8b10a0ce8ca",
+  "prompts": {},
+  "sessions": {
+    "s_97e7e78fbae3b7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a116e3-6853-75d3-a42d-816343a89693",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

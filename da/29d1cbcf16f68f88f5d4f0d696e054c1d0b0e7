@@ -1,0 +1,21 @@
+services/platform/storage/src/main/java/com/ulticode/common/storage/ImageContent.java
+  s_9db8610fb6957e::t_5631b871bd2f02 92-94,257-263,280-307
+services/platform/storage/src/test/java/com/ulticode/common/storage/ImageContentTest.java
+  s_9db8610fb6957e::t_7b69359769e44f 141-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "da29d1cbcf16f68f88f5d4f0d696e054c1d0b0e7",
+  "prompts": {},
+  "sessions": {
+    "s_9db8610fb6957e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3f3aa2bc-28c2-4c75-9fdd-6dea779b89ac",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

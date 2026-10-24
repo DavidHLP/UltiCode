@@ -1,0 +1,23 @@
+docker/docker-compose.prod.yml
+  s_0814ef0ba53bf7::t_106e87e7ed776a 65,75,85,331,480
+scripts/dev/migrate-object-storage.sh
+  s_0814ef0ba53bf7::t_4e8019d47b6867 513-514,516,774-782,821-827
+services/app/app-web/src/main/java/com/ulticode/modules/contest/projection/DefaultContestProjection.java
+  s_0814ef0ba53bf7::t_ccba7358d8dea8 544-546
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a33d7f670dd94ade8911462e2252b46562f44ff0",
+  "prompts": {},
+  "sessions": {
+    "s_0814ef0ba53bf7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "aac2137a-c19b-4081-9458-cb6307c1fc95",
+        "model": "deepseek-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

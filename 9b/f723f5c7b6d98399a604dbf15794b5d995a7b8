@@ -1,0 +1,37 @@
+apps/console/src/features/sider/NavUser.vue
+  s_a1bff620af9581::t_4c6a4d0b3fdcdd 26-27,32,38,61,108-109,126-133,151-171,175-176,190-197,210-282
+apps/console/src/features/sider/__tests__/AppSidebar.spec.ts
+  s_a1bff620af9581::t_d3aab313ede170 29-34,316-318
+  s_a1bff620af9581::t_6653e9cd827f2c 75-76,165-167,319-335,346
+packages/auth-ui/src/__tests__/AccountSwitcher.spec.ts
+  s_a1bff620af9581::t_d3aab313ede170 78-95
+apps/management/src/components/layout/NavUser.vue
+  s_a1bff620af9581::t_4c6a4d0b3fdcdd 14-15,20,22-27,42,62-64,84-91,112-117
+  s_a1bff620af9581::t_368398dc328d0f 118-127,129-130
+packages/auth-ui/src/components/AccountSwitcher.vue
+  s_a1bff620af9581::t_c185dccf27594a 91,94-110,112-113,115-139,141-150,152-158
+apps/console/src/features/sider/AppSidebar.vue
+  s_a1bff620af9581::t_1a6dbec09cad2b 13-15,33-35,149-171
+  s_a1bff620af9581::t_0ca98ecca8de92 172-175,204-206
+apps/management/src/components/layout/AppSidebar.vue
+  s_a1bff620af9581::t_c185dccf27594a 2-3,27,271-289
+  s_a1bff620af9581::t_6f419af8b68963 290-291
+docs/DEVELOPMENT.md
+  s_a1bff620af9581::t_d3aab313ede170 234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9bf723f5c7b6d98399a604dbf15794b5d995a7b8",
+  "prompts": {},
+  "sessions": {
+    "s_a1bff620af9581": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-8dcf1e3213ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

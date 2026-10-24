@@ -1,0 +1,54 @@
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 149-150
+docs/OPERATIONS.md
+  h_77173abe25c3ff 138-143
+init-db/baseline/baseline.sql
+  h_77173abe25c3ff 3989-4011
+init-db/migrations/app/V20260924120000__Create_Storage_Cleanup_Outbox.sql
+  h_77173abe25c3ff 1-16
+services/app/app-web/src/main/java/com/ulticode/app/config/MapperScanConfig.java
+  h_77173abe25c3ff 36
+services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java
+  h_77173abe25c3ff 43-45,47
+services/app/app-web/src/main/java/com/ulticode/app/storage/StorageCleanupDispatcher.java
+  h_77173abe25c3ff 1-109
+services/app/app-web/src/main/java/com/ulticode/app/storage/StorageCleanupOutbox.java
+  h_77173abe25c3ff 1-36
+services/app/app-web/src/main/java/com/ulticode/app/storage/StorageCleanupOutboxMapper.java
+  h_77173abe25c3ff 1-76
+services/app/app-web/src/main/java/com/ulticode/app/storage/StorageCleanupOutboxRecord.java
+  h_77173abe25c3ff 1-41
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/ProfileWriteProvider.java
+  h_77173abe25c3ff 8,59,247,317,323-325
+services/app/app-web/src/main/java/com/ulticode/modules/user/controller/UserAvatarController.java
+  h_77173abe25c3ff 15-19
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/AvatarProfileMutationService.java
+  h_77173abe25c3ff 3,24,48-50
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/AvatarUrls.java
+  h_77173abe25c3ff 5
+services/app/app-web/src/test/java/com/ulticode/BackendAppApplicationTest.java
+  h_77173abe25c3ff 164-166
+services/app/app-web/src/test/java/com/ulticode/app/security/AppRouteAuthorizationContractTest.java
+  h_77173abe25c3ff 64,66
+services/app/app-web/src/test/java/com/ulticode/app/storage/StorageCleanupDispatcherTest.java
+  h_77173abe25c3ff 1-106
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderIT.java
+  h_77173abe25c3ff 134-136
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderTest.java
+  h_77173abe25c3ff 18,41,54,62,150,157-160,163,167,174-175,181-182,186,201
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/DefaultAppUserWritePortTest.java
+  h_77173abe25c3ff 58,68,275-276,289,294-295,299-300,302-303,308-312,381-382,393,395-399
+services/app/app-web/src/test/resources/application.yml
+  h_77173abe25c3ff 21-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "401f80da9048a5a3e732b66b5b3a8927c0d987e2",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

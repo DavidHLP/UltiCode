@@ -1,0 +1,19 @@
+packages/auth-core/src/browserSessionLock.ts
+  s_a817d6a0710b87::t_dd8ee0066cf937 2,7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d0354fee56c37d87e955101a81ed24336c2bcbea",
+  "prompts": {},
+  "sessions": {
+    "s_a817d6a0710b87": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a166cd-159e-73b0-a5ca-846dd55e155c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

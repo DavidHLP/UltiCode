@@ -1,0 +1,39 @@
+scripts/runbooks/reconcile-legacy-backups.sh
+  s_7a60c4729f6b13::t_4b0c5c3955af4b 110-111,136-137,139-141,144,162-163
+  s_7a60c4729f6b13::t_3baa0198c53dcb 134-135,142-143,148-149
+init-db/migrations/post-owner/V20260923120000__Create_Legacy_Backup_Deletion_Tombstones.sql
+  s_7a60c4729f6b13::t_4b0c5c3955af4b 1-9
+init-db/baseline/baseline.sql
+  s_7a60c4729f6b13::t_4b0c5c3955af4b 2509-2521
+init-db/README.md
+  s_7a60c4729f6b13::t_be061e562bfe22 96-98
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupServiceImpl.java
+  s_7a60c4729f6b13::t_4b0c5c3955af4b 11,55,214
+scripts/test/owner-migration-manifest-contract.sh
+  s_7a60c4729f6b13::t_4b0c5c3955af4b 34-37
+docs/OPERATIONS.md
+  s_7a60c4729f6b13::t_c170d0d533baab 201-205
+services/admin/src/main/java/com/ulticode/modules/backup/mapper/BackupDeletionTombstoneMapper.java
+  s_7a60c4729f6b13::t_4b0c5c3955af4b 1-17
+scripts/dev/owner-migration-safety-integration-test.sh
+  s_7a60c4729f6b13::t_4b0c5c3955af4b 267-280
+  s_7a60c4729f6b13::t_2453de124a7eb4 266
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupServiceTest.java
+  s_7a60c4729f6b13::t_4b0c5c3955af4b 10,62-64,333,359
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4ae226a825cece57df51dba026845d991cedbdf7",
+  "prompts": {},
+  "sessions": {
+    "s_7a60c4729f6b13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c1f4-8a70-75e2-be77-59eaa10082f3",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

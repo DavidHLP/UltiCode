@@ -1,0 +1,18 @@
+docs/architecture/decisions/0014-architecture-review-round-3-convergence.md
+  h_77173abe25c3ff 34
+services/platform/redis/src/main/java/com/ulticode/redis/RedisValueSerializationPolicy.java
+  h_77173abe25c3ff 8-9,22,24-32,34-38,42-53,66
+services/platform/redis/src/test/java/com/ulticode/redis/RedisValueSerializationPolicyTest.java
+  h_77173abe25c3ff 7,9,14,34-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8c455ce6c40beabe4c70d4c11c72ea61e20d40eb",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

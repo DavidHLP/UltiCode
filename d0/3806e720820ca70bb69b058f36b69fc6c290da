@@ -1,0 +1,14 @@
+services/agent/src/citation_review.py
+  h_77173abe25c3ff 81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d03806e720820ca70bb69b058f36b69fc6c290da",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,115 @@
+services/api/notification-api/src/main/java/com/ulticode/notification/api/command/UpdateNotificationCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,34
+services/api/app-api/src/main/java/com/ulticode/app/api/command/ForumCommentModerationCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,34
+services/api/app-api/src/main/java/com/ulticode/app/api/command/AddContestProblemCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,19
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/ResetPasswordCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,16
+services/api/app-api/src/main/java/com/ulticode/app/api/service/SolutionAdminReadPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3,45,50,78
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UpdateProblemCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,31
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UpdateBannerCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,25
+services/api/app-api/src/main/java/com/ulticode/app/api/command/DeleteProblemCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,26
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/CreateAccountCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,22
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/ChangePasswordCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,16
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/PermissionMutationCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 6,22
+services/api/submission-api/src/main/java/com/ulticode/submission/api/queue/JudgeJobEnvelope.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,29
+services/api/app-api/src/main/java/com/ulticode/app/api/command/StartContestCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,37
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/ChangeRoleCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,17
+services/api/app-api/src/main/java/com/ulticode/app/api/service/ProblemTagOwnerPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3,46
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/DeleteAccountCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,15
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UpdateContestCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 9,35
+services/api/app-api/src/main/java/com/ulticode/app/api/command/PublishProblemCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,27
+services/api/app-api/src/main/java/com/ulticode/app/api/service/ContestParticipantReadPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3,27
+services/api/submission-api/src/main/java/com/ulticode/submission/api/catalog/SubmissionStatusCatalog.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 6,24
+services/api/app-api/src/main/java/com/ulticode/app/api/command/ApplyModerationCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,35
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UpdateProblemListCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,30
+services/api/app-api/src/main/java/com/ulticode/app/api/service/TestCaseOwnerPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 69
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/UpdateAccountCredentialsCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,16
+services/api/app-api/src/main/java/com/ulticode/app/api/command/CreateContestCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 9,35
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UpdateBasicInfoCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,23
+services/api/app-api/src/main/java/com/ulticode/app/api/command/ForumPostModerationCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,29
+services/api/app-api/src/main/java/com/ulticode/app/api/command/DeleteContestCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,35
+services/api/app-api/src/main/java/com/ulticode/app/api/service/ForumCommentReadPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3,37,42
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UploadAvatarCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,37
+services/api/submission-api/src/main/java/com/ulticode/submission/api/queue/JudgeJobHandle.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,6
+services/api/app-api/src/main/java/com/ulticode/app/api/command/RemoveContestProblemCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,18
+services/api/app-api/src/main/java/com/ulticode/app/api/command/ForumTagMutationCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,41
+services/api/app-api/src/main/java/com/ulticode/app/api/service/SolutionCommentOwnerPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,68,73
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UpdateProfileCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,41
+services/api/app-api/src/main/java/com/ulticode/app/api/service/SolutionOwnerPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3,90,95
+services/api/app-api/src/main/java/com/ulticode/app/api/service/ForumTagReadPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3,30,35
+services/api/app-api/src/main/java/com/ulticode/app/api/command/CreateProblemListCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,38
+services/api/app-api/src/main/java/com/ulticode/app/api/command/CreateProblemCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,30
+services/api/app-api/src/main/java/com/ulticode/app/api/service/SolutionCommentReadPort.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3,36,41
+services/api/app-api/src/main/java/com/ulticode/app/api/command/EndContestCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,37
+services/api/notification-api/src/main/java/com/ulticode/notification/api/command/DeleteNotificationCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,22
+services/api/auth-api/src/main/java/com/ulticode/auth/api/command/ChangeAccountStateCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,29
+services/api/submission-api/src/main/java/com/ulticode/submission/api/command/RejudgeCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,45
+services/api/app-api/src/main/java/com/ulticode/app/api/command/ReplaceListProblemsCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 24
+services/api/submission-api/src/main/java/com/ulticode/submission/api/command/BatchRejudgeCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 8,31
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UpdateVisibilityCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,23
+services/api/notification-api/src/main/java/com/ulticode/notification/api/command/CreateNotificationCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 8,45
+services/api/app-api/src/main/java/com/ulticode/app/api/command/DeleteProblemListCommand.java
+  s_78e381cfffd90a::t_cb4bcab9214f39 3-4,21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "abcde853b7020c8ad4a0c4044ae22a59f9ae1639",
+  "prompts": {},
+  "sessions": {
+    "s_78e381cfffd90a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f221ea9e-5fe5-49df-a788-9b37732ebf4e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,72 @@
+services/app/app-web/pom.xml
+  h_77173abe25c3ff 35-38
+services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java
+  h_77173abe25c3ff 43-44
+services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserDirectoryReadProjection.java
+  h_77173abe25c3ff 3,199-200
+services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserFactsReadProjection.java
+  h_77173abe25c3ff 3,143
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/UserProfileQueryProvider.java
+  h_77173abe25c3ff 4,43-44,62-65,79-85
+services/app/app-web/src/main/java/com/ulticode/modules/search/source/SearchDocumentChangedPublisher.java
+  h_77173abe25c3ff 4,105-106
+services/app/app-web/src/main/java/com/ulticode/modules/user/controller/UserAvatarController.java
+  h_77173abe25c3ff 1-61
+services/app/app-web/src/main/java/com/ulticode/modules/user/dto/ProfileVO.java
+  h_77173abe25c3ff 5,52
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/AvatarUrls.java
+  h_77173abe25c3ff 1-50
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  h_77173abe25c3ff 7-8,19-21,23,29-30,116,120,122-126,128-129,131-136,138-143,147-160,163,165-232,242
+services/app/app-web/src/main/java/com/ulticode/modules/user/projection/DefaultUserReadProjection.java
+  h_77173abe25c3ff 22,231,262
+services/app/app-web/src/main/resources/application.yml
+  h_77173abe25c3ff 89,92,96,100-103
+services/app/app-web/src/test/java/com/ulticode/app/security/AppRouteAuthorizationContractTest.java
+  h_77173abe25c3ff 63-75,103-104
+services/app/app-web/src/test/java/com/ulticode/modules/user/controller/UserAvatarControllerTest.java
+  h_77173abe25c3ff 1,3-4,6-11,15-19,21-22,24-25,27,29-31,34-36,38-39,42-46,48-60
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/DefaultAppUserWritePortTest.java
+  h_77173abe25c3ff 7,17,30-31,46,55,193,198-200,204-251
+services/app/app-web/src/test/resources/application.yml
+  h_77173abe25c3ff 26-36
+services/platform/storage/pom.xml
+  h_77173abe25c3ff 1-50
+services/platform/storage/src/main/java/com/ulticode/common/storage/AwsSigV4Signer.java
+  h_77173abe25c3ff 1,3-4,7-8,19,45-46,50,107-124
+services/platform/storage/src/main/java/com/ulticode/common/storage/FileStoragePort.java
+  h_77173abe25c3ff 1,4,7,10-16,19-22,25-26,28-29
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  h_77173abe25c3ff 1,11-12,14,20,26,40,43,50-51,54-79,85,87-88,95-97,102-103,105-106,108-109,112-117,122-133,137-140,142-147,151-153,161,164,168,190-192,195,200-201,210,213-214,217-223,226-236,240-242
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageAutoConfiguration.java
+  h_77173abe25c3ff 1-21
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageException.java
+  h_77173abe25c3ff 1,3,6-9
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageKeys.java
+  h_77173abe25c3ff 1,3-5,7-8,10-13,15,18-27,32-34,36-39,41-49,52,54-57,61-62,65-77,79-82,84
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageProperties.java
+  h_77173abe25c3ff 1,3,6-13,16,18,32-35,40-42,45-51,53,55-57,59-60,62-63,65-66,68-69,71-72,74-75,78-82,84-88,90-92,94-95,97-99,101-102,104-105,109-110,117-166
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageStartupProbe.java
+  h_77173abe25c3ff 1-42
+services/platform/storage/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+  h_77173abe25c3ff 1
+services/platform/storage/src/test/java/com/ulticode/common/storage/S3StorageTest.java
+  h_77173abe25c3ff 1,3,16,19,23-25,64,70-73,81,84,91-97,105-121,126,144,149,158,163,165-167,171,175-176,178,195-196,201,203,207-211,216
+services/platform/storage/src/test/java/com/ulticode/common/storage/StorageKeysTest.java
+  h_77173abe25c3ff 1,4-5,8-10,12-18,21-28,32-34
+services/platform/storage/src/test/java/com/ulticode/common/storage/StoragePropertiesTest.java
+  h_77173abe25c3ff 1,13,15-21,25,27-29,33-37,41-44,48-65,67-77
+services/pom.xml
+  h_77173abe25c3ff 24,104-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7a9fd8430e7d41e4b05895c4bc4715a0c28e5d3",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

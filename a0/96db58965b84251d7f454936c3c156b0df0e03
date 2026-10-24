@@ -1,0 +1,34 @@
+services/platform/common/src/main/java/com/ulticode/common/command/CommandReceiptStore.java
+  h_77173abe25c3ff 1-17
+services/platform/common/src/main/java/com/ulticode/common/command/GenericFingerprintStrategy.java
+  h_77173abe25c3ff 1-68
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptCommandMetadata.java
+  h_77173abe25c3ff 1-32
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptErrorCatalog.java
+  h_77173abe25c3ff 1-22
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptExecutionMode.java
+  h_77173abe25c3ff 1-15
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptExecutor.java
+  h_77173abe25c3ff 1-241
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptFingerprintStrategy.java
+  h_77173abe25c3ff 1-13
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptPayloadCodec.java
+  h_77173abe25c3ff 1-11
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptView.java
+  h_77173abe25c3ff 1-19
+services/platform/common/src/main/java/com/ulticode/common/command/ReceiptWrite.java
+  h_77173abe25c3ff 1-21
+services/platform/common/src/test/java/com/ulticode/common/command/ReceiptExecutorTest.java
+  h_77173abe25c3ff 1-302
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a096db58965b84251d7f454936c3c156b0df0e03",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+services/agent/e2e_model_qa.py
+  h_77173abe25c3ff 45,49,52-53,56-58
+services/agent/e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 99-101
+services/agent/src/agent_loop.py
+  h_77173abe25c3ff 111-118
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 41,79-82,107,124-128,130-134,142,147,155
+services/agent/tests/test_agent_loop.py
+  h_77173abe25c3ff 123-125
+services/agent/tests/test_e2e_model_qa.py
+  h_77173abe25c3ff 1-102
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 138-157
+services/agent/tests/test_ulticode_tools.py
+  h_77173abe25c3ff 52,56-61,63,91,99,104-134
+services/agent/tests/test_ulticode_tools_security.py
+  h_77173abe25c3ff 139-140,165,167,278,297-334
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b65c533565ca7b01187b8dbbc1754eb7eaf1f1bb",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

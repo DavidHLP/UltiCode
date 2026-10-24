@@ -1,0 +1,16 @@
+services/admin/src/main/java/com/ulticode/modules/admin/dto/AuditLogQueryDTO.java
+  h_77173abe25c3ff 5,31,35
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AuditControllerFormatTest.java
+  h_77173abe25c3ff 106-117,144-155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "78e97f881eee14f315c126684b5838eb565fb720",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

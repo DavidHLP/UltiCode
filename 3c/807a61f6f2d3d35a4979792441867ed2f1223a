@@ -1,0 +1,19 @@
+services/agent/tests/test_e2e_sourced_analysis.py
+  s_d2e3c0ea353917::t_0b99c65570bcde 5-6,167-193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c807a61f6f2d3d35a4979792441867ed2f1223a",
+  "prompts": {},
+  "sessions": {
+    "s_d2e3c0ea353917": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0dc2b-ee4e-73f3-861a-e6974fd29af4",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

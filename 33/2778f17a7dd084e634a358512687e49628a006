@@ -1,0 +1,14 @@
+services/admin/src/test/java/com/ulticode/modules/admin/storage/AdminStorageCleanupTest.java
+  h_77173abe25c3ff 21,179-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "332778f17a7dd084e634a358512687e49628a006",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

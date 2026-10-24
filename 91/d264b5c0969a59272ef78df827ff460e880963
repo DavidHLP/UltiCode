@@ -1,0 +1,89 @@
+scripts/test/supply-chain-contract.sh
+  s_7fda136455a0e8::t_7b1486f1a5f650 151
+services/agent/data/repository_corpus_manifest.json
+  s_7fda136455a0e8::t_7b1486f1a5f650 46-47
+apps/console/package.json
+  s_7fda136455a0e8::t_2e966b970c227c 49,62-63,66,72,77
+apps/management/package.json
+  s_7fda136455a0e8::t_3b99f426a004a0 47,63,65,72,77
+docs/OPERATIONS.md
+  s_7fda136455a0e8::t_eb9fabc1c31eea 23,329
+packages/auth-ui/package.json
+  s_7fda136455a0e8::t_2fd118199878da 35-36
+packages/design-system/package.json
+  s_7fda136455a0e8::t_4a8a922ec09f7d 56
+pnpm-lock.yaml
+  s_7fda136455a0e8::t_5d1af43dd3b544 18,53-54,62-63,146-147,149-150,158-159,176-177,291-292,294-295,387-388,393-394,403,414-415,539-540,542-543,552,615-616,619,766,1568-1569,1571-1572,1574-1575,1577-1580,1620-1621,1624-1625,1628-1629,1632-1633,1674-1675,2298-2299,2303-2304,3908-3909,4176-4177,4772-4773,5445-5446,6612,6614,6616,6618-6619,6621,6623,6625-6627,6629,6631-6633,6675,6677-6679,6681,6683-6684,6686,6688,6691,6731,6735,6784,7122,7124,7127,7129,7132,8610,9127,9375,9966,9968,9979,9981,10514,10517,10655,10657-10659,10663,10665-10667,10674
+pnpm-workspace.yaml
+  s_7fda136455a0e8::t_2b86f037b71cdb 28-29
+scripts/test/observability-contract.sh
+  s_7fda136455a0e8::t_48cec6df330bd0 72,96-115,117
+scripts/test/promote-release-contract.py
+  s_7fda136455a0e8::t_e34f5c4a32fc4f 46,166
+services/admin/pom.xml
+  s_7fda136455a0e8::t_da65c6396deda2 16
+services/admin/src/main/resources/application.yml
+  s_7fda136455a0e8::t_d780dc5f839f12 126-131
+services/app/app-web/pom.xml
+  s_7fda136455a0e8::t_fa361bf9d96a98 99,238,252
+services/app/app-web/src/main/resources/application.yml
+  s_7fda136455a0e8::t_d4584d2ca218cc 9-11,162-167
+services/app/app-web/src/test/java/com/ulticode/modules/contest/service/impl/ContestServiceImplTest.java
+  s_7fda136455a0e8::t_445d3a7f69ce8c 52-53
+services/app/pom.xml
+  s_7fda136455a0e8::t_f2439fae594c24 16
+services/auth/pom.xml
+  s_7fda136455a0e8::t_9264db60798279 16
+services/auth/src/main/resources/application.yml
+  s_7fda136455a0e8::t_1b0b7f15ca4bc8 194-199
+services/core/pom.xml
+  s_7fda136455a0e8::t_dd5e81caf5b221 73-78,122,134
+services/core/src/main/resources/application.yml
+  s_7fda136455a0e8::t_b7b62976cfae98 5-7,15-22
+services/judge-runtime/pom.xml
+  s_7fda136455a0e8::t_e154bbfac1d0ef 84-98
+services/judge-runtime/src/test/java/com/ulticode/modules/queue/pipeline/source/ConfiguredJudgingCaseSourceTest.java
+  s_7fda136455a0e8::t_339b4f43f1b077 3-6,9-12,14-22,24-28,30-66
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/contract/DFormEnvelopeContractTest.java
+  s_7fda136455a0e8::t_81bc2e72313cea 29,34-35,237,265
+services/judge/pom.xml
+  s_7fda136455a0e8::t_f3ecba863e7140 18
+services/judge/src/main/resources/application.yml
+  s_7fda136455a0e8::t_da8e084550f8b4 111
+services/notification/pom.xml
+  s_7fda136455a0e8::t_3efe027eb4b0c4 17
+services/notification/src/main/resources/application.yml
+  s_7fda136455a0e8::t_d1be3d7b85d968 182
+services/platform/web-security/pom.xml
+  s_7fda136455a0e8::t_5a88dca5d562a4 116
+services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupport.java
+  s_7fda136455a0e8::t_c144b4805f4bbf 44
+services/platform/web-security/src/test/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupportTest.java
+  s_7fda136455a0e8::t_58aad72ef30847 21,40-51
+services/pom.xml
+  s_7fda136455a0e8::t_93319fc9d3d965 55-61,70,79
+services/search/pom.xml
+  s_7fda136455a0e8::t_b78baaf18488aa 17,109
+services/search/src/main/resources/application.yml
+  s_7fda136455a0e8::t_6d730d03a06bd1 88
+services/submission/pom.xml
+  s_7fda136455a0e8::t_95088dba802e2b 18
+services/submission/src/main/resources/application.yml
+  s_7fda136455a0e8::t_a515a77e0d7553 89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "91d264b5c0969a59272ef78df827ff460e880963",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

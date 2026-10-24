@@ -1,0 +1,14 @@
+services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdministrationProvider.java
+  h_77173abe25c3ff 64-66,79-80,82,85-86,88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d2045af6b74ae749053148ebc4c5d3d112e9cec",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

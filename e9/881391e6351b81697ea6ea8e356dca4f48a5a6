@@ -1,0 +1,40 @@
+services/agent/README.md
+  h_77173abe25c3ff 44-45
+services/agent/e2e_sourced_analysis.py
+  h_77173abe25c3ff 32,34-36,38
+services/agent/e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 25-63,82-83,102-106
+services/agent/src/agent_loop.py
+  h_77173abe25c3ff 83,92-102
+services/agent/src/keyword_evaluation.py
+  h_77173abe25c3ff 61,73-74,82
+services/agent/src/ulticode_client.py
+  h_77173abe25c3ff 86-97,118,122-126,129,133,137-141,153,156-171,178,183
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 18,22,26,36,40,61,72,91-93,101-102,105-157
+services/agent/tests/test_agent_loop.py
+  h_77173abe25c3ff 51-56
+services/agent/tests/test_e2e_sourced_analysis.py
+  h_77173abe25c3ff 61-78,90,101
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 6-7,60-63,85-158
+services/agent/tests/test_keyword_evaluation.py
+  h_77173abe25c3ff 17-20,30-33,36-37
+services/agent/tests/test_ulticode_client.py
+  h_77173abe25c3ff 199-250
+services/agent/tests/test_ulticode_tools.py
+  h_77173abe25c3ff 52-98
+services/agent/tests/test_ulticode_tools_security.py
+  h_77173abe25c3ff 131-218,230
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e9881391e6351b81697ea6ea8e356dca4f48a5a6",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

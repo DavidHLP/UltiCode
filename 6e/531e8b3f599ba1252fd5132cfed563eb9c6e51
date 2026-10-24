@@ -1,0 +1,20 @@
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
+  h_77173abe25c3ff 61-65,89-93,113-116
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupServiceImpl.java
+  h_77173abe25c3ff 23,125-130,148-152,234-236
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupExecutionServiceTest.java
+  h_77173abe25c3ff 88,156-189
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupServiceTest.java
+  h_77173abe25c3ff 33,37,87,301-318,426-428
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6e531e8b3f599ba1252fd5132cfed563eb9c6e51",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

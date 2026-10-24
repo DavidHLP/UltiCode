@@ -1,0 +1,18 @@
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 216-221,224-232,265-267
+services/agent/src/corpus_manifest.py
+  h_77173abe25c3ff 197-204
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 560-577,579
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "98cc86fd37b9863023b3d2c66392fa83d3e6ced9",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

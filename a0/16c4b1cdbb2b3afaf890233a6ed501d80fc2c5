@@ -1,0 +1,19 @@
+docs/DEVELOPMENT.md
+  s_ee5920986ae6d5::t_cfee062532594d 154-203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a016c4b1cdbb2b3afaf890233a6ed501d80fc2c5",
+  "prompts": {},
+  "sessions": {
+    "s_ee5920986ae6d5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "efbe38b5-4b01-4cd6-ac0c-702cd2130e78",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

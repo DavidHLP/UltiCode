@@ -1,0 +1,14 @@
+docs/development/testing.md
+  h_77173abe25c3ff 33-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "933cf695da01a68b60208b8b486c5ec55b23e48c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

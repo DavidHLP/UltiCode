@@ -1,0 +1,24 @@
+services/auth/src/test/java/com/ulticode/auth/session/DefaultAuthSessionAdapterTest.java
+  s_78e381cfffd90a::t_ccaed161d2aa3e 65,70-83
+  s_78e381cfffd90a::t_4a4cedb6da3c73 84-85
+services/auth/src/main/java/com/ulticode/auth/session/DefaultAuthSessionAdapter.java
+  s_78e381cfffd90a::t_0355af1a37dc65 90-97
+  s_78e381cfffd90a::t_46bcc4600d4fe6 42
+  s_78e381cfffd90a::t_d127c4a0b71f76 57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ae37b56e1608a52eeab94fec9006c8b09948b909",
+  "prompts": {},
+  "sessions": {
+    "s_78e381cfffd90a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f221ea9e-5fe5-49df-a788-9b37732ebf4e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

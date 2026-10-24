@@ -1,0 +1,19 @@
+scripts/test/promote-release-contract.py
+  s_4d092a39118ffb::t_2c790bedaa7b3c 138-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b12b60352940f2e0f47b6cccb9f8e3ea025febb2",
+  "prompts": {},
+  "sessions": {
+    "s_4d092a39118ffb": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1673c-dbee-7272-bf25-2b57235a3243",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

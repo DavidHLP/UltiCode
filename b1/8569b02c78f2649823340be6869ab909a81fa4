@@ -1,0 +1,14 @@
+scripts/dev/rustfs-smoke-test.sh
+  h_77173abe25c3ff 66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b18569b02c78f2649823340be6869ab909a81fa4",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

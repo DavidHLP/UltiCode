@@ -1,0 +1,23 @@
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/provider/DashboardAdminReadProviderIT.java
+  s_78e381cfffd90a::t_cecfd708bf12fd 47
+services/app/app-web/src/main/java/com/ulticode/modules/dashboard/mapper/DashboardAdminMapper.java
+  s_78e381cfffd90a::t_c2ad252cc4f880 21
+  s_78e381cfffd90a::t_972ec5edbded00 37
+  s_78e381cfffd90a::t_f32eb538b8c2b9 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bbfe8039ee2d964dbbd52fb1e06f536c48177631",
+  "prompts": {},
+  "sessions": {
+    "s_78e381cfffd90a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f221ea9e-5fe5-49df-a788-9b37732ebf4e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+.codex/rules/external-publish.rules
+  s_1566f10bce6b40::t_99fe87700aa709 1-38
+.claude/rules/operations/runtime-and-infrastructure.md
+  s_1566f10bce6b40::t_99fe87700aa709 11,13-16
+.claude/rules/docs/project-documentation.md
+  s_1566f10bce6b40::t_99fe87700aa709 4,6,10,12-14
+.claude/rules/backend/spring-boot.md
+  s_1566f10bce6b40::t_99fe87700aa709 3,5-8,11,13-17
+.claude/rules/operations/shell-scripting.md
+  s_1566f10bce6b40::t_99fe87700aa709 3,6,8-11
+.omp/rules/frontend-rules-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2,4-6,9,11-15
+.omp/rules/springboot-rules-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2,4-9,12,14-18
+.omp/rules/project-documentation-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2,4-8,11,13-15
+.omp/rules/runtime-and-infrastructure-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2,4-9,12,14-17
+.codex/rules/git-safety.rules
+  s_1566f10bce6b40::t_99fe87700aa709 1-31
+.claude/rules/backend/java-runtime-diagnostics.md
+  s_1566f10bce6b40::t_99fe87700aa709 1,3
+.omp/rules/flyway-migrations-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2,4-12,15,17-21
+AGENTS.md
+  s_1566f10bce6b40::t_99fe87700aa709 44-45
+.claude/rules/cross-stack/contracts.md
+  s_1566f10bce6b40::t_99fe87700aa709 19,21-23
+.omp/rules/contracts-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2,4-17,20,22-24
+.omp/rules/mysql-database-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2,4-7,10,12-15
+.omp/rules/shell-scripting-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2,4,7,9-12
+.codex/rules/secrets-safety.rules
+  s_1566f10bce6b40::t_99fe87700aa709 1-10
+.omp/rules/java-runtime-diagnostics-path.md
+  s_1566f10bce6b40::t_99fe87700aa709 2-3,6,8
+docs/development/coding-guidelines.md
+  s_1566f10bce6b40::t_99fe87700aa709 3,5,7-11,13,15,17,19,21-38
+docs/architecture/security.md
+  s_1566f10bce6b40::t_5bd7decb1ed699 38
+.omp/rules/README.md
+  s_1566f10bce6b40::t_99fe87700aa709 2-4,7,9-13
+.codex/rules/README.md
+  s_1566f10bce6b40::t_99fe87700aa709 3-28,32,37-39
+.claude/rules/README.md
+  s_1566f10bce6b40::t_99fe87700aa709 6,8,10,12
+.claude/rules/frontend/conventions.md
+  s_1566f10bce6b40::t_99fe87700aa709 3-5,8,10-14
+.claude/rules/database/flyway-migrations.md
+  s_1566f10bce6b40::t_99fe87700aa709 14,16-20
+.claude/rules/backend/mysql-database.md
+  s_1566f10bce6b40::t_99fe87700aa709 5-6,9,11-14
+.codex/rules/infrastructure-safety.rules
+  s_1566f10bce6b40::t_99fe87700aa709 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "88b5f2db7ba932be51832c06ad4a871c1f4b098e",
+  "prompts": {},
+  "sessions": {
+    "s_1566f10bce6b40": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b370-25aa-78b2-8ea2-5e78244b80aa",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

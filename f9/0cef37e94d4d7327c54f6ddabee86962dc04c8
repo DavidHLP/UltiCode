@@ -1,0 +1,19 @@
+apps/management/src/stores/admin/moderation/moderationStore.ts
+  s_ec466bac55b9f1::t_45c01c5538d32e 4,22-29,31,33-39,41-43,127-131,143,146-148,150,161-163,165,186-191
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f90cef37e94d4d7327c54f6ddabee86962dc04c8",
+  "prompts": {},
+  "sessions": {
+    "s_ec466bac55b9f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e30f7ca5-c368-4add-9e57-7006a4a65183",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

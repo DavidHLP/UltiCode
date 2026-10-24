@@ -1,0 +1,34 @@
+apps/console/src/features/sider/__tests__/AppSidebar.spec.ts
+  s_a1bff620af9581::t_31be1dccd399c6 121,129-166,228,259-261,263
+  s_a1bff620af9581::t_bd781b7d7befe9 253-257
+apps/console/src/features/sider/SidebarNav.vue
+  s_a1bff620af9581::t_9ecd7c2f452156 62,66-68,83,92
+packages/sidebar-menu/src/components/__tests__/SidebarParentItem.spec.ts
+  s_a1bff620af9581::t_31be1dccd399c6 34,38
+apps/management/src/components/layout/NavMain.vue
+  s_a1bff620af9581::t_9ecd7c2f452156 44,56
+apps/management/src/components/layout/NavSecondary.vue
+  s_a1bff620af9581::t_9ecd7c2f452156 29
+packages/sidebar-menu/src/components/SidebarBranch.vue
+  s_a1bff620af9581::t_9ecd7c2f452156 22,25,33-35,60
+apps/console/src/features/sider/components/SidebarListSections.vue
+  s_a1bff620af9581::t_9ecd7c2f452156 127
+docs/DEVELOPMENT.md
+  s_a1bff620af9581::t_31be1dccd399c6 232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "db3981dd1182b86b84463d776a40c52b00bd6e4e",
+  "prompts": {},
+  "sessions": {
+    "s_a1bff620af9581": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-8dcf1e3213ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+services/agent/tests/test_u04_acceptance.py
+  s_2b17acc78e6819::t_b013caafaf72ad 15-21
+  s_2b17acc78e6819::t_89c24e90d58c96 22-66
+services/agent/e2e_u04_demo.py
+  s_2b17acc78e6819::t_a762be5882e88e 421-422,428,447-454,465-467
+docs/DEVELOPMENT.md
+  s_2b17acc78e6819::t_0f9d691da02307 417-421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "35eab1d190ccf45b47c43832d9cb00a73f5a4703",
+  "prompts": {},
+  "sessions": {
+    "s_2b17acc78e6819": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a114bc-2f84-7eb1-b146-daf7a25a9370",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

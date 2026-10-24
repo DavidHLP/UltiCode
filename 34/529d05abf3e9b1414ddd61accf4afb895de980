@@ -1,0 +1,26 @@
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 140-142,144,146-151,183-185,187,189-194
+services/agent/tests/test_e2e_model_qa.py
+  h_77173abe25c3ff 49
+services/agent/tests/test_e2e_readonly.py
+  h_77173abe25c3ff 33
+services/agent/tests/test_e2e_sourced_analysis.py
+  h_77173abe25c3ff 27
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 46
+services/agent/tests/test_ulticode_tools.py
+  h_77173abe25c3ff 34,85,121,154
+services/agent/tests/test_ulticode_tools_security.py
+  h_77173abe25c3ff 493-497
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "34529d05abf3e9b1414ddd61accf4afb895de980",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+services/notification/src/main/java/com/ulticode/notification/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 4-13,15,25,27,32-34,36,42-54,73,76-77,80-81,96-100,103-106,108-111,114-165,169-192
+services/notification/src/main/java/com/ulticode/notification/idempotency/mapper/NotificationCommandReceiptMapper.java
+  h_77173abe25c3ff 37,40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "01ebcf9b227639ec9a6857ca0b7ef15c4de7ac8f",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

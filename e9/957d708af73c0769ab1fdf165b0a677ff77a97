@@ -1,0 +1,16 @@
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/ProfileWriteProvider.java
+  h_77173abe25c3ff 70
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  h_77173abe25c3ff 61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e9957d708af73c0769ab1fdf165b0a677ff77a97",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

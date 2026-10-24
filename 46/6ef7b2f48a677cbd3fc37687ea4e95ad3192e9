@@ -1,0 +1,28 @@
+apps/console/src/stores/__tests__/contestBrowse.spec.ts
+  h_77173abe25c3ff 85,89
+apps/console/src/stores/achievement.ts
+  h_77173abe25c3ff 16-17,49-51,63-65,77-79,85,94-96,101,140-142
+apps/console/src/stores/bookmark.ts
+  h_77173abe25c3ff 38-39,59-60,71,91-92,120-121,127-128,134,143-144,160,166-167,175,181-182,197,246-247,261,272-273,284,296-297,311,318-319,327-328
+apps/console/src/stores/contest/rankingStore.ts
+  h_77173abe25c3ff 18,24,67,90,98
+apps/console/src/stores/contestBrowse.ts
+  h_77173abe25c3ff 43,50-51,67-68,80-81
+apps/console/src/stores/contestDetail.ts
+  h_77173abe25c3ff 61-62,81-82,114-115,128,135-136,149,184-185
+apps/console/src/stores/contestRanking.ts
+  h_77173abe25c3ff 45-46,57-58,78-79,97,104-105,109,116-117
+apps/console/src/stores/userStats.ts
+  h_77173abe25c3ff 16-17,77-79,95-97,109-111,115,125-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "466ef7b2f48a677cbd3fc37687ea4e95ad3192e9",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

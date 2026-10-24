@@ -1,0 +1,21 @@
+scripts/test/network-reachability-contract.sh
+  s_694e7bc67882e4::t_ae9bd1d618c89e 97
+docker/docker-compose.dev.yml
+  s_694e7bc67882e4::t_f0bd87112331ad 25-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bd711ef709df33b0454e13c5e00be339497c8146",
+  "prompts": {},
+  "sessions": {
+    "s_694e7bc67882e4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2f951899-74db-479e-9781-16df144d1133",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+.github/actions/host-deploy/action.yml
+  h_77173abe25c3ff 300,337,365,405-419
+docs/OPERATIONS.md
+  h_77173abe25c3ff 184-185
+scripts/dev/migrate-object-storage.sh
+  h_77173abe25c3ff 78,86-95,655-656,784
+scripts/runbooks/assert-legacy-objects-migrated.sh
+  h_77173abe25c3ff 18-19,78-86
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
+  h_77173abe25c3ff 129-132,134-139,180,193
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupExecutionServiceTest.java
+  h_77173abe25c3ff 91
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/ProfileWriteProvider.java
+  h_77173abe25c3ff 82
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  h_77173abe25c3ff 110-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "80817e32e30b35649313f729b20708c8317e5458",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

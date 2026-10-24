@@ -1,0 +1,21 @@
+services/platform/web-security/src/main/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupport.java
+  s_7fda136455a0e8::t_61c4f8e2a38107 44
+services/platform/web-security/src/test/java/com/ulticode/websecurity/jwt/DelegationAssertionVerifierSupportTest.java
+  s_7fda136455a0e8::t_cc7f6840832320 21,40-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7c7372a8764dfd9f2f642dbbfbf596456e9fe921",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

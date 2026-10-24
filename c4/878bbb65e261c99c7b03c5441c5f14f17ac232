@@ -1,0 +1,21 @@
+apps/console/src/views/contest/components/PastContests.vue
+  s_232c49f8c2fc3f::t_e57fef6fce71cb 72
+packages/submission-status/src/index.ts
+  s_232c49f8c2fc3f::t_7c0304f460c6e7 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c4878bbb65e261c99c7b03c5441c5f14f17ac232",
+  "prompts": {},
+  "sessions": {
+    "s_232c49f8c2fc3f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f58d4d11-d2eb-463f-9ddc-cb6dea357794",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

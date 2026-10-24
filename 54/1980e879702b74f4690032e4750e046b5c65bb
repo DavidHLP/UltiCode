@@ -1,0 +1,19 @@
+services/platform/storage/src/test/java/com/ulticode/common/storage/S3StorageTest.java
+  s_aa33514364f4e1::t_9e18bb8413230f 58,69-70,112,124,148,200,210-237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "541980e879702b74f4690032e4750e046b5c65bb",
+  "prompts": {},
+  "sessions": {
+    "s_aa33514364f4e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b397a92-58ca-4252-8232-f281ba8d72e8",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

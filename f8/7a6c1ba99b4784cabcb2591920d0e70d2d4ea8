@@ -1,0 +1,38 @@
+.env.example
+  h_77173abe25c3ff 197-217
+docker/docker-compose.dev.yml
+  h_77173abe25c3ff 17-23
+docker/docker-compose.prod.yml
+  h_77173abe25c3ff 36-38,52-69,287-296,305-307,310,322,403-412,430-431,444,459
+docker/docker-compose.yml
+  h_77173abe25c3ff 114-166,169-170,215
+scripts/dev/devstack-manifest-test.sh
+  h_77173abe25c3ff 131-137,139,141,143,145,154
+scripts/dev/devstack-manifest.sh
+  h_77173abe25c3ff 47-49,51,53-54,120,372-373,392
+scripts/dev/doctor.sh
+  h_77173abe25c3ff 297-312
+scripts/dev/init-env.sh
+  h_77173abe25c3ff 111-112,243-257
+scripts/dev/stop.sh
+  h_77173abe25c3ff 158
+scripts/dev/up.sh
+  h_77173abe25c3ff 343-347,422-448,467-471
+scripts/test/core-profile-contract.sh
+  h_77173abe25c3ff 76
+scripts/test/devlite-minimal-contract.sh
+  h_77173abe25c3ff 81-82,88,92,96-97
+scripts/test/network-reachability-contract.sh
+  h_77173abe25c3ff 81,91,102-103,121,128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f87a6c1ba99b4784cabcb2591920d0e70d2d4ea8",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

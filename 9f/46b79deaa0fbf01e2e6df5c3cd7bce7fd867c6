@@ -1,0 +1,21 @@
+services/pom.xml
+  s_78e381cfffd90a::t_39bf7595b6472f 74-76
+  s_78e381cfffd90a::t_3cb4880c449adc 203-207
+  s_78e381cfffd90a::t_445e320952296f 208-215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f46b79deaa0fbf01e2e6df5c3cd7bce7fd867c6",
+  "prompts": {},
+  "sessions": {
+    "s_78e381cfffd90a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f221ea9e-5fe5-49df-a788-9b37732ebf4e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

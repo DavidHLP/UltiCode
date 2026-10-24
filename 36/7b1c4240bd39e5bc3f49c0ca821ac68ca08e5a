@@ -1,0 +1,20 @@
+apps/console/src/views/forum/ForumFeedView.vue
+  s_f6be48bb45b4fd::t_54eb277c320d34 250
+  s_f6be48bb45b4fd::t_9f943fb1f2eb6a 240
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "367b1c4240bd39e5bc3f49c0ca821ac68ca08e5a",
+  "prompts": {},
+  "sessions": {
+    "s_f6be48bb45b4fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0bd869ce-415a-42c0-a409-af548ffac910",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

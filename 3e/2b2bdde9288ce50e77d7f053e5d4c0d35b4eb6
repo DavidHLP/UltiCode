@@ -1,0 +1,171 @@
+services/pom.xml
+  s_7fda136455a0e8::t_b55c468c154a96 8,64-66,71
+docs/OPERATIONS.md
+  s_7fda136455a0e8::t_b427ecd068e014 31-32,327-328
+package.json
+  s_7fda136455a0e8::t_105677cc4db2f6 5
+pnpm-lock.yaml
+  s_7fda136455a0e8::t_0889d6896e33bb 30-31,3609-3610,3612,8902
+scripts/test/observability-contract.sh
+  s_7fda136455a0e8::t_ab39e10d30b389 96-105
+scripts/test/supply-chain-contract.sh
+  s_7fda136455a0e8::t_313a017e211d9a 168
+services/admin/pom.xml
+  s_7fda136455a0e8::t_54ed0d00b8a4b7 78,157,175,179-180,199-208
+services/admin/src/main/resources/application.yml
+  s_7fda136455a0e8::t_6b1bfc71c29115 6-8,19-22,126,128-133
+services/admin/src/test/java/com/ulticode/BackendAdminApplicationTest.java
+  s_7fda136455a0e8::t_f7144285f63ad2 10-11,24,31-33,35-36
+services/admin/src/test/java/com/ulticode/admin/BackendAdminDatasourceContextIT.java
+  s_7fda136455a0e8::t_0057d0fe9a5441 25-28
+services/admin/src/test/java/com/ulticode/admin/config/AdminCacheConfigTest.java
+  s_7fda136455a0e8::t_c44f52a867ed6d 38
+services/admin/src/test/java/com/ulticode/admin/security/AdminRouteAuthorizationContractTest.java
+  s_7fda136455a0e8::t_5309efaabb078a 10
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminAccountControllerTest.java
+  s_7fda136455a0e8::t_bc6f72f9566697 20-21
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminContestControllerTest.java
+  s_7fda136455a0e8::t_44c194de3d7785 14-15
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminProblemListControllerTest.java
+  s_7fda136455a0e8::t_14961276ab35c1 17-18
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminSettingsControllerTest.java
+  s_7fda136455a0e8::t_179720bad60e0f 18-19
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminSubmissionControllerTest.java
+  s_7fda136455a0e8::t_340bc3274bc5dd 16-17
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminTagControllerTest.java
+  s_7fda136455a0e8::t_4addb3a06bc219 14-15
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AuditControllerFormatTest.java
+  s_7fda136455a0e8::t_9e1497187854a5 11-12
+services/admin/src/test/java/com/ulticode/modules/admin/outbox/AuditSinkTransactionIT.java
+  s_7fda136455a0e8::t_bedcc008c707b0 27-30
+services/admin/src/test/java/com/ulticode/modules/backup/BackupRepositoryIT.java
+  s_7fda136455a0e8::t_c56205f1e1b554 43-46
+services/app/app-web/pom.xml
+  s_7fda136455a0e8::t_1462183230f143 104,117,131,205,209-210,259-268
+services/app/app-web/src/main/resources/application.yml
+  s_7fda136455a0e8::t_6cdc2e28c9c696 6-8,19-22,159,161-166
+services/app/app-web/src/test/java/com/ulticode/BackendAppApplicationTest.java
+  s_7fda136455a0e8::t_2f27baedf7f5dc 25,27,37
+services/app/app-web/src/test/java/com/ulticode/app/config/AppCacheConfigTest.java
+  s_7fda136455a0e8::t_b6f6661745abae 39
+services/app/app-web/src/test/java/com/ulticode/app/config/AppRedisRoleConfigTest.java
+  s_7fda136455a0e8::t_d9006a3b735dac 5,15
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/DubboBoot4LocalRoundTripIT.java
+  s_7fda136455a0e8::t_5317fc3c62124e 1-64
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/boot4fixture/LocalEchoPort.java
+  s_7fda136455a0e8::t_594fabc659a8c7 1-6
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/boot4fixture/LocalEchoService.java
+  s_7fda136455a0e8::t_e7a9426248b284 1-15
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/provider/ContestAdministrationWiringIT.java
+  s_7fda136455a0e8::t_7d10a24fc678ec 42-45,72
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/provider/ProblemListAdministrationWiringIT.java
+  s_7fda136455a0e8::t_5e3ed05e76bd60 33-36,62
+services/app/app-web/src/test/java/com/ulticode/app/security/AppRouteAuthorizationContractTest.java
+  s_7fda136455a0e8::t_234aac0f69a9e9 13
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderIT.java
+  s_7fda136455a0e8::t_81faa96819d0c8 47-51,88
+services/app/app-web/src/test/java/com/ulticode/modules/contest/controller/ContestPublicControllerTest.java
+  s_7fda136455a0e8::t_2d3ddb92d98afd 18-19
+services/app/app-web/src/test/java/com/ulticode/modules/contest/integration/ContestAdjudicationWiringIT.java
+  s_7fda136455a0e8::t_84ae7d15ba2d9a 25-28,80
+services/app/app-web/src/test/java/com/ulticode/modules/moderation/controller/ModerationControllerTest.java
+  s_7fda136455a0e8::t_8bb1adacaa57a1 17-18
+services/app/app-web/src/test/java/com/ulticode/modules/problem/controller/ProblemControllerTest.java
+  s_7fda136455a0e8::t_4b3d22fc2149f6 14-15
+services/app/app-web/src/test/resources/application.yml
+  s_7fda136455a0e8::t_f140885a24305e 9-10
+services/app/modules/contest/pom.xml
+  s_7fda136455a0e8::t_34eb5ba918a048 52
+services/app/modules/moderation/pom.xml
+  s_7fda136455a0e8::t_273560809ae80f 38
+services/app/modules/problem/pom.xml
+  s_7fda136455a0e8::t_2fe044cf14e5b2 53
+services/auth/pom.xml
+  s_7fda136455a0e8::t_9541e04bb6d29e 58,84,168-183
+services/auth/src/main/java/com/ulticode/auth/security/oauth/GithubOAuthClient.java
+  s_7fda136455a0e8::t_8378d2d144c5b4 40
+services/auth/src/main/java/com/ulticode/auth/security/oauth/GoogleOAuthClient.java
+  s_7fda136455a0e8::t_5ce6637a8ecbb8 40
+services/auth/src/main/java/com/ulticode/auth/security/oauth/OAuthAuthorizationUrl.java
+  s_7fda136455a0e8::t_7af9b53dd85494 1-22
+services/auth/src/main/resources/application.yml
+  s_7fda136455a0e8::t_39ac35a242fb59 16-18,55,194,196-201
+services/auth/src/test/java/com/ulticode/BackendAuthApplicationTest.java
+  s_7fda136455a0e8::t_f8efd57358d512 9-10,19
+services/auth/src/test/java/com/ulticode/auth/error/AuthWebExceptionHandlerTest.java
+  s_7fda136455a0e8::t_90d4882e603851 70,86
+services/auth/src/test/java/com/ulticode/auth/security/AuthSecurityConfigContractTest.java
+  s_7fda136455a0e8::t_d0b8ec284c7269 6
+services/auth/src/test/java/com/ulticode/auth/security/oauth/OAuthAuthorizationUrlTest.java
+  s_7fda136455a0e8::t_fa784829c34e67 1-23
+services/auth/src/test/resources/application.yml
+  s_7fda136455a0e8::t_d42102891e978d 28,31-33
+services/core/pom.xml
+  s_7fda136455a0e8::t_8e26262804c884 46,73-78,83,96
+services/core/src/main/java/com/ulticode/core/CoreApplication.java
+  s_7fda136455a0e8::t_a8862551aa1386 12-15,24-25
+services/core/src/main/java/com/ulticode/core/CoreOwnerBootConfigurations.java
+  s_7fda136455a0e8::t_9b38771ed8eb16 160-161
+services/core/src/main/java/com/ulticode/core/CoreOwnerDataSourceConfiguration.java
+  s_7fda136455a0e8::t_c530e6ccf910b1 7
+services/core/src/main/resources/application.yml
+  s_7fda136455a0e8::t_4bbe287d740749 2-4
+services/core/src/test/java/com/ulticode/core/CoreEnabledOwnerJourneyIT.java
+  s_7fda136455a0e8::t_2bd5151aff178e 260
+services/judge-runtime/pom.xml
+  s_7fda136455a0e8::t_5533817bf0fa73 78
+services/judge/pom.xml
+  s_7fda136455a0e8::t_634de087925047 55,114
+services/judge/src/main/resources/application.yml
+  s_7fda136455a0e8::t_51d890de4af2a8 16,19-22,103,105-111
+services/notification/pom.xml
+  s_7fda136455a0e8::t_6e63f9c1fee100 65,91,107,156,160-161
+services/notification/src/main/resources/application.yml
+  s_7fda136455a0e8::t_05c5164e3ff8a3 6-8,15-16,174,176-182
+services/notification/src/test/java/com/ulticode/notification/security/NotificationRouteAuthorizationContractTest.java
+  s_7fda136455a0e8::t_49ef2282c1aa84 10
+services/platform/integration-inbox/pom.xml
+  s_7fda136455a0e8::t_17207ed9c361ed 24,42
+services/platform/observability/pom.xml
+  s_7fda136455a0e8::t_461b675ebc0a30 23-27
+services/platform/observability/src/main/java/com/ulticode/observability/config/OtlpSecurityAutoConfiguration.java
+  s_7fda136455a0e8::t_e247a261531d77 15-17,29,35,39
+services/platform/observability/src/test/java/com/ulticode/observability/config/OtlpSecurityAutoConfigurationTest.java
+  s_7fda136455a0e8::t_7668a0e70d336c 4-5,8,39-42,49-64
+services/platform/storage/pom.xml
+  s_7fda136455a0e8::t_bdd92d1f8cec2c 45
+services/platform/web-security/pom.xml
+  s_7fda136455a0e8::t_47594475dd3656 37,43,73-77,88,92-93
+services/platform/web-security/src/main/java/com/ulticode/websecurity/config/WebSecurityAutoConfiguration.java
+  s_7fda136455a0e8::t_1e182371370872 10,23
+services/platform/web-security/src/test/java/com/ulticode/websecurity/RateLimitIT.java
+  s_7fda136455a0e8::t_0bf83c96d3aab8 19-21,58
+services/search/pom.xml
+  s_7fda136455a0e8::t_68f9c6435764da 50,82-86,102
+services/search/src/main/resources/application.yml
+  s_7fda136455a0e8::t_01877722a0d62e 16,19-22,80,82-88
+services/submission/pom.xml
+  s_7fda136455a0e8::t_8fbf3e8da3ba1f 41,77,132
+services/submission/src/main/resources/application.yml
+  s_7fda136455a0e8::t_9d09d2da918100 6-8,81,83-88
+services/submission/src/test/java/com/ulticode/submission/BackendSubmissionApplicationTest.java
+  s_7fda136455a0e8::t_3b63fcd5839b64 26
+services/submission/src/test/java/com/ulticode/submission/security/InternalDelegationAssertionVerifierTest.java
+  s_7fda136455a0e8::t_68c4c3765ed939 26,34-35,42,53,60,63,66,69,75,78,96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e2b2bdde9288ce50e77d7f053e5d4c0d35b4eb6",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

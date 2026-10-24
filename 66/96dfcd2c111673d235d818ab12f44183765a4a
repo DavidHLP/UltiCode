@@ -1,0 +1,16 @@
+services/agent/e2e_citation_support_model.py
+  h_77173abe25c3ff 190-197
+services/agent/tests/test_e2e_citation_support_model.py
+  h_77173abe25c3ff 499-512
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6696dfcd2c111673d235d818ab12f44183765a4a",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

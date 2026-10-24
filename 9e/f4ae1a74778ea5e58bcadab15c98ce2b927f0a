@@ -1,0 +1,30 @@
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverDecision.java
+  h_77173abe25c3ff 1-16
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverGate.java
+  h_77173abe25c3ff 27-33
+services/admin/src/main/java/com/ulticode/modules/admin/service/ContentModerationCutoverService.java
+  h_77173abe25c3ff 11,75
+services/admin/src/main/java/com/ulticode/modules/admin/service/ContestCutoverService.java
+  h_77173abe25c3ff 25,185
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImpl.java
+  h_77173abe25c3ff 24-25,32,67-78,100,146,183,219-229
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverGateTest.java
+  h_77173abe25c3ff 1-41
+services/admin/src/test/java/com/ulticode/modules/admin/service/ContentModerationCutoverServiceTest.java
+  h_77173abe25c3ff 1-69
+services/admin/src/test/java/com/ulticode/modules/admin/service/ContestCutoverServiceTest.java
+  h_77173abe25c3ff 1-38
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImplTest.java
+  h_77173abe25c3ff 21-22,69,76-78,108-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9ef4ae1a74778ea5e58bcadab15c98ce2b927f0a",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

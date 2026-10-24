@@ -1,0 +1,58 @@
+apps/management/src/components/layout/AppSidebar.vue
+  h_77173abe25c3ff 2-13,57-65
+apps/management/src/composables/domainPermissionMaps.ts
+  h_77173abe25c3ff 1,3-74
+apps/management/src/composables/useDomainPermissions.test.ts
+  h_77173abe25c3ff 1,4-17,22-23,25,29-40,42-77,79-84
+apps/management/src/views/contests/ContestDetailView.vue
+  h_77173abe25c3ff 2-3,33
+apps/management/src/views/contests/ContestsListView.vue
+  h_77173abe25c3ff 2-3,23
+apps/management/src/views/contests/ScoringRulesView.vue
+  h_77173abe25c3ff 2-3,41-42
+apps/management/src/views/contests/columns.test.ts
+  h_77173abe25c3ff 6
+apps/management/src/views/contests/columns.ts
+  h_77173abe25c3ff 20
+apps/management/src/views/forum/ForumPostDetailView.vue
+  h_77173abe25c3ff 2-3,33
+apps/management/src/views/forum/ForumPostsListView.vue
+  h_77173abe25c3ff 2-3,24
+apps/management/src/views/forum/columns.ts
+  h_77173abe25c3ff 19
+apps/management/src/views/help/HelpView.vue
+  h_77173abe25c3ff 10-15,37-39
+apps/management/src/views/problem-lists/ProblemListsListView.vue
+  h_77173abe25c3ff 2-3,22
+apps/management/src/views/problem-lists/columns.ts
+  h_77173abe25c3ff 17
+apps/management/src/views/problems/ProblemsListView.vue
+  h_77173abe25c3ff 2-3,43
+apps/management/src/views/problems/composables/useProblemColumns.test.ts
+  h_77173abe25c3ff 7
+apps/management/src/views/problems/composables/useProblemColumns.ts
+  h_77173abe25c3ff 29
+apps/management/src/views/solutions/SolutionDetailView.vue
+  h_77173abe25c3ff 2-3,19
+apps/management/src/views/solutions/SolutionsListView.vue
+  h_77173abe25c3ff 2-3,23
+apps/management/src/views/solutions/columns.ts
+  h_77173abe25c3ff 18
+apps/management/src/views/tags/TagsListView.vue
+  h_77173abe25c3ff 2-3,40
+apps/management/src/views/users/UsersListView.vue
+  h_77173abe25c3ff 2-3,39
+apps/management/src/views/users/columns.ts
+  h_77173abe25c3ff 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fa6b0bad8364cabe157bc1e8294d554d1578fde0",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+services/admin/src/test/java/com/ulticode/modules/admin/service/SubmissionCutoverServiceTest.java
+  h_77173abe25c3ff 107-120
+services/submission/src/main/java/com/ulticode/submission/admin/RejudgeOutcome.java
+  h_77173abe25c3ff 1-20
+services/submission/src/main/java/com/ulticode/submission/admin/SubmissionRejudgeService.java
+  h_77173abe25c3ff 29,32,35,43,50,57,63,80,83,87,90-91
+services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionAdministrationProvider.java
+  h_77173abe25c3ff 5,41-44,64-66,75-76,79-80,83,85-86,89-111
+services/submission/src/test/java/com/ulticode/submission/admin/SubmissionRejudgeServiceTest.java
+  h_77173abe25c3ff 48-49,51-52,57,62,64-66,71,77,79-83,91,95,97-98,103,109,111-115,120,123,125-127
+services/submission/src/test/java/com/ulticode/submission/dubbo/provider/SubmissionAdministrationProviderTest.java
+  h_77173abe25c3ff 3,8,10,12,21-23,51,54,56-57,62-64,67-141,158-167
+services/submission/src/test/java/com/ulticode/submission/idempotency/SubmissionCommandReceiptExecutorTest.java
+  h_77173abe25c3ff 16,47-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "39ac77f5cad482b68401f6b1e3e3c3b801a41ea3",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

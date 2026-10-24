@@ -1,0 +1,65 @@
+apps/console/src/i18n/locales/zh-CN/agent.ts
+  s_6d6301651c0f0a::t_169f2384cad9c7 1-17,19-49,51-52
+  s_6d6301651c0f0a::t_3a0e2971fb3942 18
+  s_6d6301651c0f0a::t_3e6c90f8b660ee 50
+apps/console/src/i18n/locales/en-US/agent.ts
+  s_6d6301651c0f0a::t_169f2384cad9c7 1-17,19-49,51-52
+  s_6d6301651c0f0a::t_3a0e2971fb3942 18
+  s_6d6301651c0f0a::t_3e6c90f8b660ee 50
+apps/console/src/composables/useAgentWorkflow.ts
+  s_6d6301651c0f0a::t_dc2ade2f610f53 17,30,293,319
+  s_6d6301651c0f0a::t_4ca92caf183b6c 29
+  s_6d6301651c0f0a::t_687c7b32a809f3 309,312
+  s_6d6301651c0f0a::t_3e6c90f8b660ee 115,129-134
+  s_6d6301651c0f0a::t_37e0f4a760eb08 253-254,261
+  s_6d6301651c0f0a::t_6f9e19246716c8 1-16,18-28,32-114,116-128,135-140,142-231,233-252,255-257,259-260,262-268,273-292,294-308,310-311,313-318,320-322
+  s_6d6301651c0f0a::t_8b7145120840e5 232,258,269-272
+  s_6d6301651c0f0a::t_a76dd2bc9fa1d4 141
+  s_6d6301651c0f0a::t_d0311c83dba2e8 31
+apps/console/src/i18n/locales/zh-CN/index.ts
+  s_6d6301651c0f0a::t_169f2384cad9c7 17,35
+apps/console/src/router/index.ts
+  s_6d6301651c0f0a::t_4ca92caf183b6c 225-228
+  s_6d6301651c0f0a::t_e92420c9b7d167 224
+apps/console/src/i18n/locales/en-US/index.ts
+  s_6d6301651c0f0a::t_169f2384cad9c7 17,35
+apps/console/src/views/personal/AgentDemoView.vue
+  s_6d6301651c0f0a::t_e6e785a99b1ccf 1-25,27-44,46-49,53-74,76-132,139-140,147-152,154-223,225-276
+  s_6d6301651c0f0a::t_a76dd2bc9fa1d4 133-138
+  s_6d6301651c0f0a::t_3e6c90f8b660ee 45
+  s_6d6301651c0f0a::t_dc2ade2f610f53 26,50-52,153
+  s_6d6301651c0f0a::t_3a0e2971fb3942 224
+  s_6d6301651c0f0a::t_687c7b32a809f3 75,141-146
+apps/console/src/api/__tests__/agent.spec.ts
+  s_6d6301651c0f0a::t_b923b05c173501 1-64
+docs/DEVELOPMENT.md
+  s_6d6301651c0f0a::t_2b3f47e36aa32e 70
+  s_6d6301651c0f0a::t_169f2384cad9c7 71
+  s_6d6301651c0f0a::t_16e49ae4850a3c 72-80
+apps/console/src/composables/__tests__/useAgentWorkflow.spec.ts
+  s_6d6301651c0f0a::t_b923b05c173501 1-96,150
+  s_6d6301651c0f0a::t_2cbd462e27685a 97-116
+  s_6d6301651c0f0a::t_dc2ade2f610f53 117-138,143-149
+  s_6d6301651c0f0a::t_687c7b32a809f3 141-142
+  s_6d6301651c0f0a::t_a76dd2bc9fa1d4 139-140
+apps/console/vite.config.ts
+  s_6d6301651c0f0a::t_4ca92caf183b6c 128-131
+apps/console/src/api/agent.ts
+  s_6d6301651c0f0a::t_6f9e19246716c8 1-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1399af681451090b6af3b60d21251dc2083e7b16",
+  "prompts": {},
+  "sessions": {
+    "s_6d6301651c0f0a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ba9-5111-7521-8e62-23c365e3933a",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+pnpm-workspace.yaml
+  s_3602fa48cb9bd2::t_4fb8faac90df34 26-31
+pnpm-lock.yaml
+  s_3602fa48cb9bd2::t_9aead8f60470ce 17,148-149,386-387,614-615,4506-4507,7251,10158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "18f10a271ba6b3198f4d355e371c208522fccc7e",
+  "prompts": {},
+  "sessions": {
+    "s_3602fa48cb9bd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "771ce81c-9f6f-4b0c-a21c-2b784a5d57d3",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

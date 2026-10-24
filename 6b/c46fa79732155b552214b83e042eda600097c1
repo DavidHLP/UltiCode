@@ -1,0 +1,16 @@
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 118,126-127,129,131,160-161,163,169,180
+services/agent/tests/test_ulticode_tools.py
+  h_77173abe25c3ff 4,83,105-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6bc46fa79732155b552214b83e042eda600097c1",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

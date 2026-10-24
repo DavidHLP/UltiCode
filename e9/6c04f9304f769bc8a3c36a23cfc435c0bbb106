@@ -1,0 +1,14 @@
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e96c04f9304f769bc8a3c36a23cfc435c0bbb106",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+init-db/migrations/app/V20260927120000__Create_Storage_Migration_State.sql
+  s_9db8610fb6957e::t_8cc852338f4243 1-14
+scripts/dev/migrate-object-storage.sh
+  s_9db8610fb6957e::t_01afd4ae729292 25-28,491-516,799,810-813
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7a6cdf35238a8292825d9a392e4ea910b540ef6a",
+  "prompts": {},
+  "sessions": {
+    "s_9db8610fb6957e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3f3aa2bc-28c2-4c75-9fdd-6dea779b89ac",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+.codex/hooks/format-changed-files.test.mjs
+  s_c22ff167170ae1::t_74d8c5e17a9e56 28
+.codex/hooks/format-changed-files.mjs
+  s_c22ff167170ae1::t_74d8c5e17a9e56 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "967b049c801575c8ebebfa8522691c4555ff626a",
+  "prompts": {},
+  "sessions": {
+    "s_c22ff167170ae1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a167a9-65ac-7f23-a035-24a5b0676bde",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

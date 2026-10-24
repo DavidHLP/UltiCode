@@ -1,0 +1,22 @@
+services/submission/src/test/java/com/ulticode/submission/read/SubmissionReadAssemblyTest.java
+  s_40c0e684805a47::t_5c44e4da7d0a0e 104-105,108-109,111,117-121,132-133
+services/submission/src/main/java/com/ulticode/modules/submission/read/SubmissionReadAssembly.java
+  s_40c0e684805a47::t_5c44e4da7d0a0e 114,116,140-144,154-155
+  s_40c0e684805a47::t_470d9a1086681f 156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "da580323e094a235dd6d5a121f115e92389ef263",
+  "prompts": {},
+  "sessions": {
+    "s_40c0e684805a47": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b84d-a87b-7b60-a042-4a9e66098879",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

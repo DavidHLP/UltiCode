@@ -1,0 +1,16 @@
+services/agent/src/agent_service/app.py
+  h_77173abe25c3ff 253-256
+services/agent/tests/test_agent_service.py
+  h_77173abe25c3ff 141-147,149,160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a1cdf461c6068be0e79566f2710ede7a3661caa7",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

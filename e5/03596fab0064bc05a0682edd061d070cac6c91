@@ -1,0 +1,14 @@
+.github/dependabot.yml
+  h_77173abe25c3ff 52-72,78-81,122-124,141-144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e503596fab0064bc05a0682edd061d070cac6c91",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+AGENTS.md
+  s_45f35d08a5c835::t_14bac7c4851320 5-14,37,47-48,70-72,109,122,132,145,147-151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7aa229d2868bee245fe54e8fab731a98acce787a",
+  "prompts": {},
+  "sessions": {
+    "s_45f35d08a5c835": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0af82-5e97-73c3-a678-67d2cbc7d745",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

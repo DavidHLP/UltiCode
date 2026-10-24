@@ -1,0 +1,21 @@
+services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java
+  s_bd65b162c8d71a::t_a00a299b5d99ce 27-28,52,177-179,195,307,327,330,413,437-446,451,454,525,529,538-565,576-578,588-590
+services/core/src/test/java/com/ulticode/core/CoreOwnerContextManagerLifecycleTest.java
+  s_bd65b162c8d71a::t_ab998e13df8e1c 66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "29d28d99206d2a253ae1bd4ef822e1168cfb1e59",
+  "prompts": {},
+  "sessions": {
+    "s_bd65b162c8d71a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b919-0e98-7801-8f82-246c69699654",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

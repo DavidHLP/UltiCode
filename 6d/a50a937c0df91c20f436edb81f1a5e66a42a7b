@@ -1,0 +1,14 @@
+scripts/test/deployment-integrity-contract.sh
+  h_77173abe25c3ff 41-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6da50a937c0df91c20f436edb81f1a5e66a42a7b",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

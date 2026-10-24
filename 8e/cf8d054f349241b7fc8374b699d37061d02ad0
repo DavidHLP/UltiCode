@@ -1,0 +1,19 @@
+apps/console/src/composables/__tests__/useAgentConversations.spec.ts
+  s_c130ace718f6ec::t_1efdfdc743d3a1 95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ecf8d054f349241b7fc8374b699d37061d02ad0",
+  "prompts": {},
+  "sessions": {
+    "s_c130ace718f6ec": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1593f-2a47-7d92-a252-60127bd61564",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

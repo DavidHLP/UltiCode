@@ -1,0 +1,18 @@
+.gitignore
+  h_77173abe25c3ff 305-307
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 56-85,117,120-123,199
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 180-205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "99f7a42a7bd5386109a2ad390a40bec17d5028bb",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

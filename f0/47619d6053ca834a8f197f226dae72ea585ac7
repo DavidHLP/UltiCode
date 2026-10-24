@@ -1,0 +1,23 @@
+docs/DEVELOPMENT.md
+  s_7fda136455a0e8::t_707e6cbedbe601 959-961
+services/agent/src/budget_binding_migration.py
+  s_7fda136455a0e8::t_707e6cbedbe601 463,628-632
+services/agent/data/repository_corpus_manifest.json
+  s_7fda136455a0e8::t_6cb7047e90bcc6 32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f047619d6053ca834a8f197f226dae72ea585ac7",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

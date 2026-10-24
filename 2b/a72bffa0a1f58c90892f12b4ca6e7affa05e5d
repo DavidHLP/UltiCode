@@ -1,0 +1,23 @@
+services/agent/src/deepseek_model.py
+  s_7fda136455a0e8::t_295b0f1e3839e2 64,66-67
+docs/DEVELOPMENT.md
+  s_7fda136455a0e8::t_295b0f1e3839e2 72
+services/agent/data/repository_corpus_manifest.json
+  s_7fda136455a0e8::t_6d5a136fefcfb0 32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2ba72bffa0a1f58c90892f12b4ca6e7affa05e5d",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

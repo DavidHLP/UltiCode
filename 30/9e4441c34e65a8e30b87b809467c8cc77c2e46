@@ -1,0 +1,22 @@
+services/submission/src/main/java/com/ulticode/modules/submission/read/SubmissionReadAssembly.java
+  h_77173abe25c3ff 13-15,54-55,79-99,118,129,148
+services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionUserQueryProvider.java
+  h_77173abe25c3ff 48,53,58,63
+services/submission/src/test/java/com/ulticode/submission/dubbo/provider/SubmissionUserQueryProviderIT.java
+  h_77173abe25c3ff 140,299
+services/submission/src/test/java/com/ulticode/submission/provider/SubmissionUserQueryProviderTest.java
+  h_77173abe25c3ff 52
+services/submission/src/test/java/com/ulticode/submission/read/SubmissionReadAssemblyTest.java
+  h_77173abe25c3ff 15-17,48-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "309e4441c34e65a8e30b87b809467c8cc77c2e46",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

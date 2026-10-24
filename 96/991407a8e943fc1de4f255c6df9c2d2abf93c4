@@ -1,0 +1,16 @@
+services/agent/e2e_model_qa.py
+  h_77173abe25c3ff 91-95
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 533,538,545
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "96991407a8e943fc1de4f255c6df9c2d2abf93c4",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

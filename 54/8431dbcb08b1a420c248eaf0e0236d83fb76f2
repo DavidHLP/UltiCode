@@ -1,0 +1,26 @@
+init-db/migrations/admin/V20260916120000__Add_Audit_Outbox_Retry_Fields.sql
+  h_77173abe25c3ff 1-10
+services/admin/src/main/java/com/ulticode/modules/admin/outbox/AuditOutboxDispatcher.java
+  h_77173abe25c3ff 61-62
+services/admin/src/main/java/com/ulticode/modules/admin/outbox/AuditOutboxProcessor.java
+  h_77173abe25c3ff 44-47,57-58,61-67
+services/admin/src/main/java/com/ulticode/modules/admin/outbox/AuditOutboxRecord.java
+  h_77173abe25c3ff 41-50,59-61
+services/admin/src/main/java/com/ulticode/modules/admin/outbox/mapper/AuditOutboxMapper.java
+  h_77173abe25c3ff 20-23,28-31,35-38,54-57,61,63-64,74-82,86-90,92-109
+services/admin/src/test/java/com/ulticode/modules/admin/outbox/AuditOutboxDispatcherTest.java
+  h_77173abe25c3ff 2,82-83,86,93-95,97,99-103,118-119
+services/admin/src/test/java/com/ulticode/modules/admin/outbox/AuditOutboxProcessorTest.java
+  h_77173abe25c3ff 6,15-16,24,77-100,102-153,157-158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "548431dbcb08b1a420c248eaf0e0236d83fb76f2",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

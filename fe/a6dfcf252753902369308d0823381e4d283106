@@ -1,0 +1,22 @@
+.github/workflows/docker-publish.yml
+  h_77173abe25c3ff 154-156
+docs/OPERATIONS.md
+  h_77173abe25c3ff 23
+scripts/test/promote-release-contract.py
+  h_77173abe25c3ff 117-120,282,337-341
+scripts/test/supply-chain-contract.sh
+  h_77173abe25c3ff 150-151
+services/agent/data/repository_corpus_manifest.json
+  h_77173abe25c3ff 46-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fea6dfcf252753902369308d0823381e4d283106",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

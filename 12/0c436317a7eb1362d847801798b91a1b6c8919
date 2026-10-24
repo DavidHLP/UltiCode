@@ -1,0 +1,33 @@
+services/submission/src/main/java/com/ulticode/modules/submission/read/SubmissionReadAssembly.java
+  s_40c0e684805a47::t_741c8d58049c23 1-183
+services/submission/src/test/java/com/ulticode/submission/read/SubmissionReadAssemblyTest.java
+  s_40c0e684805a47::t_31b1e72ba5b890 10
+  s_40c0e684805a47::t_029229100e717f 1-9,11-98
+services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionReadProvider.java
+  s_40c0e684805a47::t_741c8d58049c23 5,28,40
+  s_40c0e684805a47::t_9b27e65f2361da 18,20-21
+services/submission/src/test/java/com/ulticode/submission/provider/SubmissionUserQueryProviderTest.java
+  s_40c0e684805a47::t_e4b80abb3ad6e7 10,46-47,49,52-53
+services/submission/src/main/java/com/ulticode/submission/dubbo/provider/SubmissionUserQueryProvider.java
+  s_40c0e684805a47::t_741c8d58049c23 13,46,70,75,81,85
+services/submission/src/test/java/com/ulticode/submission/dubbo/provider/SubmissionReadProviderIT.java
+  s_40c0e684805a47::t_0cb9fbbf694147 15-16,143-145
+services/submission/src/test/java/com/ulticode/submission/dubbo/provider/SubmissionUserQueryProviderIT.java
+  s_40c0e684805a47::t_0cb9fbbf694147 21,140-141,296-297,299
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "120c436317a7eb1362d847801798b91a1b6c8919",
+  "prompts": {},
+  "sessions": {
+    "s_40c0e684805a47": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b84d-a87b-7b60-a042-4a9e66098879",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

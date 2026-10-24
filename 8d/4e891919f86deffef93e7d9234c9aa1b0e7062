@@ -1,0 +1,20 @@
+.github/actions/host-deploy/action.yml
+  h_77173abe25c3ff 408-437
+docs/OPERATIONS.md
+  h_77173abe25c3ff 193-198,214-217,228-229
+scripts/README.md
+  h_77173abe25c3ff 89-90
+scripts/runbooks/assert-legacy-objects-migrated.sh
+  h_77173abe25c3ff 1-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d4e891919f86deffef93e7d9234c9aa1b0e7062",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

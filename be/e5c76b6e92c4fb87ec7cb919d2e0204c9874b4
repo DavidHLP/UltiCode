@@ -1,0 +1,77 @@
+services/admin/src/main/java/com/ulticode/modules/admin/service/SystemSettingsService.java
+  s_a1bff620af9581::t_d716bf35be3a9a 44-45
+apps/console/src/api/agent.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 34
+services/admin/src/main/java/com/ulticode/modules/admin/controller/PublicAgentFeatureController.java
+  s_a1bff620af9581::t_0659fa4a4ea385 1-17,19-20
+  s_a1bff620af9581::t_d716bf35be3a9a 18
+apps/console/src/views/problems/submissions/components/AgentReviewPanel.vue
+  s_a1bff620af9581::t_0659fa4a4ea385 54
+services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java
+  s_a1bff620af9581::t_0659fa4a4ea385 44
+services/admin/src/main/java/com/ulticode/modules/admin/dto/settings/AllSettingsVO.java
+  s_a1bff620af9581::t_0659fa4a4ea385 53
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/SystemSettingsServiceImplTest.java
+  s_a1bff620af9581::t_d716bf35be3a9a 86-105
+  s_a1bff620af9581::t_0659fa4a4ea385 85,106-115
+apps/management/src/api/admin/settings.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 5,80,149,213
+apps/console/src/views/personal/__tests__/AgentConversationWorkspace.spec.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 15-17,155-157,164-171,176
+apps/management/src/stores/admin/system-settings.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 133,187,373-376
+docs/DEVELOPMENT.md
+  s_a1bff620af9581::t_0659fa4a4ea385 100,201
+apps/console/src/i18n/locales/en-US/agent.ts
+  s_a1bff620af9581::t_a4152007104be8 114
+services/admin/src/main/java/com/ulticode/modules/admin/dto/settings/FeatureTogglesVO.java
+  s_a1bff620af9581::t_d716bf35be3a9a 4,12-18
+  s_a1bff620af9581::t_0659fa4a4ea385 11
+apps/console/src/features/sider/sidebar.data.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 191
+apps/console/src/views/problems/submissions/__tests__/AgentReviewPanel.spec.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 87,91
+apps/console/src/views/personal/AgentConversationWorkspace.vue
+  s_a1bff620af9581::t_0659fa4a4ea385 5,29,48,99,101,141-163
+apps/console/src/i18n/locales/zh-CN/agent.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 114
+apps/management/src/i18n/locales/zh-CN/modules/settings.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 92-94
+apps/management/src/views/settings/components/FeatureToggleSettings.vue
+  s_a1bff620af9581::t_0659fa4a4ea385 43-46
+  s_a1bff620af9581::t_eb6de35c8460da 42
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/SystemSettingsServiceImpl.java
+  s_a1bff620af9581::t_0659fa4a4ea385 160
+  s_a1bff620af9581::t_d716bf35be3a9a 199-209,302-303
+  s_a1bff620af9581::t_72851f5bfb4d2d 198
+services/agent/src/agent_service/app.py
+  s_a1bff620af9581::t_0659fa4a4ea385 604-618,715-716,725-726,1112-1119
+apps/management/src/stores/admin/__tests__/system-settings.spec.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 56,88,186,190
+apps/management/src/views/settings/components/SettingsSwitches.test.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 76
+services/agent/tests/test_agent_security.py
+  s_a1bff620af9581::t_0659fa4a4ea385 12
+apps/management/src/i18n/locales/en-US/modules/settings.ts
+  s_a1bff620af9581::t_0659fa4a4ea385 93-95
+services/agent/tests/test_agent_service.py
+  s_a1bff620af9581::t_0659fa4a4ea385 46-80,1599-1601
+  s_a1bff620af9581::t_36289e37bb8d22 20,28-43
+  s_a1bff620af9581::t_a15fba3bce3978 44-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bee5c76b6e92c4fb87ec7cb919d2e0204c9874b4",
+  "prompts": {},
+  "sessions": {
+    "s_a1bff620af9581": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-8dcf1e3213ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

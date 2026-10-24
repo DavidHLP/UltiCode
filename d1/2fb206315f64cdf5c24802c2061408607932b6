@@ -1,0 +1,20 @@
+scripts/dev/migrate-object-storage-test.sh
+  h_77173abe25c3ff 16,24,54,56-61,63,193-194,211-238
+scripts/dev/migrate-object-storage.sh
+  h_77173abe25c3ff 158,165
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  h_77173abe25c3ff 23-25,38,61-77,97,201-202,385,387,390,409-415
+services/platform/storage/src/test/java/com/ulticode/common/storage/S3StorageTest.java
+  h_77173abe25c3ff 32,275-341
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d12fb206315f64cdf5c24802c2061408607932b6",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

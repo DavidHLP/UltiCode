@@ -1,0 +1,19 @@
+services/.mvn/wrapper/maven-wrapper.properties
+  s_c1c1bb99787bb6::t_5fad61124230ee 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "02231026f17b0d88a79f0412dfdf2ffc327e14d6",
+  "prompts": {},
+  "sessions": {
+    "s_c1c1bb99787bb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1198a-cf4e-7f23-81dd-601d007adaf7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

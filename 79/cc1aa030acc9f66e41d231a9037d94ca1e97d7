@@ -1,0 +1,42 @@
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java
+  h_77173abe25c3ff 7,27,29-32,60-75,80-83,189-192,199-222,229-234,390-395
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DefaultAdminAnalyticsPortAdapter.java
+  h_77173abe25c3ff 68,76-79,86,93
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/DefaultAdminDashboardReadAdapter.java
+  h_77173abe25c3ff 49-50,55,59-62,65-66,70-71
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AdminUserEnricher.java
+  h_77173abe25c3ff 46-48,69-71,75-78,81-83
+services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminUserProjection.java
+  h_77173abe25c3ff 11,48-49
+services/admin/src/main/java/com/ulticode/modules/admin/query/DefaultAdminUserDetailQuery.java
+  h_77173abe25c3ff 77,85-88,96,101
+services/admin/src/main/java/com/ulticode/modules/reconciliation/OwnerReconciler.java
+  h_77173abe25c3ff 23,75,84-106
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/DefaultAdminAnalyticsPortAdapterMetricsTest.java
+  h_77173abe25c3ff 141
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/DefaultAdminAnalyticsPortAdapterTest.java
+  h_77173abe25c3ff 112
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/DefaultAdminDashboardReadAdapterMetricsTest.java
+  h_77173abe25c3ff 99-103
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/DefaultAdminDashboardReadAdapterTest.java
+  h_77173abe25c3ff 146-150
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/DefaultAdminDashboardReadAdapterUserTrendTest.java
+  h_77173abe25c3ff 51-56,76-81,101-106
+services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminUserEnricherTest.java
+  h_77173abe25c3ff 16,83-88
+services/admin/src/test/java/com/ulticode/modules/reconciliation/OwnerReconcilerIT.java
+  h_77173abe25c3ff 215
+services/admin/src/test/java/com/ulticode/modules/reconciliation/OwnerReconcilerTest.java
+  h_77173abe25c3ff 91-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "79cc1aa030acc9f66e41d231a9037d94ca1e97d7",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

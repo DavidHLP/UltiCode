@@ -1,0 +1,54 @@
+apps/console/package.json
+  h_77173abe25c3ff 42
+apps/console/src/api/problem.ts
+  h_77173abe25c3ff 32,48
+apps/console/src/components/problem/composables/useProblemExplorer.ts
+  h_77173abe25c3ff 8,37-44,78-83,88-94,96-97
+apps/console/src/composables/useSearch.ts
+  h_77173abe25c3ff 3,33-34,41,64-69
+apps/console/src/stores/achievement.ts
+  h_77173abe25c3ff 6,12-14,50-51,55,63-64,68
+apps/console/src/stores/bookmark.ts
+  h_77173abe25c3ff 3,32-36,91-92,94-95,114
+apps/console/src/stores/contest/rankingStore.ts
+  h_77173abe25c3ff 3,17-21,56-57,59,68,99
+apps/console/src/stores/contestBrowse.ts
+  h_77173abe25c3ff 2-3,32-42,52,55-57,61,67-76
+apps/console/src/stores/contestDetail.ts
+  h_77173abe25c3ff 2,56-60,82-83,85
+apps/console/src/stores/contestRanking.ts
+  h_77173abe25c3ff 2,34-38,58,62-63,65
+apps/console/src/stores/userStats.ts
+  h_77173abe25c3ff 6,11-13,75,78-79,92,95-96,100
+apps/console/src/views/contest/components/MyContests.vue
+  h_77173abe25c3ff 3,15-19,24-40,42-43,50,58
+apps/console/tsconfig.app.json
+  h_77173abe25c3ff 14
+apps/management/package.json
+  h_77173abe25c3ff 39
+apps/management/src/stores/createValueRequest.ts
+  h_77173abe25c3ff 1,12-15
+apps/management/tsconfig.app.json
+  h_77173abe25c3ff 14
+packages/request-state/package.json
+  h_77173abe25c3ff 1-28
+packages/request-state/src/index.test.ts
+  h_77173abe25c3ff 1-39
+packages/request-state/src/index.ts
+  h_77173abe25c3ff 1-54
+packages/request-state/tsconfig.json
+  h_77173abe25c3ff 1-13
+pnpm-lock.yaml
+  h_77173abe25c3ff 98-100,330-332,730-744
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df135ec9f8aa4c5358c295ec74cb8b4c18ba1832",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

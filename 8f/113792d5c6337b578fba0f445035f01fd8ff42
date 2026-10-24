@@ -1,0 +1,18 @@
+services/agent/src/corpus_manifest.py
+  h_77173abe25c3ff 1-20,31-35,37-42,48-50,55,67-68,70,81,83-86,90,95-101,104,112-141
+services/agent/src/retrieval.py
+  h_77173abe25c3ff 9-10,89-94
+services/agent/tests/test_corpus_manifest.py
+  h_77173abe25c3ff 7-8,10,13,18-19,26-30,34,37-38,42-54,57-58,66-67,75-84,94-100,102,115-119,124-125,127-129,131-139,141-164,166-167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f113792d5c6337b578fba0f445035f01fd8ff42",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -56,7 +56,7 @@ cd UltiCode
 
 ### 2. Prepare the environment
 
-Prerequisites: Docker Compose v2, mise, Node.js 22.x (22.22.2 or newer on that line for the locked frontend dependencies), pnpm 11.0.0, PM2, plus `curl`, `timeout`, and `openssl`. Frontend CI selects Node 22.x and pins pnpm 11.0.0; the app manifests' `>=22.12.0` minimum alone does not cover every locked dependency. Backend startup runs through the repository's `services/mvnw` and the mise-managed Zulu Java 17. See [development prerequisites](docs/DEVELOPMENT.md#前置条件) for the Dev Container version difference.
+Prerequisites: Docker Compose v2, mise, Node.js 22.x (22.22.2 or newer on that line for the locked frontend dependencies), pnpm 11.0.0, PM2, plus `curl`, `timeout`, and `openssl`. Frontend CI selects Node 22.x and pins pnpm 11.0.0; the app manifests' `>=22.12.0` minimum alone does not cover every locked dependency. Backend startup runs through the repository's `services/mvnw` and the mise-managed Zulu Java 17. See [development prerequisites](docs/DEVELOPMENT.md#前置条件) for Dev Container toolchain selection and rebuild guidance.
 
 Contributors can also use Dev Containers / Codespaces directly; creating the container only installs dependencies and then runs the unit gate by default — it does not start the full stack:
 

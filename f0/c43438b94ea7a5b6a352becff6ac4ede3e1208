@@ -1,0 +1,19 @@
+services/agent/tests/test_agent_security.py
+  s_2b1071e68b5936::t_de61b2f09098fc 478-479
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f0c43438b94ea7a5b6a352becff6ac4ede3e1208",
+  "prompts": {},
+  "sessions": {
+    "s_2b1071e68b5936": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16824-84f4-77e3-a52c-16f378a5b455",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,549 @@
+packages/design-system/src/components/ui/message/MessageContent.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-5,8,11-12,20-25
+  s_2b1071e68b5936::t_613d51a21eece3 6-7,9-10,13-19,26-29
+apps/console/src/i18n/locales/en-US/sidebar.ts
+  s_2b1071e68b5936::t_b955bb1dc6b794 2
+services/app/app-web/src/main/java/com/ulticode/app/user/port/AuthAccountReadSupport.java
+  s_04c878634f808e::t_71f81a94137a36 1,3-6,8-22,24-30,32-38,41-44
+packages/design-system/src/components/ui/bubble/BubbleGroup.vue
+  s_2b1071e68b5936::t_613d51a21eece3 1,6-7,9-11,14-25
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-5,8,12-13
+docs/REFERENCE.md
+  s_2b1071e68b5936::t_ce2ba5dfab7f29 91-94
+  s_2b1071e68b5936::t_02eaa7fe5ba8f4 90,95-96,100-103
+  s_2b1071e68b5936::t_1be775a6373f1d 42,46
+  s_2b1071e68b5936::t_15c1a55418aa70 97-99
+services/app/app-web/src/main/java/com/ulticode/app/error/ProblemWebExceptionHandler.java
+  s_04c878634f808e::t_307952264d9d5f 42,90
+services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminContestProjection.java
+  s_04c878634f808e::t_8567bc8eae4be8 52
+packages/design-system/src/components/ui/message/MessageHeader.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-5,8,11-12,20-25
+  s_2b1071e68b5936::t_613d51a21eece3 6-7,9-10,13-19,26-29
+services/app/app-web/src/test/java/com/ulticode/app/error/ContentWebExceptionHandlerTest.java
+  s_04c878634f808e::t_97ed2e47605c4d 1-243
+services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserFactsReadProjection.java
+  s_04c878634f808e::t_71f81a94137a36 17-21
+services/app/app-web/src/main/java/com/ulticode/app/error/SolutionWebExceptionHandler.java
+  s_04c878634f808e::t_e33c740247dbf4 25,27-28,31-32,36
+apps/console/src/views/personal/__tests__/AgentMessageActions.spec.ts
+  s_2b1071e68b5936::t_60ac5aa3a98feb 7-10,13-16,20-25,29-31,33-35,39-44,47-51,53-57
+  s_2b1071e68b5936::t_e76c966c8bc64a 1-6,11-12,17-19,26-28,32,36-38,45-46,52,58-60
+packages/design-system/src/components/ui/item/ItemTitle.vue
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,4-5,8-12,19-22
+  s_2b1071e68b5936::t_439e18a5f471e2 2-3,6-7,13-18
+services/agent/data/repository_corpus_manifest.json
+  s_2b1071e68b5936::t_17026f7ef4205d 67
+  s_2b1071e68b5936::t_75682625b4f141 4-5
+  s_2b1071e68b5936::t_5497f6a5b626de 32-33
+  s_2b1071e68b5936::t_57d44acbe5aab4 60-61
+  s_04c878634f808e::t_d2c30257a633f6 18-19,25
+services/admin/src/main/java/com/ulticode/admin/config/AdminSchedulerConfiguration.java
+  s_04c878634f808e::t_5163f1b6cd56b4 3-4
+services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSubmissionProjection.java
+  s_04c878634f808e::t_8567bc8eae4be8 74,92
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/provider/ForumAdministrationProviderTest.java
+  s_04c878634f808e::t_b0d4c76ebb59f5 30-31,35,41,105-106,192-261
+apps/console/src/composables/__tests__/useAgentConversations.spec.ts
+  s_2b1071e68b5936::t_b7710c221d9056 983
+  s_2b1071e68b5936::t_bd4b1e7fb5b74c 20,75-117
+  s_2b1071e68b5936::t_65a8363604e698 409,424-427,430-434
+  s_2b1071e68b5936::t_dc9dfa4e1a14f7 175-185,188-197,202-209,212-219,285-288
+  s_2b1071e68b5936::t_ca0371a401457a 228,234,245-251,259-264
+  s_2b1071e68b5936::t_db8521857276cb 265-268,279-282,296,301-306
+  s_2b1071e68b5936::t_201995e246a24b 174,186-187,198-201,210-211,220-227
+  s_2b1071e68b5936::t_d64a863977be9c 118-140
+  s_2b1071e68b5936::t_adc3b92e17a6a6 435,450-453,458-460
+  s_2b1071e68b5936::t_395f57d5e39f6b 784-822
+  s_2b1071e68b5936::t_454516a243d183 141-173
+  s_2b1071e68b5936::t_de249b735d6302 229-233,235-244,252-258
+  s_2b1071e68b5936::t_b9d838684a9fcc 64-66,410-423,428-429,890-894,896-909,915-920
+  s_2b1071e68b5936::t_ee3bd904093fc0 367,746,977
+  s_2b1071e68b5936::t_6b07932550306b 990
+  s_2b1071e68b5936::t_38e7f3e087576f 436-449,454-457
+  s_2b1071e68b5936::t_14fee3fca3aa1e 283-284,289-290
+  s_2b1071e68b5936::t_b3ba1c33e3199b 783,823-886
+  s_2b1071e68b5936::t_1480881256a120 269-278,291-295,297-300
+services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminSubmissionProjectionTest.java
+  s_04c878634f808e::t_8567bc8eae4be8 35,62
+services/core/src/test/java/com/ulticode/core/CoreApplicationSmokeTest.java
+  s_04c878634f808e::t_2155cc774f0967 45-46
+services/admin/src/main/java/com/ulticode/modules/admin/projection/AdminUserEnricher.java
+  s_04c878634f808e::t_8567bc8eae4be8 221-239
+packages/design-system/src/components/ui/item/ItemFooter.vue
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,4-5,8-12,16-19
+  s_2b1071e68b5936::t_439e18a5f471e2 2-3,6-7,13-15
+packages/design-system/src/components/ui/item/ItemMedia.vue
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,6-7,11-21
+  s_2b1071e68b5936::t_439e18a5f471e2 2-5,8-10
+packages/design-system/src/components/ui/item/ItemSeparator.vue
+  s_2b1071e68b5936::t_439e18a5f471e2 2-5,8-9
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,6-7,10-18
+apps/console/src/api/__tests__/submission.spec.ts
+  s_2b1071e68b5936::t_63492a63968037 237-241,244-246
+  s_2b1071e68b5936::t_f65f7b48b1477e 235-236,242-243,247-248
+services/app/app-web/src/main/java/com/ulticode/app/error/ForumWebExceptionHandler.java
+  s_04c878634f808e::t_e33c740247dbf4 24,26-27,30-31,35
+CONTEXT.md
+  s_04c878634f808e::t_60451bb5aa8239 76-80
+services/agent/tests/test_ulticode_client.py
+  s_2b1071e68b5936::t_ba5564612085f3 27-38
+  s_2b1071e68b5936::t_9146da1c5392ce 12-26
+  s_2b1071e68b5936::t_471a37e92eacfa 10-11
+packages/design-system/src/components/ui/bubble/Bubble.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-7,10-12,16-19
+  s_2b1071e68b5936::t_613d51a21eece3 8-9,13-15,20-33
+apps/console/src/api/__tests__/agent.spec.ts
+  s_2b1071e68b5936::t_02eaa7fe5ba8f4 15-16,35-36
+  s_2b1071e68b5936::t_ee3bd904093fc0 113-114,121-122
+  s_2b1071e68b5936::t_ecce27eca67e26 17-34
+services/agent/tests/test_dav58_live_guard.py
+  s_2b1071e68b5936::t_657c55e20deb2c 18-41
+services/platform/common/src/test/java/com/ulticode/common/lifecycle/DrainGateTest.java
+  s_04c878634f808e::t_2155cc774f0967 13,21
+packages/design-system/src/components/ui/item/index.ts
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 3,14-15,17-19,23-24,28-30,33-34,36-37,39-41,46-48,50-51,53
+  s_2b1071e68b5936::t_439e18a5f471e2 1-2,4-13,16,20-22,25-27,31-32,35,38,42-45,49,52,54-55
+services/docs/WORKER_SLO_RUNBOOK.md
+  s_04c878634f808e::t_60451bb5aa8239 68
+services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ContentModerationProvider.java
+  s_04c878634f808e::t_c5fee2cc20faf3 18-20,38
+packages/design-system/src/components/ui/trace/TraceCollapsible.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-7,9-12,14-15
+  s_2b1071e68b5936::t_613d51a21eece3 1,8,13,16-27
+packages/design-system/src/components/ui/bubble/BubbleReactions.vue
+  s_2b1071e68b5936::t_613d51a21eece3 8-9,13-15,20-33
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-7,10-12,16-19
+packages/design-system/src/components/ui/trace/TraceCollapsibleContent.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-6,8-10,12,23-28
+  s_2b1071e68b5936::t_613d51a21eece3 1,7,11,13-22,29-33
+apps/console/src/api/agent.ts
+  s_2b1071e68b5936::t_2f36279d2c4186 53
+  s_2b1071e68b5936::t_1bfd0d7a138dbc 47-48,84-85
+  s_2b1071e68b5936::t_bcbc9bc86926a9 183,186,198,200-202
+  s_2b1071e68b5936::t_7e48f34a6e41e1 51-52,71,161,176,180
+  s_2b1071e68b5936::t_bd9a14e494869d 49-50
+apps/console/src/views/personal/components/AgentMessageActions.vue
+  s_2b1071e68b5936::t_14e56300b85064 1-7,14-15,21-27,33-40,60-61,65-67,77-79,87-88,97-98
+  s_2b1071e68b5936::t_439e18a5f471e2 8-13,16-20,28-32,41-59,62-64,68-76,80-86,89-96
+services/api/submission-api/src/test/java/com/ulticode/submission/api/event/SubmissionLifecycleEventContractTest.java
+  s_04c878634f808e::t_9024cd5245efed 7-8,13,17-92
+  s_04c878634f808e::t_d4a3aebb05becf 93
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/provider/ContentModerationProviderTest.java
+  s_04c878634f808e::t_8727a9650c3643 32,36,91-108
+  s_e90a7bc6ebae3f::t_358f70dd0377d5 109
+services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminSolutionProjectionTest.java
+  s_04c878634f808e::t_8567bc8eae4be8 76-80
+apps/console/src/views/personal/__tests__/AgentContextPicker.spec.ts
+  s_2b1071e68b5936::t_085f97879035dc 5-10,13,15-22,27-30,33-42,44-47,52-53,55-63,65-67,70-88,93-107,163-181
+  s_2b1071e68b5936::t_5875d2ec52f8d9 1-4,14,31-32,43,48-51,54,64,68-69,159-162,182-183,210
+  s_2b1071e68b5936::t_c535124904ac4f 186-206
+  s_2b1071e68b5936::t_f66fa971dfdbc8 89-90,92
+  s_2b1071e68b5936::t_cda5ec53e9ac07 91,108-111,145-146
+  s_2b1071e68b5936::t_5324c4f7fb6fbe 11-12,23-26,112-144,147-158
+  s_2b1071e68b5936::t_4f831556907f75 184-185,207-209
+services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminNotificationProjection.java
+  s_04c878634f808e::t_8567bc8eae4be8 100
+services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ForumTagAdministrationProvider.java
+  s_04c878634f808e::t_d6e414647693f8 15-17,36
+packages/design-system/src/components/ui/trace/TraceIcon.vue
+  s_2b1071e68b5936::t_613d51a21eece3 1,4-5,8-13,20-23
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-3,6-7,14-19
+services/notification/pom.xml
+  s_04c878634f808e::t_0d1483f6c22512 60-61
+  s_2b1071e68b5936::t_b0c89b23ee75b9 58-59
+services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/AdminCommandValidation.java
+  s_04c878634f808e::t_0fb17939e52fcb 1,3-7,9,11-24,26-27,29-33
+services/app/app-web/src/test/java/com/ulticode/app/user/port/DefaultUserFactsReadProjectionTest.java
+  s_04c878634f808e::t_aa7183a924c639 4,6,12-13,25,30,40,46-47,128-167,169-205,224-226
+  s_04c878634f808e::t_361d52d2a41474 27,168
+  s_e90a7bc6ebae3f::t_a3312e2052366c 227
+services/agent/tests/test_agent_service.py
+  s_2b1071e68b5936::t_471a37e92eacfa 619-621,680-681,683,702-704
+  s_2b1071e68b5936::t_5837da7e1348c0 2238-2239
+  s_2b1071e68b5936::t_6e6eec413d744b 2254-2261,2263-2266,2268-2282
+  s_2b1071e68b5936::t_9c117cfc2b0ac4 122-126,149-156
+  s_2b1071e68b5936::t_07508946d2fd89 1238-1253,1255-1270
+  s_2b1071e68b5936::t_1d5795fafb59fc 1254
+  s_2b1071e68b5936::t_4f831556907f75 686-688
+  s_2b1071e68b5936::t_695f1ba5b34e22 2430
+  s_2b1071e68b5936::t_9146da1c5392ce 701,705-712,714-728,730-739
+  s_2b1071e68b5936::t_d79504d32cae33 2409-2410,2434,2437-2438
+  s_2b1071e68b5936::t_1f8ff544519cf0 1176,1179-1188,1193-1198,1201-1204,1236-1237
+  s_2b1071e68b5936::t_9ba2646de02b6d 2208-2212,2218-2220,2243-2244,2252-2253,2262,2267,2283,2285
+  s_2b1071e68b5936::t_a010e50c2c9e92 1209-1210,1217,1219,1225
+  s_2b1071e68b5936::t_0f71154121acb8 661,729,2105,2160,2173,2315,2322,2368,2379,2485,2497,2542
+  s_2b1071e68b5936::t_6b626a6aa47fdc 1218
+  s_2b1071e68b5936::t_200ffa3d89d41f 2548
+  s_2b1071e68b5936::t_fd54e70ff8b3ac 2338,2344-2348,2398
+  s_2b1071e68b5936::t_03817c7cc60b32 2435
+  s_2b1071e68b5936::t_40c1276ff3777b 713
+  s_2b1071e68b5936::t_6b07932550306b 2213-2217,2221-2237,2240-2242,2245-2251,2284,2286-2290
+  s_2b1071e68b5936::t_faaff2bfe83ec8 142,157-163
+  s_2b1071e68b5936::t_c60c9260e818da 1177-1178,1189-1190,1200,1206-1208,1211-1216,1220-1224,1226-1235
+  s_2b1071e68b5936::t_ce2ba5dfab7f29 682
+  s_2b1071e68b5936::t_8c3e5dadb3063d 2333,2392-2393,2396-2397,2431
+  s_2b1071e68b5936::t_193d23cc7fad1d 1191-1192,1199,1205
+  s_2b1071e68b5936::t_24f1f62210a8fe 2415,2432-2433
+  s_2b1071e68b5936::t_8d93fecca4027d 618,622-660,662-679,684-685,689-700
+services/app/app-web/src/test/java/com/ulticode/modules/contest/consumer/SubmissionJudgedContestConsumerTest.java
+  s_04c878634f808e::t_8774507ea74e27 14-15,20,23,110-163
+services/agent/src/agent_service/app.py
+  s_2b1071e68b5936::t_1f8ff544519cf0 456-459
+  s_2b1071e68b5936::t_826b9917199a47 501-505
+  s_2b1071e68b5936::t_1bcc6c10ab6e42 249-251,254-255,1471
+  s_2b1071e68b5936::t_40c1276ff3777b 876,888-889,895-896
+  s_2b1071e68b5936::t_d79504d32cae33 1204-1205
+  s_2b1071e68b5936::t_1d5795fafb59fc 437-441,963
+  s_2b1071e68b5936::t_7cb026974c9e56 21,81,84-91,97,103,262-263,269-271,1064,1082
+  s_2b1071e68b5936::t_ce2ba5dfab7f29 33,855-859
+  s_2b1071e68b5936::t_d6d439cf09b837 247
+  s_2b1071e68b5936::t_2f36279d2c4186 82-83,850,853,860,862,877
+  s_2b1071e68b5936::t_65a5234fa8c0fd 868-869,873-875,878-887,890-894,897-922
+  s_2b1071e68b5936::t_9ba2646de02b6d 1371-1372,1449-1452
+  s_2b1071e68b5936::t_03817c7cc60b32 246,264-265,1179-1180
+  s_2b1071e68b5936::t_a51ca9fe5386ff 852,854,870-871
+  s_2b1071e68b5936::t_44138aae941614 540-545
+  s_2b1071e68b5936::t_6896bf52814703 847-849,851,861,863-867,872,923,1284,1293,1346,1353
+  s_2b1071e68b5936::t_bcbc9bc86926a9 108,1366,1378-1379,1509-1511,1516,1520
+  s_2b1071e68b5936::t_058d147c747944 252-253
+  s_2b1071e68b5936::t_193d23cc7fad1d 431-436,442,445-446
+  s_2b1071e68b5936::t_695f1ba5b34e22 248
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/codec/SubmissionStatusCodecTest.java
+  s_04c878634f808e::t_7dfaf5b1bbd9ad 53,56-58,63-65,70-71,73
+apps/console/src/views/personal/components/AgentContextPicker.vue
+  s_2b1071e68b5936::t_085f97879035dc 197,250
+  s_2b1071e68b5936::t_f66fa971dfdbc8 280-281,289
+  s_2b1071e68b5936::t_f5492dc1f8a19c 28-29,63-68,76-77,84-86,107,115,128-130,132,135-138,141-144
+  s_2b1071e68b5936::t_e48bfdfd4f1c72 5,339
+  s_2b1071e68b5936::t_439e18a5f471e2 50-54
+  s_2b1071e68b5936::t_d05ab18e190508 383
+  s_2b1071e68b5936::t_5324c4f7fb6fbe 69-75,78-83,109-112,117-120,123-127,131,133-134,139-140,184-185,236-239,282-288,297-299,436-448,450-509
+  s_2b1071e68b5936::t_ea3fbe6775f4af 319,390,449
+  s_2b1071e68b5936::t_4f831556907f75 91,150
+  s_2b1071e68b5936::t_3e2cdd278e1d56 434-435
+  s_2b1071e68b5936::t_d65da29f36ea1c 10-24,38-46,99-102,108,113-114,116,121-122,148-149,151-153,158-160,180-183,186-188,195-196,198-200,213-214,222-225,230-235,240-242,251-253,255-258,266-272,274-279,290-293,300,302-318,320-338,340,348-379,382,384-389,391-433,512-517,526-539
+  s_2b1071e68b5936::t_30f40ee8093236 294-296
+  s_2b1071e68b5936::t_bd71524b7ae9c4 341-347
+  s_2b1071e68b5936::t_cdbb6f4f366b7c 1-4,6-9,25-27,30-37,47-49,55-62,87-90,92-98,103-106,145-147,161-179,189-194,201-212,215-221,226-229,243-249,254,259-265,273,301,380-381,510-511,540-542
+  s_2b1071e68b5936::t_c535124904ac4f 154-157,518-525
+services/admin/src/main/java/com/ulticode/admin/error/AdminReadContract.java
+  s_04c878634f808e::t_8567bc8eae4be8 8-9,16,160-165
+  s_04c878634f808e::t_20186026eb0517 166-168
+packages/design-system/src/components/ui/item/ItemHeader.vue
+  s_2b1071e68b5936::t_439e18a5f471e2 2-3,6-7,13-15
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,4-5,8-12,16-19
+services/notification/src/test/java/com/ulticode/modules/notification/consumer/SubmissionJudgedNotificationConsumerTest.java
+  s_04c878634f808e::t_8774507ea74e27 13-14,102-127
+  s_2b1071e68b5936::t_664a646b420346 128
+services/app/app-web/src/main/java/com/ulticode/modules/contest/consumer/SubmissionJudgedContestConsumer.java
+  s_04c878634f808e::t_5299c9d6693548 13-14,35
+apps/console/src/api/submission.ts
+  s_2b1071e68b5936::t_d65da29f36ea1c 33,55-58
+  s_2b1071e68b5936::t_a9b8fe5874e7fe 59-62
+packages/design-system/src/components/ui/message/index.ts
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-6
+apps/console/src/i18n/locales/en-US/agent.ts
+  s_2b1071e68b5936::t_bc588bc09a455a 189-190
+  s_2b1071e68b5936::t_81156e6b54a164 99,102-103
+  s_2b1071e68b5936::t_ec107db480e696 182
+  s_2b1071e68b5936::t_72f4247d27a762 215-217
+  s_2b1071e68b5936::t_b64628c4d3ed0b 3-4,6-7,12-13,15-16,20-25,28-29,33-34,44-45,50-51,53-54,74-77,95-98,100-101,104-132,135-136,154-155,158-161,164-167,174-175,179-180,185-188,225-228,230-239,243-252
+  s_2b1071e68b5936::t_184e81edd6d2f4 93,133
+  s_2b1071e68b5936::t_2caef3ee2d9d3f 137-140
+  s_2b1071e68b5936::t_81eebb53b898e8 142
+  s_2b1071e68b5936::t_e76c966c8bc64a 94
+  s_2b1071e68b5936::t_d4dd34c3bfb289 192-198,201-211,214
+  s_2b1071e68b5936::t_439e18a5f471e2 199-200,212-213
+  s_2b1071e68b5936::t_737675ede6d6cc 141,143-145
+  s_2b1071e68b5936::t_6029190e792f65 181,183-184
+packages/design-system/src/components/ui/item/ItemActions.vue
+  s_2b1071e68b5936::t_439e18a5f471e2 2-3,6-7
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,4-5,8-17
+packages/design-system/src/components/ui/trace/Trace.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-3,6-7,13-18
+  s_2b1071e68b5936::t_613d51a21eece3 1,4-5,8-12,19-22
+packages/design-system/src/components/ui/item/Item.vue
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,23-36
+  s_2b1071e68b5936::t_439e18a5f471e2 2-7,9-14,16-22
+services/platform/observability/src/test/java/com/ulticode/observability/scheduling/SchedulerFactoryTest.java
+  s_04c878634f808e::t_75ced5eb85ed37 19
+  s_04c878634f808e::t_318023762a07ff 14-15,37-38,44-45,52-53
+  s_04c878634f808e::t_65de1ff206e315 1-13,16-18,20-36,39-43,46-51,54-56
+services/api/submission-api/src/main/java/com/ulticode/submission/api/event/SubmissionLifecycleEventContract.java
+  s_04c878634f808e::t_f5a2310e4a0459 5-6,73-98
+services/app/app-web/src/test/java/com/ulticode/app/error/UserWebExceptionHandlerTest.java
+  s_04c878634f808e::t_cd73e1631a03e1 3-4,7,9-14,16-17,19,21-22,26-28,31-123,125-133
+services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ForumCommentAdministrationProvider.java
+  s_04c878634f808e::t_3c8074db3f8a67 15-17,36
+apps/console/src/i18n/locales/zh-CN/sidebar.ts
+  s_2b1071e68b5936::t_b955bb1dc6b794 2
+services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ForumOwnerProvider.java
+  s_04c878634f808e::t_c6e9ed37ecd9c5 16-18,39
+services/admin/src/test/java/com/ulticode/admin/error/AdminReadContractTest.java
+  s_04c878634f808e::t_12bd87b1332c8c 7-8,14,31-73
+  s_04c878634f808e::t_4c278d6ea2ed87 74
+services/platform/common/src/test/java/com/ulticode/common/event/SearchDocumentChangedEventContractTest.java
+  s_04c878634f808e::t_7dfaf5b1bbd9ad 35,38
+packages/design-system/LICENSE.shadcn-vue
+  s_2b1071e68b5936::t_8d023b1f051eaf 1-21
+services/app/app-web/src/main/java/com/ulticode/modules/achievement/consumer/SubmissionJudgedAchievementConsumer.java
+  s_04c878634f808e::t_5299c9d6693548 14-15,39
+apps/console/src/i18n/locales/zh-CN/agent.ts
+  s_2b1071e68b5936::t_bc588bc09a455a 176-177
+  s_2b1071e68b5936::t_737675ede6d6cc 131,133-135
+  s_2b1071e68b5936::t_e76c966c8bc64a 87
+  s_2b1071e68b5936::t_6029190e792f65 168,170-171
+  s_2b1071e68b5936::t_d4dd34c3bfb289 179-199
+  s_2b1071e68b5936::t_72f4247d27a762 200-202
+  s_2b1071e68b5936::t_ec107db480e696 169
+  s_2b1071e68b5936::t_184e81edd6d2f4 86,123
+  s_2b1071e68b5936::t_d37d0eb988cdbd 90
+  s_2b1071e68b5936::t_b64628c4d3ed0b 10-11,17-18,23-24,28-29,39-40,45-46,48-49,88-89,92-93,96-122,125-126,144-145,148-151,154-155,172-175,213-216
+  s_2b1071e68b5936::t_81156e6b54a164 91,94-95
+  s_2b1071e68b5936::t_81eebb53b898e8 132
+  s_2b1071e68b5936::t_2caef3ee2d9d3f 127-130
+services/submission/src/main/java/com/ulticode/submission/config/SubmissionSchedulerConfiguration.java
+  s_04c878634f808e::t_5163f1b6cd56b4 3-4
+apps/console/src/composables/useAgentConversations.ts
+  s_2b1071e68b5936::t_e693fef09ed078 77-81
+  s_2b1071e68b5936::t_9d2e504cc5338c 195-196,203,246,353-354,357-358
+  s_2b1071e68b5936::t_6c291edb5330d4 319
+  s_2b1071e68b5936::t_b212d9b1be73c5 189,194
+  s_2b1071e68b5936::t_60087cbb80a1c5 86,91,106
+  s_2b1071e68b5936::t_b1707b6c2ca526 320
+  s_2b1071e68b5936::t_bcbc9bc86926a9 156,306
+  s_2b1071e68b5936::t_b9d838684a9fcc 346-350
+  s_2b1071e68b5936::t_727b754bb13abd 2,325
+  s_2b1071e68b5936::t_079dab572720e2 34-38,190-193,289-293
+  s_2b1071e68b5936::t_967e8313bfa5a3 5,375,387,412,424
+  s_2b1071e68b5936::t_d65da29f36ea1c 400-404
+  s_2b1071e68b5936::t_db2c72c05a6d48 202
+  s_2b1071e68b5936::t_395f57d5e39f6b 288
+  s_2b1071e68b5936::t_29a092cb2faa02 342
+  s_2b1071e68b5936::t_dc9dfa4e1a14f7 197-201
+  s_2b1071e68b5936::t_b3ba1c33e3199b 326-329
+  s_2b1071e68b5936::t_52981c60e72c82 318,321-324
+  s_2b1071e68b5936::t_d17c9096306e42 330-340
+packages/design-system/src/components/ui/message/MessageFooter.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-5,8,11-12,20-25
+  s_2b1071e68b5936::t_613d51a21eece3 6-7,9-10,13-19,26-29
+packages/design-system/src/components/ui/item/ItemDescription.vue
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,4-5,8-12,19-22
+  s_2b1071e68b5936::t_439e18a5f471e2 2-3,6-7,13-18
+docs/ARCHITECTURE.md
+  s_04c878634f808e::t_adbb1c86b18afc 122-123
+  s_04c878634f808e::t_52140781a3889f 149-151
+  s_2b1071e68b5936::t_e340188e987759 152
+packages/design-system/src/components/ui/message/MessageGroup.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-5,8,11-12,20
+  s_2b1071e68b5936::t_613d51a21eece3 6-7,9-10,13-19,21-24
+docs/DEVELOPMENT.md
+  s_2b1071e68b5936::t_8a3135b35667ff 104-105
+  s_2b1071e68b5936::t_3f032cd310a27e 124-125
+  s_2b1071e68b5936::t_8dfe0c5d72f587 102-103,128
+  s_2b1071e68b5936::t_28db8cb5b48d62 100-101
+  s_2b1071e68b5936::t_cbd7f8940195a7 112
+  s_2b1071e68b5936::t_c0ba054b72a5e6 126
+  s_2b1071e68b5936::t_bcef1f4a1c8805 107
+  s_2b1071e68b5936::t_2f058dcdfe1276 98,108
+  s_2b1071e68b5936::t_e98980aa9da235 106
+  s_2b1071e68b5936::t_02859d2ffca153 127
+services/agent/src/ulticode_client.py
+  s_2b1071e68b5936::t_2f36279d2c4186 336,338-340
+  s_2b1071e68b5936::t_6896bf52814703 331,333-335,341,343-348
+  s_2b1071e68b5936::t_ce2ba5dfab7f29 59-64,332,337,342
+packages/design-system/src/components/ui/message/Message.vue
+  s_2b1071e68b5936::t_613d51a21eece3 6-7,10-11,15-22,29-32
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-5,8-9,12-14,23-28
+apps/console/src/views/personal/AgentConversationWorkspace.vue
+  s_2b1071e68b5936::t_ac4cb2cc3425c0 178-186,661-684,686-709,711-720,722-724
+  s_2b1071e68b5936::t_b0e6a268b73fab 191-193,197-202,797
+  s_2b1071e68b5936::t_7304d15dc3549a 292-295
+  s_2b1071e68b5936::t_46f957d30a4464 218-222,234
+  s_2b1071e68b5936::t_439e18a5f471e2 107-118,281-284,1489,1609,1734,1736-1738,1757,1759
+  s_2b1071e68b5936::t_00ab6f0ee2a1dd 7-11,564-566,568-571,573-575,582,584,587-588,610,612-613,617,621,645-651,653-655,657,659,725-730,735,746-748,750-753,755-758,760-763,766-768,770-778,781,784-789,791-796,798-835,837-845,847-849,851-906,908-919,921-943,945-953,955-963,965-979,981,983,985-995,997-999,1001,1003-1020,1022-1025,1029,1036-1037,1043,1065,1068,1070-1071,1077,1085,1091,1107,1534-1537,1539-1540,1542,1544,1592,1771-1778,1780-1787
+  s_2b1071e68b5936::t_b804bf7befe819 34-35,91-92,211-215
+  s_2b1071e68b5936::t_b64628c4d3ed0b 48-51,223-228,230-233,235-236,1078
+  s_2b1071e68b5936::t_1655dfdfd9c3ee 47,76-79,249-250,255-256,259-268,652,660,1021,1219
+  s_2b1071e68b5936::t_9394813164902e 468,506
+  s_2b1071e68b5936::t_09febb278d2038 27-29,31-33,36-45,1132,1239-1241,1244,1246,1305,1313,1415,1427,1446,1448,1478,1485
+  s_2b1071e68b5936::t_51d8ce885d9b4a 567,769
+  s_2b1071e68b5936::t_f3b7c5d7579477 586
+  s_2b1071e68b5936::t_81eebb53b898e8 30,95-96,578,620,622-623,630-631,634,641-644,790,1779
+  s_2b1071e68b5936::t_28de787a079aa2 52-54,86-90,216-217,229,237-239
+  s_2b1071e68b5936::t_94bfbe23d1313f 5,119-120,137-138,171,273,276-280,285-290
+  s_2b1071e68b5936::t_c535124904ac4f 165-169
+  s_2b1071e68b5936::t_108cafca2d2af3 1026-1028,1532
+  s_2b1071e68b5936::t_80335bc9600aac 1599,1632
+  s_2b1071e68b5936::t_cf4cb5d829d2fe 46,210,240-248,251,253,257-258,269-272,274-275,291,496-497
+  s_2b1071e68b5936::t_6393e7209e5f50 55-70,80-85,97,204-209
+  s_2b1071e68b5936::t_ec107db480e696 6,189-190,563,1788
+  s_2b1071e68b5936::t_982bb4b6914c2b 1002
+  s_2b1071e68b5936::t_3186f723b313c1 177,478,490
+  s_2b1071e68b5936::t_4d0a5629096bd6 996,1000
+  s_2b1071e68b5936::t_0053a27be382d3 1030-1035,1038,1040,1042,1044-1046,1048-1053,1055-1064,1066-1067,1069,1072-1076,1079-1084,1086-1089,1092-1106,1108-1113,1115-1122,1124-1131,1133-1163,1165-1166,1168-1170,1172,1174-1218,1220-1238,1242-1243,1245,1247-1304,1306-1312,1314-1414,1416-1426,1428-1445,1447,1449-1477,1479-1484,1486-1488,1490-1506,1509-1531,1543,1545-1550,1552-1579,1581-1591,1593-1596,1601-1608,1610-1631,1634-1733,1735,1739-1756,1758,1760-1769
+  s_2b1071e68b5936::t_055c44288ee957 395,399
+  s_2b1071e68b5936::t_1bfd0d7a138dbc 536-539
+  s_2b1071e68b5936::t_d65da29f36ea1c 132-135,139-163,172-173,483-486
+  s_2b1071e68b5936::t_21a4b2bc8afd8b 188,203
+  s_2b1071e68b5936::t_f5df455fd1ee19 764-765
+  s_2b1071e68b5936::t_df8b8d0253035d 24,105-106,136,164,170,174,487-488
+  s_2b1071e68b5936::t_6ed5b41d0849f6 252,254
+  s_2b1071e68b5936::t_70969f5f862747 194-196,590-607,624-629,632-633,635-640
+  s_2b1071e68b5936::t_b9d838684a9fcc 540-545
+  s_2b1071e68b5936::t_c784ef785247d1 71-75,710,721
+  s_2b1071e68b5936::t_44138aae941614 477,530
+  s_2b1071e68b5936::t_90f95e40bbfee0 93-94,836
+services/app/app-web/src/main/java/com/ulticode/app/user/port/DefaultUserDirectoryReadProjection.java
+  s_04c878634f808e::t_71f81a94137a36 22-26
+services/admin/src/test/java/com/ulticode/modules/admin/projection/AdminUserEnricherTest.java
+  s_04c878634f808e::t_950e26b8e57ed9 148-149,152
+  s_04c878634f808e::t_ca90f1abaa39a0 185-188,190-191
+  s_04c878634f808e::t_12bd87b1332c8c 28,38-41,120-147,150-151,153-184,189,192-207
+  s_04c878634f808e::t_869845ab2aef93 240,473,478,485,490
+  s_04c878634f808e::t_04e409b06f5f6a 208-209
+packages/design-system/src/components/ui/trace/TraceDescription.vue
+  s_2b1071e68b5936::t_613d51a21eece3 1,4-5,8-17
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-3,6-7
+packages/design-system/src/components/ui/item/ItemContent.vue
+  s_2b1071e68b5936::t_439e18a5f471e2 2-3,6-7,13-18
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,4-5,8-12,19-22
+services/agent/src/boundary_evaluation.py
+  s_2b1071e68b5936::t_1d5795fafb59fc 490-491
+  s_2b1071e68b5936::t_d8eab655c469a6 463,467-480,496
+  s_2b1071e68b5936::t_193d23cc7fad1d 464,481-487,492-494,498-499
+  s_2b1071e68b5936::t_e49026e7637f4e 488-489
+services/app/app-web/src/main/java/com/ulticode/app/error/ContentWebExceptionHandler.java
+  s_04c878634f808e::t_08b721479acc74 1-27,30-39,42-52,55-60,63-74,76-81,84-89,92
+  s_04c878634f808e::t_307952264d9d5f 93
+docs/PRODUCT.md
+  s_2b1071e68b5936::t_02eaa7fe5ba8f4 72
+  s_2b1071e68b5936::t_f3b7c5d7579477 75
+  s_2b1071e68b5936::t_15c1a55418aa70 71
+  s_2b1071e68b5936::t_5ce622a3d74b29 69-70
+  s_2b1071e68b5936::t_c509adeb59c501 65-66
+  s_2b1071e68b5936::t_6dff220a1e88cd 76,79
+  s_2b1071e68b5936::t_3d15be286dd951 73-74
+  s_2b1071e68b5936::t_c0ba054b72a5e6 77-78
+  s_2b1071e68b5936::t_f8ae1c33ab2f15 67
+  s_2b1071e68b5936::t_9c2c57ebaff84c 68
+packages/design-system/src/components/ui/trace/TraceTitle.vue
+  s_2b1071e68b5936::t_613d51a21eece3 1,4-5,8-17
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-3,6-7
+services/agent/src/agent_service/store.py
+  s_2b1071e68b5936::t_ec3eb22203207c 236-238,408,494,509,522-523,525
+services/admin/src/main/java/com/ulticode/modules/admin/projection/DefaultAdminSolutionProjection.java
+  s_04c878634f808e::t_8567bc8eae4be8 94
+apps/console/src/views/personal/components/AgentCitationPreview.vue
+  s_2b1071e68b5936::t_439e18a5f471e2 4-8,20-27,31-36
+  s_2b1071e68b5936::t_14e56300b85064 1-3,9,14-19,28-30,37-39
+  s_2b1071e68b5936::t_60ac5aa3a98feb 10-13
+services/platform/observability/src/main/java/com/ulticode/observability/scheduling/SchedulerFactory.java
+  s_04c878634f808e::t_65de1ff206e315 1,3-7,9-10,12-45
+services/agent/tests/test_agent_security.py
+  s_2b1071e68b5936::t_0f71154121acb8 475
+packages/design-system/src/components/ui/trace/TraceLine.vue
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-3,6-8,15-20
+  s_2b1071e68b5936::t_613d51a21eece3 1,4-5,9-14,21-24
+packages/design-system/src/components/ui/bubble/BubbleContent.vue
+  s_2b1071e68b5936::t_613d51a21eece3 6-7,9-11,14-20,27-30
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-5,8,12-13,21-26
+services/notification/src/main/java/com/ulticode/modules/notification/consumer/SubmissionJudgedNotificationConsumer.java
+  s_04c878634f808e::t_5299c9d6693548 12-13,43
+services/agent/src/dav58_live_guard.py
+  s_2b1071e68b5936::t_657c55e20deb2c 129-131,133
+  s_2b1071e68b5936::t_241bc8444dfca6 120-128,132,134,156-157,161
+services/app/app-web/src/main/java/com/ulticode/app/error/BusinessExceptionResponse.java
+  s_04c878634f808e::t_307952264d9d5f 1,3-8,10,12-22,24-35,37
+packages/design-system/src/components/ui/item/ItemGroup.vue
+  s_2b1071e68b5936::t_41b23c4ebd3f3a 1,4-5,8-13,20-23
+  s_2b1071e68b5936::t_439e18a5f471e2 2-3,6-7,14-19
+packages/design-system/src/components/ui/trace/TraceCollapsibleTrigger.vue
+  s_2b1071e68b5936::t_613d51a21eece3 1,16-21,28-29,33-36
+  s_2b1071e68b5936::t_c579d4ddb30b22 2-15,22-27,30-32
+apps/console/src/views/personal/__tests__/AgentConversationWorkspace.spec.ts
+  s_2b1071e68b5936::t_70969f5f862747 163-165,199-201
+  s_2b1071e68b5936::t_65a8363604e698 186,573
+  s_2b1071e68b5936::t_de249b735d6302 575-579,584-587
+  s_2b1071e68b5936::t_d6b326140e4e0f 151,157,169
+  s_2b1071e68b5936::t_ce4bf68e4fc8b9 580-583,588-592
+  s_2b1071e68b5936::t_7da34daeb8bdf9 143,145-146,148,150,152,170-175,552-553,555,559-561
+  s_2b1071e68b5936::t_31f11c1d21d090 158-160
+  s_2b1071e68b5936::t_5324c4f7fb6fbe 20-23
+  s_2b1071e68b5936::t_933222f01d14d5 547,551,593,602,608,612-615
+  s_2b1071e68b5936::t_60ac5aa3a98feb 441-444,507-509,511-516,529-533,535-541
+  s_2b1071e68b5936::t_7304d15dc3549a 519-527
+  s_2b1071e68b5936::t_5df767a2142813 496,500-501,505
+  s_2b1071e68b5936::t_c579d4ddb30b22 446-463,485-495,497-499,502-504
+  s_2b1071e68b5936::t_b0e6a268b73fab 144,153-156,161-162,202-207
+  s_2b1071e68b5936::t_b9d838684a9fcc 194-195,571-572,574
+  s_2b1071e68b5936::t_2a794767380230 110-122,137-140,166-168
+  s_2b1071e68b5936::t_be8f928cfd87cc 102-109
+  s_2b1071e68b5936::t_9c2c57ebaff84c 142,147,149,176-178
+  s_2b1071e68b5936::t_f66fa971dfdbc8 19,24-27
+  s_2b1071e68b5936::t_400ce6f7ea8b29 179-181,189-191,208-211
+  s_2b1071e68b5936::t_1655dfdfd9c3ee 216-222,224-227,229-231,233-234
+  s_2b1071e68b5936::t_a6d172d04a0fd3 506,510,517-518,528,534,542-543
+  s_2b1071e68b5936::t_3186f723b313c1 387-419
+  s_2b1071e68b5936::t_5cd9179217783e 554,556-558
+  s_2b1071e68b5936::t_8c14816a5f7a48 182-185,187-188,192-193,196-198
+  s_2b1071e68b5936::t_15013c712a9155 212-215,223,228,232,235-236
+  s_2b1071e68b5936::t_d4a22b95f60420 544-546,548-550,594-601,603-607,609-611
+  s_2b1071e68b5936::t_771200a32a5d16 141
+packages/design-system/src/components/ui/trace/index.ts
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-8
+services/app/app-web/src/main/java/com/ulticode/app/error/UserWebExceptionHandler.java
+  s_04c878634f808e::t_307952264d9d5f 20,27
+services/app/app-web/src/test/java/com/ulticode/modules/achievement/consumer/SubmissionJudgedAchievementConsumerTest.java
+  s_04c878634f808e::t_8774507ea74e27 12-13,80-102
+  s_2b1071e68b5936::t_5b1cfc20ea8e32 103-104
+packages/design-system/src/components/ui/message/MessageAvatar.vue
+  s_2b1071e68b5936::t_613d51a21eece3 6-7,9-10,13-19,26-29
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-5,8,11-12,20-25
+packages/design-system/src/components/ui/bubble/index.ts
+  s_2b1071e68b5936::t_c579d4ddb30b22 1-2,4-7,10,14-27,31,34-35,38,42-43,46-47,51-52,55-58
+  s_2b1071e68b5936::t_613d51a21eece3 3,8-9,11-13,28-30,32-33,36-37,39-41,44-45,48-50,53-54
+services/app/app-web/src/main/java/com/ulticode/modules/contest/port/DefaultContestOwnerPort.java
+  s_04c878634f808e::t_60451bb5aa8239 186
+services/search/src/main/java/com/ulticode/search/config/SearchSchedulerConfiguration.java
+  s_04c878634f808e::t_5163f1b6cd56b4 3-4
+apps/console/src/features/sider/AppLayout.vue
+  s_2b1071e68b5936::t_9abeeb5a784b3f 83,140-145
+  s_2b1071e68b5936::t_b955bb1dc6b794 54
+  s_2b1071e68b5936::t_c7fcc2d73d1e93 53,55-57
+services/agent/tests/test_agent_store.py
+  s_2b1071e68b5936::t_7b957778abba9c 66-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "83fff14dcb8e3ff76a70dc8e4918ca9288b665ef",
+  "prompts": {},
+  "sessions": {
+    "s_04c878634f808e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a168f8-5e95-71c3-8f13-191280267cbd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_2b1071e68b5936": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16824-84f4-77e3-a52c-16f378a5b455",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_e90a7bc6ebae3f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1695e-8861-73b2-925c-3bc1a61c6d61",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

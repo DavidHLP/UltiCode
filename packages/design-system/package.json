@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@internationalized/date": "^3.11.0",
-    "@lucide/vue": "1.59.0",
+    "@lucide/vue": "1.61.0",
     "@ulticode/theme": "workspace:*",
     "@unovis/ts": "^1.7.1",
     "@unovis/vue": "^1.7.1",

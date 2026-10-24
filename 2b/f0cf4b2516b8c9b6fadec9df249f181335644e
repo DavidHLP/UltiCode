@@ -1,0 +1,90 @@
+apps/management/src/views/problem-lists/components/BasicInfoSection.vue
+  s_2b1071e68b5936::t_82ca0c84623973 6
+services/admin/src/test/java/com/ulticode/modules/backup/BackupRepositoryIT.java
+  s_2b1071e68b5936::t_5de22cea652bd1 3-4,52
+apps/console/src/api/__tests__/agent.spec.ts
+  s_2b1071e68b5936::t_32f26e99d20a19 115-116
+apps/management/src/views/problems/components/ExamplesEditor.spec.ts
+  s_2b1071e68b5936::t_82ca0c84623973 4
+docs/DEVELOPMENT.md
+  s_2b1071e68b5936::t_bea858bf0b35ca 202-205
+services/agent/tests/test_agent_service.py
+  s_2b1071e68b5936::t_0b44efb5859783 2259-2266
+  s_2b1071e68b5936::t_cc48624ecd60de 2110,2396,2542,2554-2555
+apps/management/src/lib/toTypedSchema.ts
+  s_2b1071e68b5936::t_e7f4b9cc615736 12-13
+  s_2b1071e68b5936::t_e457ec26111c78 19-24,34-39,44-46
+  s_2b1071e68b5936::t_24a0bc55392e99 11,14
+  s_2b1071e68b5936::t_95176663d4c692 33,43,51
+  s_2b1071e68b5936::t_82ca0c84623973 1-10,15-18,25-32,40-42,47-50,52-54
+apps/management/src/lib/schemas/problemDescription.test.ts
+  s_2b1071e68b5936::t_95176663d4c692 61,96,107
+  s_2b1071e68b5936::t_ba6c3b70c1dcce 20,44-47
+  s_2b1071e68b5936::t_95b5e3781e5978 48
+apps/console/src/composables/useAgentConversations.ts
+  s_2b1071e68b5936::t_32f26e99d20a19 533
+services/agent/src/agent_service/app.py
+  s_2b1071e68b5936::t_c94a714841bb4f 111-112
+  s_2b1071e68b5936::t_32f26e99d20a19 1465-1466,1472,1476-1477
+  s_2b1071e68b5936::t_d54d761fd96f0b 113-114
+docs/REFERENCE.md
+  s_2b1071e68b5936::t_32f26e99d20a19 43
+apps/management/src/views/tags/TagEditDialog.vue
+  s_2b1071e68b5936::t_82ca0c84623973 5
+services/admin/src/test/java/com/ulticode/admin/BackendAdminDatasourceContextIT.java
+  s_2b1071e68b5936::t_5de22cea652bd1 3,33
+scripts/test/scheduler-contract.sh
+  s_2b1071e68b5936::t_e12256b4782ee9 23
+  s_2b1071e68b5936::t_b521cb1e61be75 21-22,26-42,76,81
+  s_2b1071e68b5936::t_91f4d6908ec5c3 24-25
+apps/management/src/views/contests/components/ScoringRuleForm.vue
+  s_2b1071e68b5936::t_82ca0c84623973 5
+services/agent/src/agent_service/store.py
+  s_2b1071e68b5936::t_32f26e99d20a19 687,698-699
+services/agent/tests/test_agent_store.py
+  s_2b1071e68b5936::t_cc48624ecd60de 548,594,639,696
+apps/management/package.json
+  s_2b1071e68b5936::t_82ca0c84623973 75
+apps/management/src/lib/toTypedSchema.spec.ts
+  s_2b1071e68b5936::t_c569b04775cbd4 1-5,15-17,20-24,26-36,49-52
+  s_2b1071e68b5936::t_e457ec26111c78 6-14,18-19,37-48
+  s_2b1071e68b5936::t_24a0bc55392e99 25
+apps/console/src/composables/__tests__/useAgentConversations.spec.ts
+  s_2b1071e68b5936::t_32f26e99d20a19 360,1023
+apps/management/src/lib/schemas/problem.ts
+  s_2b1071e68b5936::t_335dd2fbfae44f 46
+  s_2b1071e68b5936::t_95176663d4c692 20
+apps/management/src/views/problems/components/DescriptionForm.vue
+  s_2b1071e68b5936::t_82ca0c84623973 4
+services/agent/data/repository_corpus_manifest.json
+  s_2b1071e68b5936::t_9792ffe27fc0ed 32-33
+  s_2b1071e68b5936::t_e11488dddffebe 60-61
+apps/console/src/api/agent.ts
+  s_2b1071e68b5936::t_32f26e99d20a19 189-190
+packages/design-system/package.json
+  s_2b1071e68b5936::t_bea858bf0b35ca 54
+services/admin/src/test/java/com/ulticode/admin/support/AdminOwnerContractMocks.java
+  s_2b1071e68b5936::t_5de22cea652bd1 1-84
+services/admin/src/test/java/com/ulticode/modules/admin/outbox/AuditSinkTransactionIT.java
+  s_2b1071e68b5936::t_5de22cea652bd1 3-4,36
+apps/console/package.json
+  s_2b1071e68b5936::t_82ca0c84623973 76
+pnpm-lock.yaml
+  s_2b1071e68b5936::t_a68638ee4d3899 193-194,477-478,6574-6575,10766,12829
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2bf0cf4b2516b8c9b6fadec9df249f181335644e",
+  "prompts": {},
+  "sessions": {
+    "s_2b1071e68b5936": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16824-84f4-77e3-a52c-16f378a5b455",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

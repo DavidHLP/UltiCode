@@ -56,7 +56,7 @@ cd UltiCode
 
 ### 2. 准备环境
 
-前置条件：Docker Compose v2、mise、Node.js `^20.19.0 || >=22.12.0`、pnpm 10+、PM2，以及 `curl`、`timeout`、`openssl`。后端启动由仓库内 `services/mvnw` 和 mise 管理的 Zulu Java 17 执行。
+前置条件：Docker Compose v2、mise、Node.js 22.x（当前锁定前端依赖要求该系列至少 22.22.2）、pnpm 11.0.0、PM2，以及 `curl`、`timeout`、`openssl`。前端 CI 选择 Node 22.x 并固定 pnpm 11.0.0；应用 manifest 的 `>=22.12.0` 下限不足以覆盖全部锁定依赖。后端启动由仓库内 `services/mvnw` 和 mise 管理的 Zulu Java 17 执行。Dev Container 的版本差异见[开发前置条件](docs/DEVELOPMENT.md#前置条件)。
 
 贡献者也可以直接使用 Dev Containers/Codespaces；创建容器只安装依赖，
 随后默认执行 unit 验证，不自动启动全栈：

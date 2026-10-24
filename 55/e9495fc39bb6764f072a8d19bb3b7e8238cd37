@@ -1,0 +1,37 @@
+apps/management/src/components/LanguageSwitcher.vue
+  s_80aabc6b902a53::t_0054a82839a42e 4-5,7,15-21,29-31
+  s_80aabc6b902a53::t_86b065db2ad43e 22-28
+apps/management/src/components/layout/NavUser.spec.ts
+  s_80aabc6b902a53::t_86b065db2ad43e 26-28,43-45
+  s_80aabc6b902a53::t_2f1becd73f5fa2 1-25,29-42,46-94
+apps/management/src/components/ThemeSwitcher.vue
+  s_80aabc6b902a53::t_0054a82839a42e 2,9-12
+apps/management/src/components/layout/SiteHeader.spec.ts
+  s_80aabc6b902a53::t_2f1becd73f5fa2 32-42
+apps/management/src/components/layout/NavUser.vue
+  s_80aabc6b902a53::t_86b065db2ad43e 84
+  s_80aabc6b902a53::t_0054a82839a42e 7-9,12,17-20,30-32,51,58-59,147-180
+  s_80aabc6b902a53::t_c8224354c43efd 181
+apps/management/src/components/layout/SiteHeader.vue
+  s_80aabc6b902a53::t_0054a82839a42e 19
+docs/DEVELOPMENT.md
+  s_80aabc6b902a53::t_0054a82839a42e 256-257
+apps/management/src/components/layout/AppSidebar.vue
+  s_80aabc6b902a53::t_0054a82839a42e 279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "55e9495fc39bb6764f072a8d19bb3b7e8238cd37",
+  "prompts": {},
+  "sessions": {
+    "s_80aabc6b902a53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16d43-58b4-7f51-bd4b-b4c8f9c9a0cc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

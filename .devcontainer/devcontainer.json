@@ -52,6 +52,6 @@
       }
     }
   },
-  "postCreateCommand": "sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends python3 >/dev/null && git config --global --add safe.directory \"$(pwd)\" && corepack enable && corepack prepare pnpm@11.0.0 --activate && npm install --global pm2@6.0.8 && CI=true pnpm --store-dir ${PNPM_STORE_DIR:-/tmp/ulticode-pnpm-store} install --frozen-lockfile --child-concurrency=2 --network-concurrency=8 && ./services/mvnw -f services/pom.xml -DskipTests dependency:go-offline",
+  "postCreateCommand": "sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends python3 >/dev/null && git config --global --add safe.directory \"$(pwd)\" && corepack enable && corepack prepare pnpm@11.0.0 --activate && npm install --global pm2@6.0.8 && CI=true pnpm --store-dir ${PNPM_STORE_DIR:-/tmp/ulticode-pnpm-store} install --frozen-lockfile --child-concurrency=2 --network-concurrency=8 && MISE_HTTP_TIMEOUT=5m mise install java@zulu-17.68.203.0 && mise exec java@zulu-17.68.203.0 -- ./services/mvnw -f services/pom.xml -DskipTests dependency:go-offline",
   "postStartCommand": "./scripts/dev/test.sh unit"
 }

@@ -19,6 +19,8 @@ mise、PM2、Maven wrapper 和 Docker-in-Docker。创建容器时只安装依赖
 Maven 离线缓存，不启动全栈；Node Feature 的 `22` 与前端 CI 的 `22.x` 均选择 Node 22 系列，postCreateCommand 固定启用 pnpm 11.0.0，与 CI 一致。当前锁定依赖要求 Node 22 系列至少为 22.22.2；两端均未固定相同 patch，已创建的容器需重建才能更新 Node Feature，并重新执行创建阶段以启用新的 pnpm 版本。容器启动后的默认检查仅执行
 `./scripts/dev/test.sh unit`。运行真实 journey 必须显式选择 scope。
 
+创建阶段显式通过 mise 安装 unit 入口要求的 `java@zulu-17.68.203.0`，并用同一 JDK 执行 Maven 依赖预热；Java Feature 提供的通用 JDK 17 不代替该工具链。Zulu 安装请求使用有界的 `MISE_HTTP_TIMEOUT=5m`，避免大型 JDK 下载被默认 30 秒超时中断。创建阶段失败时先查看具体命令日志；再次启动可能只运行 postStart，不能据此认定依赖预热已完成。
+
 mise Feature 使用 `ghcr.io/devcontainers-extra/features/mise:1`，配置与锁文件
 保持一致；旧的 `devcontainers-contrib` 地址会导致 OCI 拉取失败。已有本地
 服务运行时，修正配置不需要重建容器或重启服务。Zed 日志中的基础镜像

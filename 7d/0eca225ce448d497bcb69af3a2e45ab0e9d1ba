@@ -1,0 +1,19 @@
+assets/screenshots/README.md
+  s_dae1d819fc6072::t_4e7625a47da0c6 3,7-9,18-19,22-23,25,35-36,44-47,50-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7d0eca225ce448d497bcb69af3a2e45ab0e9d1ba",
+  "prompts": {},
+  "sessions": {
+    "s_dae1d819fc6072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16ce2-68b3-7971-866b-f5aadaa03a06",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

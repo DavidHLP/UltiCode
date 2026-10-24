@@ -186,8 +186,8 @@ export const agentApi = {
       expectedRunId,
     });
   },
-  cancelConversationTurn(conversationId: string, turnId: string) {
-    return apiPost<AgentConversationTurn>(`${conversationTurnPath(conversationId, turnId)}/cancel`, {});
+  cancelConversationTurn(conversationId: string, turnId: string, expectedRunId: string) {
+    return apiPost<AgentConversationTurn>(`${conversationTurnPath(conversationId, turnId)}/cancel`, { expectedRunId });
   },
   recoverConversationTurn(conversationId: string, turnId: string) {
     return apiPost<AgentConversationTurn>(`${conversationTurnPath(conversationId, turnId)}/recover`, {});

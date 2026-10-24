@@ -545,7 +545,7 @@ def test_cancelled_turn_lock_blocks_new_turn_across_store_instances(tmp_path):
 
     with first_store.thread_lock(turn["turn_id"]):
         cancelled = second_store.cancel_conversation_turn(
-            conversation_id, turn["turn_id"], "owner", now=4.0,
+            conversation_id, turn["turn_id"], "owner", expected_run_id=turn["run_id"], now=4.0,
         )
         assert cancelled["status"] == "cancelled"
         with pytest.raises(Conflict, match="conversation_turn_active"):
@@ -591,7 +591,7 @@ sys.stdin.read()
             selector.register(proc.stdout, selectors.EVENT_READ)
             assert selector.select(timeout=5), "child did not acquire execution lock"
         assert proc.stdout.readline().strip() == "LOCKED"
-        store.cancel_conversation_turn(conversation_id, turn["turn_id"], "owner", now=4.0)
+        store.cancel_conversation_turn(conversation_id, turn["turn_id"], "owner", expected_run_id=turn["run_id"], now=4.0)
         with pytest.raises(Conflict, match="conversation_turn_active"):
             store.delete_conversation(conversation_id, "owner")
         with pytest.raises(Conflict, match="conversation_turn_active"):
@@ -636,7 +636,7 @@ def test_retry_cannot_bypass_another_active_turn(tmp_path, active_status):
                 conversation_id, second["turn_id"], "owner", second["run_id"], now=6.0,
             )
         if active_status == "cancelled":
-            store.cancel_conversation_turn(conversation_id, second["turn_id"], "owner", now=7.0)
+            store.cancel_conversation_turn(conversation_id, second["turn_id"], "owner", expected_run_id=second["run_id"], now=7.0)
         with pytest.raises(Conflict, match="conversation_turn_active"):
             store.retry_conversation_turn(conversation_id, first["turn_id"], "owner", now=8.0)
     assert store.get_conversation_turn(conversation_id, first["turn_id"], "owner")["status"] == "failed"
@@ -693,7 +693,7 @@ def test_conversation_turn_idempotency_and_cancel_fence(tmp_path):
     with pytest.raises(Conflict, match="conversation_turn_active"):
         store.delete_conversation(conversation_id, "owner")
     cancelled = store.cancel_conversation_turn(
-        conversation_id, turn["turn_id"], "owner", now=5.0,
+        conversation_id, turn["turn_id"], "owner", expected_run_id=turn["run_id"], now=5.0,
     )
     assert cancelled["status"] == "cancelled"
     assert cancelled["cancel_requested"] is True

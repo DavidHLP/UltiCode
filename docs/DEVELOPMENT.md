@@ -199,6 +199,10 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，会被 CI 的
 安装使用根目录 `pnpm install --frozen-lockfile`，Node.js 满足 `>=22.12.0`；
 与当前前端 CI 对齐的环境为 Node 22.x、pnpm 11。
 
+Management forms use patched Zod 4 through `src/lib/toTypedSchema.ts`, which preserves the
+vee-validate 4 form contract for parsed values, defaults, field errors and required metadata.
+The published Zod 3 adapter is not used; production dependency audits retain the high-severity gate.
+
 后续变更必须保留以下基线契约：
 
 - Console 与 Management 保持各自路由、布局和权限边界，跨端行为归属现有 focused package；

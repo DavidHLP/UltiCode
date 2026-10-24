@@ -530,6 +530,7 @@ export function useAgentConversations() {
       const cancelled = await agentApi.cancelConversationTurn(
         current.conversationId,
         current.turnId,
+        current.runId,
       );
       if (token === generation) {
         upsertTurn(cancelled);

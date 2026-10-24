@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { watch, ref } from 'vue'
 import { useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
+import { toTypedSchema } from '@/lib/toTypedSchema'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@ulticode/design-system/ui/button'
 import { Input } from '@ulticode/design-system/ui/input'

@@ -17,7 +17,7 @@ export const exampleSchema = z.object({
     .array(
       z.object({
         name: z.string(),
-        value: z.unknown(),
+        value: z.unknown().optional(),
         label: z.string().optional(),
         fieldName: z.string().optional(),
       }),
@@ -43,7 +43,7 @@ export const problemFormSchema = z.object({
     .max(SUMMARY_MAX_LENGTH, `Summary must be at most ${SUMMARY_MAX_LENGTH} characters`)
     .optional(),
   content: z.string().optional(),
-  examples: z.array(exampleSchema).min(1, 'At least one example is required').default([]),
+  examples: z.array(exampleSchema).min(1, 'At least one example is required').prefault([]),
   constraints: z.array(z.string()).default([]),
   hints: z.array(z.string()).default([]),
   languages: z.array(z.string()).default([]),

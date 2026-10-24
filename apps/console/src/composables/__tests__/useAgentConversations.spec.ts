@@ -357,6 +357,7 @@ describe("useAgentConversations", () => {
     expect(api.cancelConversationTurn).toHaveBeenCalledWith(
       conversation.conversationId,
       second.turnId,
+      second.runId,
     );
     expect(workspace.turns.value[1].status).toBe("cancelled");
     await workspace.retryTurn(firstTurn, false);
@@ -1019,6 +1020,7 @@ describe("useAgentConversations", () => {
     expect(api.cancelConversationTurn).toHaveBeenCalledWith(
       "conversation-1",
       "turn-1",
+      "run-1",
     );
     expect(workspace.turns.value[0].status).toBe("cancelled");
     expect(workspace.busy.value).toBe(false);

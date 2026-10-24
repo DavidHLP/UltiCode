@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
+import { toTypedSchema } from '@/lib/toTypedSchema'
 import * as z from 'zod'
 import { Loader as IconLoader, Calculator as IconCalculator } from '@lucide/vue'
 

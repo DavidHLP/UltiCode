@@ -108,6 +108,10 @@ class _ConversationRunBody(_StrictBody):
     expectedRunId: StrictStr
 
 
+class _ConversationCancelBody(_StrictBody):
+    expectedRunId: StrictStr
+
+
 class _DraftBody(_StrictBody):
     draftVersion: StrictInt
     title: StrictStr
@@ -1458,16 +1462,19 @@ def create_app(
     async def cancel_conversation_turn(conversation_id: str, turn_id: str, request: Request):
         _uuid(conversation_id)
         _uuid(turn_id)
-        _validated_body(await _body(request), _EmptyBody)
+        body = _validated_body(await _body(request), _ConversationCancelBody)
+        expected_run_id = _uuid(body["expectedRunId"])
 
         async def operation(_: UlticodeClient, owner: str):
             _conversation_owned(conversation_id, owner)
             try:
                 turn = workflow_store.cancel_conversation_turn(
-                    conversation_id, turn_id, owner, now=clock(),
+                    conversation_id, turn_id, owner, expected_run_id=expected_run_id, now=clock(),
                 )
             except NotFound:
                 raise AgentError(404, "conversation_not_found", 40400) from None
+            except Conflict:
+                raise AgentError(409, "run_replaced", 40900) from None
             # Let dispatched provider calls settle usage; event checks stop subsequent work.
             return _conversation_turn_response(turn)
         return _response(await with_session(request, unsafe=True, operation=operation))

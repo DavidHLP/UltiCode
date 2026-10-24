@@ -112,8 +112,8 @@ describe("agentApi", () => {
     });
     await agentApi.runConversationTurn("conversation/one", "turn/2", true, "run-1");
     expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation%2Fone/turns/turn%2F2/run", { sourceConsent: true, expectedRunId: "run-1" });
-    await agentApi.cancelConversationTurn("conversation-1", "turn-1");
-    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation-1/turns/turn-1/cancel", {});
+    await agentApi.cancelConversationTurn("conversation-1", "turn-1", "run-1");
+    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation-1/turns/turn-1/cancel", { expectedRunId: "run-1" });
     await agentApi.recoverConversationTurn("conversation-1", "turn-1");
     expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation-1/turns/turn-1/recover", {});
     await agentApi.deleteConversation("conversation-1");

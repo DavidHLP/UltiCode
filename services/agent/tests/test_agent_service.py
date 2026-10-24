@@ -2107,7 +2107,7 @@ def test_cancelled_run_lock_blocks_new_turn_across_app_instances(tmp_path):
                     await asyncio.wait_for(entered.wait(), timeout=2)
                     cancelled = await client_b.post(
                         f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/cancel",
-                        headers=HEADERS, json={},
+                        headers=HEADERS, json={"expectedRunId": turn["runId"]},
                     )
                     assert cancelled.json()["data"]["status"] == "cancelled"
                     rejected = await client_b.post(
@@ -2256,6 +2256,14 @@ def test_conversation_retry_fences_late_requests_and_old_streams(tmp_path, monke
             active = store.get_conversation_turn(conversation_id, turn["turnId"], "owner-1")
             assert active["status"] == "running" and active["run_id"] != current["runId"]
             events = store.conversation_events(conversation_id, turn["turnId"], "owner-1", after=0)
+            stale_cancel = await client.post(path + "/cancel", headers=HEADERS,
+                                            json={"expectedRunId": current["runId"]})
+            assert stale_cancel.status_code == 409
+            assert stale_cancel.json()["data"]["reason"] == "run_replaced"
+            missing_cancel_run = await client.post(path + "/cancel", headers=HEADERS, json={})
+            assert missing_cancel_run.status_code == 400
+            assert store.get_conversation_turn(conversation_id, turn["turnId"], "owner-1") == active
+            assert store.conversation_events(conversation_id, turn["turnId"], "owner-1", after=0) == events
             if stale_first_read:
                 get_turn = store.get_conversation_turn
                 reads = 0
@@ -2385,7 +2393,7 @@ def test_cancelling_conversation_turn_preserves_previous_turn(tmp_path):
         assert blocked_delete.status_code == 409
         cancelled = await client.post(
             f"/agent/conversations/{conversation_id}/turns/{second_turn['turnId']}/cancel",
-            headers=HEADERS, json={},
+            headers=HEADERS, json={"expectedRunId": second_turn["runId"]},
         )
         assert cancelled.status_code == 200
         assert cancelled.json()["data"]["status"] == "cancelled"
@@ -2531,7 +2539,7 @@ def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path
         })
         first = created.json()["data"]["turn"]
         first_url = f"/agent/conversations/{conversation_id}/turns/{first['turnId']}"
-        assert (await client.post(first_url + "/cancel", headers=HEADERS, json={})).status_code == 200
+        assert (await client.post(first_url + "/cancel", headers=HEADERS, json={"expectedRunId": first["runId"]})).status_code == 200
         second_response = await client.post(f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
             json={"clientTurnId": str(uuid.uuid4()), "question": "Explain the result"})
         second = second_response.json()["data"]
@@ -2543,7 +2551,8 @@ def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path
         assert blocked.status_code == 409
         assert blocked.json()["data"]["reason"] == "turn_active"
         cancelled = await client.post(
-            f"/agent/conversations/{conversation_id}/turns/{second['turnId']}/cancel", headers=HEADERS, json={})
+            f"/agent/conversations/{conversation_id}/turns/{second['turnId']}/cancel", headers=HEADERS,
+            json={"expectedRunId": second["runId"]})
         assert cancelled.json()["data"]["status"] == "cancelled"
         resumed = await client.post(first_url + "/run", headers=HEADERS, json={"sourceConsent": False, "expectedRunId": first["runId"]})
         assert resumed.status_code == 200

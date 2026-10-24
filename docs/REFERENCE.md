@@ -40,7 +40,7 @@ The opt-in Python Agent service is separate from Java `/learning-plans`: it owns
 | `GET /agent/conversations/{conversation_id}?limit=N&before=N` | — | Read conversation metadata and a bounded ordered turn page; `before` is optional |
 | `POST /agent/conversations/{conversation_id}/turns` | `{"clientTurnId":"<UUID>","question":"..."}` | Add an idempotent queued turn after revalidating the bound submission |
 | `POST /agent/conversations/{conversation_id}/turns/{turn_id}/run` | `{"sourceConsent":false,"expectedRunId":"<UUID>"}` | Explicitly run one turn; consent and the expected current run are required on every request; a stale run returns HTTP 409 `run_replaced` before model execution |
-| `POST /agent/conversations/{conversation_id}/turns/{turn_id}/cancel` | `{}` | Cancel only this turn and fence its later writes |
+| `POST /agent/conversations/{conversation_id}/turns/{turn_id}/cancel` | `{"expectedRunId":"<UUID>"}` | Cancel only the expected run and fence its later writes; stale cancellation returns HTTP 409 `run_replaced` without changing the replacement run |
 | `POST /agent/conversations/{conversation_id}/turns/{turn_id}/recover` | `{}` | Reconcile this turn's interrupted run state |
 | `DELETE /agent/conversations/{conversation_id}` | — | Delete only this user's conversation and turns; active turns return HTTP 409 |
 | `GET /agent/conversations/{conversation_id}/turns/{turn_id}/events/stream?after=N&runId=<UUID>` | — | Subscribe to bounded SSE for the specified run; an old run closes with `run_replaced`; omitting `runId` subscribes to the current run |

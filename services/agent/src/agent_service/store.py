@@ -684,7 +684,7 @@ class WorkflowStore:
         return self._conversation_turn_decode(updated)
 
     def cancel_conversation_turn(
-        self, conversation_id: str, turn_id: str, owner_id: str, *, now: float,
+        self, conversation_id: str, turn_id: str, owner_id: str, *, expected_run_id: str, now: float,
     ) -> dict[str, object]:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -695,6 +695,8 @@ class WorkflowStore:
                 ).fetchone()
                 if row is None:
                     raise NotFound("conversation_turn_not_found")
+                if row["run_id"] != expected_run_id:
+                    raise Conflict("run_replaced")
                 if row["status"] in {"queued", "running"}:
                     seq = int(row["event_seq"]) + 1
                     db.execute(

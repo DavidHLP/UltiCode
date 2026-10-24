@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +71,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
         } catch (RuntimeException exception) {
             throw AdminReadContract.ownerUnavailable("Submission", exception);
         }
-        requirePage(result, "Submission");
+        AdminReadContract.requirePage(result, "Submission");
 
         Map<String, AdminUserSummary> userMap = new HashMap<>();
         Map<Long, ProblemAdminRowDTO> problemMap = new HashMap<>();
@@ -90,7 +89,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
                     .collect(Collectors.toSet());
 
             if (!userIds.isEmpty()) {
-                AdminUserEnricher.EnrichedUsers users = loadUsers(userIds);
+                AdminUserEnricher.EnrichedUsers users = userEnricher.requireUsers(userIds);
                 userMap.putAll(users.users());
                 status = mergeStatus(status, users.status());
             }
@@ -356,25 +355,6 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
         return vo;
     }
-    private AdminUserEnricher.EnrichedUsers loadUsers(Set<String> userIds) {
-        if (userIds.isEmpty()) {
-            return new AdminUserEnricher.EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK);
-        }
-        AdminUserEnricher.EnrichedUsers result;
-        try {
-            result = userEnricher.enrichWithStatus(userIds);
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (RuntimeException exception) {
-            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
-        }
-        if (result == null || result.status() == null
-                || result.status() == DegradationStatus.UNAVAILABLE) {
-            throw AdminReadContract.ownerUnavailable("Auth/App user");
-        }
-        return result;
-    }
-
     private ProblemBatch loadProblems(Set<Long> problemIds) {
         List<ProblemAdminRowDTO> rows;
         try {
@@ -404,17 +384,6 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
             return DegradationStatus.PARTIAL;
         }
         return current == null ? DegradationStatus.OK : current;
-    }
-
-    private static void requirePage(
-            PageResult<SubmissionAdminRowDTO> page, String owner) {
-        if (page == null || page.getItems() == null
-                || page.getItems().stream().anyMatch(java.util.Objects::isNull)
-                || page.getTotal() == null
-                || page.getTotal() < 0
-                || page.getDegradationStatus() == DegradationStatus.UNAVAILABLE) {
-            throw AdminReadContract.ownerUnavailable(owner);
-        }
     }
 
     private record ProblemBatch(

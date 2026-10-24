@@ -32,10 +32,10 @@ class SearchDocumentChangedEventContractTest {
     @Test
     void rejectsSensitiveIndexFields() {
         assertThatCode(() -> SearchDocumentChangedEventContract
-                .requireSafeDocumentKeys(List.of("id", "title", "difficulty")))
+                .requireSafeDocument(Map.of("id", "p-1", "title", "A+B", "difficulty", "easy")))
                 .doesNotThrowAnyException();
         assertThatThrownBy(() -> SearchDocumentChangedEventContract
-                .requireSafeDocumentKeys(List.of("id", "sourceCode")))
+                .requireSafeDocument(Map.of("id", "p-1", "sourceCode", "must-not-cross-the-boundary")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("sourceCode");
     }

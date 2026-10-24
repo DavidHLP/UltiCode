@@ -427,14 +427,6 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                 .toList());
     }
 
-    private BatchRunResult forkFailureBatch(List<TestCase> cases,
-                                            DFormRunOutcome outcome,
-                                            long start) {
-        // Kept for source-compat with any external caller; forwards to the
-        // generic infra-failure builder with FORK_LIMIT.
-        return infraFailureBatch(cases, outcome, start, SandboxInfraFailure.FORK_LIMIT);
-    }
-
     /**
      * Build a {@link BatchRunResult} filled with one rejected case per input
      * test case. The single-source
@@ -536,12 +528,6 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             log.debug("Failed to clean sandbox job dir {}: {}", jobDir, e.getMessage());
         }
     }
-
-    private static String truncateForLog(String s) {
-        if (s == null) return "<null>";
-        return s.length() <= 4096 ? s : s.substring(0, 4096) + "... [truncated]";
-    }
-
 
     // ── Timeout math (sandbox timeout contract) ─────────────────────────────────
 

@@ -10,6 +10,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,7 +64,6 @@ class SubmissionJudgedNotificationConsumerTest {
         consumer.consume(Map.of(
                 "submissionId", "submission-1",
                 "userId", "user-1",
-                "generation", 7,
                 "verdict", "Judging"));
 
         verifyNoInteractions(notificationDispatcher);
@@ -97,5 +98,32 @@ class SubmissionJudgedNotificationConsumerTest {
                 "verdict", "Wrong Answer")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("ledger unavailable");
+    }
+
+    @Test
+    void malformedGenerationPropagatesBeforeDispatchSoInboxCanRetry() {
+        SubmissionJudgedNotificationConsumer consumer =
+                new SubmissionJudgedNotificationConsumer(notificationDispatcher);
+        Object[][] cases = {
+                {null, "Missing"},
+                {-1, "Negative"},
+                {1.5d, "Invalid"},
+                {BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE), "Invalid"}
+        };
+        for (Object[] testCase : cases) {
+            Map<String, Object> payload = new HashMap<>(Map.of(
+                    "submissionId", "submission-1",
+                    "userId", "user-1",
+                    "verdict", "Accepted"));
+            if (testCase[0] != null) {
+                payload.put("generation", testCase[0]);
+            }
+
+            assertThatThrownBy(() -> consumer.consume(payload))
+                    .as("generation %s", testCase[0])
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage(testCase[1] + " SubmissionJudged field: generation");
+        }
+        verifyNoInteractions(notificationDispatcher);
     }
 }

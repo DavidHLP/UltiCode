@@ -186,32 +186,10 @@ public class AdminUserEnricher {
     public record ProfileDetail(UserProfileDTO profile, DegradationStatus status) {
     }
 
-    /** Query one authoritative Auth account and merge its optional App profile. */
-    public AccountDetail findAccountWithProfile(String accountId) {
-        AuthAccountDTO account = findAccountAuthoritatively(accountId);
-        if (account == null) {
-            return null;
-        }
-
-        OwnerRead<Map<String, UserProfileDTO>> profiles = batchProfiles(Set.of(accountId));
-        Map<String, UserProfileDTO> profileData = profiles.available() && profiles.value() != null
-                ? profiles.value() : Collections.emptyMap();
-        return new AccountDetail(
-                account,
-                profileData.get(accountId),
-                profiles.available() ? DegradationStatus.OK : DegradationStatus.PARTIAL);
-    }
-
     public record AccountPage(
             List<AuthAccountDTO> accounts,
             long total,
             Map<String, UserProfileDTO> profiles,
-            DegradationStatus status) {
-    }
-
-    public record AccountDetail(
-            AuthAccountDTO account,
-            UserProfileDTO profile,
             DegradationStatus status) {
     }
 
@@ -238,6 +216,25 @@ public class AdminUserEnricher {
             throw AdminReadContract.ownerUnavailable("Auth and App");
         }
         return result.users();
+    }
+
+    EnrichedUsers requireUsers(Set<String> accountIds) {
+        if (accountIds.isEmpty()) {
+            return new EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK);
+        }
+        EnrichedUsers result;
+        try {
+            result = enrichWithStatus(accountIds);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
+        }
+        if (result == null || result.status() == null
+                || result.status() == DegradationStatus.UNAVAILABLE) {
+            throw AdminReadContract.ownerUnavailable("Auth/App user");
+        }
+        return result;
     }
 
     /**

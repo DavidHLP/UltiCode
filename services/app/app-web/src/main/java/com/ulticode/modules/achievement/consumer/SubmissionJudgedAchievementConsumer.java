@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedLong;
+
 /**
  * Handles accepted {@code SubmissionJudged} events for Achievement.
  *
@@ -34,7 +36,7 @@ public class SubmissionJudgedAchievementConsumer {
         String userId = requiredString(payload, "userId");
         SubmissionStatus status = SubmissionStatusCodec.fromWire(
                 requiredString(payload, "verdict"));
-        long generation = requiredLong(payload, "generation");
+        long generation = requiredJudgedLong(payload, "generation");
         if (generation < 0) {
             throw new IllegalArgumentException("Negative SubmissionJudged generation");
         }
@@ -60,32 +62,6 @@ public class SubmissionJudgedAchievementConsumer {
             throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
         }
         return String.valueOf(value);
-    }
-
-    private static long requiredLong(Map<String, Object> payload, String key) {
-        Object value = payload.get(key);
-        if (value == null) {
-            throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
-        }
-        try {
-            long parsed = value instanceof Number number
-                    ? exactLong(number)
-                    : Long.parseLong(String.valueOf(value));
-            if (parsed < 0) {
-                throw new IllegalArgumentException("Negative SubmissionJudged field: " + key);
-            }
-            return parsed;
-        } catch (NumberFormatException | ArithmeticException e) {
-            throw new IllegalArgumentException("Invalid SubmissionJudged field: " + key, e);
-        }
-    }
-
-    private static long exactLong(Number number) {
-        if (number instanceof Byte || number instanceof Short
-                || number instanceof Integer || number instanceof Long) {
-            return number.longValue();
-        }
-        return new java.math.BigDecimal(String.valueOf(number)).longValueExact();
     }
 
     private static int toInt(Long value) {

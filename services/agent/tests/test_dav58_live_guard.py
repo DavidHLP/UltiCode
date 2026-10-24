@@ -15,6 +15,30 @@ def receipt(**overrides):
     return payload
 
 
+@pytest.mark.parametrize("change", [None, "tokens", "evidence", "network", "nonzero"])
+def test_manual_resume_requires_matching_zero_usage_reconciliation(change):
+    from authorized_budget_period import MANUAL_LIVE_TEST_POLICY
+    r = {"status": "settled", "lane": "u03_analysis", "request_model": "deepseek-flash",
+         "request_sha256": "a" * 64, "reserved_micro_usd": ENVELOPE_MICRO_USD,
+         "prompt_token_cap": 24000, "completion_token_cap": 2000,
+         "network_error_class": "ConnectError", "reason": "network_or_read_failure",
+         "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "peak_micro_usd": 0,
+         "reconciliation": {"kind": "provider_usage_aggregate", "evidence_sha256": "b" * 64,
+                            "billed_requests": 0, "billed_tokens": 0}}
+    if change == "tokens": r["reconciliation"]["billed_tokens"] = 1
+    if change == "evidence": r["reconciliation"]["evidence_sha256"] = ""
+    if change == "network": r["network_error_class"] = "ReadTimeout"
+    if change == "nonzero": r["prompt_tokens"] = 1
+    saved = {"period_identity": "identity", "config_sha256": "config", "halted": False,
+             "pending_micro_usd": 0, "limit_micro_usd": MANUAL_LIVE_TEST_POLICY["limit_micro_usd"],
+             "settled_peak_micro_usd": 0, "receipts": [r]}
+    if change:
+        with pytest.raises(ValueError):
+            IncrementalGuard._validate_resume(saved, "identity", "config", MANUAL_LIVE_TEST_POLICY, allow_empty=True)
+    else:
+        IncrementalGuard._validate_resume(saved, "identity", "config", MANUAL_LIVE_TEST_POLICY, allow_empty=True)
+
+
 def models(tmp_path, handler):
     guard = IncrementalGuard(tmp_path / "increment.json")
     loop = DeepseekModel("dummy", tool_specs={}, model="deepseek-flash", max_tokens=2000, thinking_type="disabled",

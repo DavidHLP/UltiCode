@@ -42,7 +42,8 @@ class CoreApplicationSmokeTest {
                 .containsExactly("auth", "admin", "app", "submission", "notification", "search");
         assertThat(registry.enabledModules()).extracting(CoreModuleDefinition::name)
                 .containsExactly("auth", "admin");
-        assertThat(registry.disabledModules()).extracting(CoreModuleDefinition::name)
+        assertThat(registry.modules()).filteredOn(module -> !module.enabled())
+                .extracting(CoreModuleDefinition::name)
                 .containsExactly("app", "submission", "notification", "search");
         assertThat(registry.modules()).extracting(CoreModuleDefinition::transactionManagerBean)
                 .containsExactly("authTransactionManager", "adminTransactionManager",

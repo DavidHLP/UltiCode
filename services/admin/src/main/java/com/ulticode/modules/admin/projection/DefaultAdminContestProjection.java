@@ -49,7 +49,7 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         } catch (RuntimeException exception) {
             throw AdminReadContract.ownerUnavailable("App contest", exception);
         }
-        requirePage(result, "App contest");
+        AdminReadContract.requirePage(result, "App contest");
 
         List<AdminContestVO> vos = result.getItems().stream()
                 .map(this::toAdminVOFromPage)
@@ -133,14 +133,6 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
         Integer pc = contest.getProblemCount();
         vo.setProblemCount(pc != null ? pc : 0);
         return vo;
-    }
-
-    private static void requirePage(PageResult<?> page, String owner) {
-        if (page == null || page.getItems() == null || page.getItems().stream().anyMatch(java.util.Objects::isNull)
-                || page.getTotal() == null || page.getTotal() < 0
-                || page.getDegradationStatus() == DegradationStatus.UNAVAILABLE) {
-            throw AdminReadContract.ownerUnavailable(owner);
-        }
     }
 
     @Override

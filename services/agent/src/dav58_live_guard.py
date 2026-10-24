@@ -117,6 +117,21 @@ class IncrementalGuard:
         continuation_start = continuation.get("receipt_start") if isinstance(continuation, dict) else None
         for index, r in enumerate(receipts):
             response_model = r.get("response_model") if isinstance(r, dict) else None
+            reconciliation = r.get("reconciliation") if isinstance(r, dict) else None
+            # A failed connection has no provider response; retain the operator's billed-usage evidence separately.
+            reconciled = bool(allow_empty and isinstance(reconciliation, dict)
+                and reconciliation.get("kind") == "provider_usage_aggregate"
+                and re.fullmatch(r"[0-9a-f]{64}", str(reconciliation.get("evidence_sha256", "")))
+                and r.get("network_error_class") == "ConnectError"
+                and r.get("reason") == "network_or_read_failure"
+                and all(type(r.get(k)) is int and r[k] == 0 for k in
+                        ("prompt_tokens", "completion_tokens", "total_tokens", "peak_micro_usd"))
+                and type(reconciliation.get("billed_requests")) is int
+                and reconciliation["billed_requests"] == index
+                and type(reconciliation.get("billed_tokens")) is int
+                and reconciliation.get("billed_tokens") == sum(
+                    other.get("total_tokens", -1) for other in receipts[:index])
+                and response_model is None and "response_sha256" not in r)
             lane = r.get("lane") if isinstance(r, dict) else None
             completion_cap = 1000 if lane == "dav53_scenarios" else 2000
             prompt_cap = 8000 if type(continuation_start) is int and index >= continuation_start else 24000
@@ -138,12 +153,12 @@ class IncrementalGuard:
                     or (lane not in {"dav58_loop", "dav58_judge", "dav53_scenarios"}
                         and "prompt_token_cap" not in r)
                     or r.get("request_model") != "deepseek-flash"
-                    or not isinstance(response_model, str)
-                    or response_model.casefold() not in {"deepseek-flash", "deepseek-v4.1-flash"}
+                    or (not reconciled and (not isinstance(response_model, str)
+                        or response_model.casefold() not in {"deepseek-flash", "deepseek-v4.1-flash"}))
                     or r.get("reserved_micro_usd") != ENVELOPE_MICRO_USD
                     or not isinstance(r.get("request_sha256"), str) or len(r["request_sha256"]) != 64):
                 raise ValueError("unsafe prior receipt")
-            if (fresh or allow_empty) and (not isinstance(r.get("response_sha256"), str)
+            if (fresh or allow_empty) and not reconciled and (not isinstance(r.get("response_sha256"), str)
                                            or not re.fullmatch(r"[0-9a-f]{64}", r["response_sha256"])):
                 raise ValueError("unbound prior provider response")
             prompt, completion, tokens = (r.get(k) for k in ("prompt_tokens", "completion_tokens", "total_tokens"))

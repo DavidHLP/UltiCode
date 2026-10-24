@@ -2,6 +2,8 @@ package com.ulticode.submission.api.event;
 
 import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 
+import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -67,5 +69,31 @@ public final class SubmissionLifecycleEventContract {
             "accessToken", "refreshToken", "cookie", "password");
 
     private SubmissionLifecycleEventContract() {
+    }
+
+    public static long requiredJudgedLong(Map<String, Object> payload, String key) {
+        Object value = payload.get(key);
+        if (value == null) {
+            throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
+        }
+        try {
+            long parsed = value instanceof Number number
+                    ? exactLong(number)
+                    : Long.parseLong(String.valueOf(value));
+            if (parsed < 0) {
+                throw new IllegalArgumentException("Negative SubmissionJudged field: " + key);
+            }
+            return parsed;
+        } catch (NumberFormatException | ArithmeticException e) {
+            throw new IllegalArgumentException("Invalid SubmissionJudged field: " + key, e);
+        }
+    }
+
+    private static long exactLong(Number number) {
+        if (number instanceof Byte || number instanceof Short
+                || number instanceof Integer || number instanceof Long) {
+            return number.longValue();
+        }
+        return new BigDecimal(String.valueOf(number)).longValueExact();
     }
 }

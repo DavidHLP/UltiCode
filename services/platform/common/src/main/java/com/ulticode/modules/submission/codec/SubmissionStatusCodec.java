@@ -21,11 +21,6 @@ public final class SubmissionStatusCodec {
         return SubmissionStatus.fromWire(wire);
     }
 
-    /** Decode a historic value leniently; unknown/null values become null. */
-    public static SubmissionStatus fromWireLenient(String wire) {
-        return SubmissionStatus.fromDbName(wire);
-    }
-
     /** Encode an enum value to its durable wire value. */
     public static String toWire(SubmissionStatus status) {
         return status == null ? null : status.wireValue();

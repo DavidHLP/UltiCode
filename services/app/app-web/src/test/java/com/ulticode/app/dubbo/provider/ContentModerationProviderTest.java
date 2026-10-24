@@ -29,9 +29,11 @@ import org.mockito.quality.Strictness;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,6 +86,25 @@ class ContentModerationProviderTest {
         assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
         verify(contentModerationActionPort, never()).deleteContent(any(), any(), any());
         verify(receiptMapper, never()).insertClaim(any());
+    }
+
+    @Test
+    void rejectsNullCommandWithoutClaimingReceipt() {
+        RpcResult<ModerationApplyResultDTO> result = provider.apply(null);
+
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
+        assertThat(result.traceId()).isNull();
+        verifyNoInteractions(actorAuthorizer, receiptMapper, contentModerationActionPort);
+    }
+
+    @Test
+    void preservesAuthorizerFailureBeforeReceipt() {
+        IllegalStateException failure = new IllegalStateException("authorization unavailable");
+        when(actorAuthorizer.isAuthorized(any())).thenThrow(failure);
+
+        assertThatThrownBy(() -> provider.apply(cmd("forum_post", ModerationAction.DELETE)))
+                .isSameAs(failure);
+        verifyNoInteractions(receiptMapper, contentModerationActionPort);
     }
 
     @Test

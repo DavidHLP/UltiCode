@@ -63,6 +63,22 @@ def test_state_and_event_transition_commit_atomically(tmp_path):
     reopened.close()
 
 
+def test_existing_conversation_turns_get_empty_context_without_losing_data(tmp_path):
+    path = tmp_path / "context-migration.sqlite3"
+    store = WorkflowStore.open(path)
+    conversation_id, turn_id = str(uuid.uuid4()), str(uuid.uuid4())
+    store.create_conversation(conversation_id, "owner", str(uuid.uuid4()), "Existing conversation", now=1)
+    store.create_conversation_turn(conversation_id, "owner", turn_id, str(uuid.uuid4()), "Original question", now=1)
+    store.close()
+    with sqlite3.connect(path) as db:
+        db.execute("ALTER TABLE conversation_turns DROP COLUMN context_json")
+    reopened = WorkflowStore.open(path)
+    turn = reopened.get_conversation_turn(conversation_id, turn_id, "owner")
+    assert turn["context"] == {}
+    assert turn["question"] == "Original question"
+    reopened.close()
+
+
 def test_cancel_fence_and_dispatch_binding_are_atomic(tmp_path):
     store = WorkflowStore(tmp_path / "state.sqlite3")
     row = store.create(_row())

@@ -27,14 +27,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -98,7 +102,8 @@ class ForumAdministrationProviderTest {
         ForumCommentAdministrationProvider provider =
                 new ForumCommentAdministrationProvider(commentAdministrationAdapter, receiptExecutor, actorAuthorizer);
         ForumCommentModerationCommand command = new ForumCommentModerationCommand(
-                "command-1", IdMetadata.mint(), actor("comment"), TraceMetadata.EMPTY,
+                "command-1", IdMetadata.mint(),
+                new ActorDelegation("super_admin", "admin-1", "admin-1", "comment"), TraceMetadata.EMPTY,
                 "comment-1", ForumCommentModerationCommand.Action.FLAG, "spam", null);
         ForumCommentModerationResultDTO dto = new ForumCommentModerationResultDTO(
                 "comment-1", ForumCommentModerationCommand.Action.FLAG, "author-1",
@@ -184,6 +189,76 @@ class ForumAdministrationProviderTest {
         assertThat(postResult.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
         verify(receiptMapper, never()).insertClaim(any());
     }
+
+    @Test
+    void mutationProvidersRejectNullCommandsBeforeReceiptClaim() {
+        List<RpcResult<?>> results = List.of(
+                new ForumCommentAdministrationProvider(
+                        commentAdministrationAdapter, receiptExecutor, actorAuthorizer).moderate(null),
+                new ForumTagAdministrationProvider(
+                        tagAdministrationAdapter, receiptExecutor, actorAuthorizer).mutate(null),
+                new ForumOwnerProvider(forumOwnerPort, receiptExecutor, actorAuthorizer).moderate(null));
+
+        assertThat(results).allSatisfy(result -> {
+            assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
+            assertThat(result.traceId()).isNull();
+        });
+        verifyNoInteractions(actorAuthorizer, receiptMapper, commentAdministrationAdapter,
+                tagAdministrationAdapter, forumOwnerPort);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidActors")
+    void mutationProvidersRejectMalformedActorsWithOriginalTrace(ActorDelegation invalidActor) {
+        assertForbiddenBeforeReceipt(invalidActor);
+        verifyNoInteractions(actorAuthorizer);
+    }
+
+    @Test
+    void mutationProvidersRejectUnverifiedActorsWithOriginalTrace() {
+        when(actorAuthorizer.isAuthorized(any())).thenReturn(false);
+
+        assertForbiddenBeforeReceipt(actor("unverified"));
+    }
+
+    private void assertForbiddenBeforeReceipt(ActorDelegation actor) {
+        TraceMetadata trace = new TraceMetadata("trace-rejection", null, null, null);
+        ForumCommentModerationCommand comment = new ForumCommentModerationCommand(
+                "command-comment", IdMetadata.mint(), actor, trace,
+                "comment-1", ForumCommentModerationCommand.Action.FLAG, "spam", null);
+        ForumTagMutationCommand tag = new ForumTagMutationCommand(
+                "command-tag", IdMetadata.mint(), actor, trace,
+                ForumTagMutationCommand.Action.CREATE, null, null, null, "Java", "java", null, null);
+        ForumPostModerationCommand post = new ForumPostModerationCommand(
+                "command-post", IdMetadata.mint(), actor, trace,
+                "post-1", ForumPostModerationCommand.Action.PIN, null);
+
+        List<RpcResult<?>> results = List.of(
+                new ForumCommentAdministrationProvider(
+                        commentAdministrationAdapter, receiptExecutor, actorAuthorizer).moderate(comment),
+                new ForumTagAdministrationProvider(
+                        tagAdministrationAdapter, receiptExecutor, actorAuthorizer).mutate(tag),
+                new ForumOwnerProvider(forumOwnerPort, receiptExecutor, actorAuthorizer).moderate(post));
+
+        assertThat(results).allSatisfy(result -> {
+            assertThat(result.success()).isFalse();
+            assertThat(result.error().code()).isEqualTo(AppErrorCode.FORBIDDEN.code());
+            assertThat(result.traceId()).isEqualTo("trace-rejection");
+        });
+        verifyNoInteractions(receiptMapper, commentAdministrationAdapter,
+                tagAdministrationAdapter, forumOwnerPort);
+    }
+
+    private static Stream<ActorDelegation> invalidActors() {
+        return Stream.of(
+                new ActorDelegation("ADMIN", null, "admin-1", "missing actor"),
+                new ActorDelegation("ADMIN", " ", "admin-1", "blank actor"),
+                new ActorDelegation("ADMIN", "admin-1", null, "missing delegator"),
+                new ActorDelegation("ADMIN", "admin-1", " ", "blank delegator"),
+                new ActorDelegation("ADMIN", "admin-1", "admin-2", "mismatch"),
+                new ActorDelegation("USER", "admin-1", "admin-1", "wrong role"));
+    }
+
     private static ActorDelegation actor(String rationale) {
         return new ActorDelegation("ADMIN", "admin-1", "admin-1", rationale);
     }

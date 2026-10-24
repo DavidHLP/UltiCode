@@ -17,6 +17,7 @@ const api = vi.hoisted(() => ({
 vi.mock("@/api/agent", () => ({ agentApi: api }));
 
 import { useAgentConversations } from "../useAgentConversations";
+import { ApiError } from "@/utils/request";
 
 const conversation = {
   conversationId: "conversation-1",
@@ -60,7 +61,9 @@ class TestEventSource {
   }
 
   emit(type: string, payload: Record<string, unknown>) {
-    this.listeners.get(type)?.(new MessageEvent(type, { data: JSON.stringify(payload) }));
+    this.listeners.get(type)?.(
+      new MessageEvent(type, { data: JSON.stringify(payload) }),
+    );
   }
 
   close() {
@@ -69,6 +72,238 @@ class TestEventSource {
 }
 
 describe("useAgentConversations", () => {
+  it("clears a confirmed stale POST warning when the newer observed run completes", async () => {
+    const failed = {
+      ...firstTurn,
+      status: "failed",
+      failureReason: "citation_claim_unverified",
+    };
+    const current = {
+      ...failed,
+      runId: "new-run",
+      status: "running",
+      failureReason: null,
+    };
+    const completed = { ...current, status: "completed", answer: "Verified" };
+    let rejectRun!: (error: Error) => void;
+    api.getConversation.mockResolvedValue({ conversation, turns: [failed], hasMore: false });
+    api.runConversationTurn.mockReturnValue(new Promise((_, reject) => { rejectRun = reject; }));
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const sending = workspace.retryTurn(failed, true);
+    api.getConversation.mockResolvedValue({ conversation, turns: [current], hasMore: false });
+    TestEventSource.instances[0].emit("stream_closed", { reason: "run_replaced" });
+    await flushPromises();
+    rejectRun(new ApiError("run_replaced", 409, {
+      status: 409,
+      data: { code: 40900, message: "run_replaced", data: { reason: "run_replaced" } },
+    }));
+    await sending;
+    expect(workspace.error.value).toBe("runReplaced");
+    expect(workspace.busy.value).toBe(true);
+    expect(workspace.currentTurn.value?.runId).toBe(current.runId);
+    expect(workspace.currentTurn.value?.status).toBe("running");
+
+    api.getConversation.mockResolvedValue({ conversation, turns: [completed], hasMore: false });
+    TestEventSource.instances.at(-1)!.emit("terminal", { runId: current.runId });
+    await flushPromises();
+    expect(workspace.error.value).toBe("");
+    expect(workspace.busy.value).toBe(false);
+    expect(workspace.turns.value[0]).toEqual(completed);
+    expect(api.runConversationTurn).toHaveBeenCalledTimes(1);
+    scope.stop();
+  });
+
+  it.each([
+    { status: 409, reason: "turn_active" },
+    { status: 502, reason: "run_replaced" },
+  ])("preserves uncertain POST errors for $status $reason", async ({ status, reason }) => {
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [firstTurn],
+      hasMore: false,
+    });
+    api.runConversationTurn.mockRejectedValue(new ApiError(reason, status, {
+      status,
+      data: { data: { reason } },
+    }));
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    await workspace.retryTurn(firstTurn, false);
+    expect(workspace.error.value).toBe("requestFailed");
+    expect(workspace.busy.value).toBe(true);
+    expect(api.runConversationTurn).toHaveBeenCalledTimes(1);
+    scope.stop();
+  });
+
+  it("does not reopen an old stream when rejected POST recovery finishes after navigation", async () => {
+    let resolveRecovery!: (page: unknown) => void;
+    api.getConversation
+      .mockResolvedValueOnce({ conversation, turns: [firstTurn], hasMore: false })
+      .mockReturnValueOnce(new Promise((resolve) => { resolveRecovery = resolve; }));
+    api.runConversationTurn.mockRejectedValue(new Error("connection lost"));
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const sending = workspace.retryTurn(firstTurn, false);
+    await flushPromises();
+    expect(api.getConversation).toHaveBeenCalledTimes(2);
+
+    const nextConversation = { ...conversation, conversationId: "conversation-2", sourceSubmissionId: "submission-2" };
+    const nextTurn = { ...firstTurn, conversationId: nextConversation.conversationId, turnId: "turn-2", status: "completed", answer: "Current answer" };
+    api.getConversation.mockResolvedValueOnce({ conversation: nextConversation, turns: [nextTurn], hasMore: false });
+    await workspace.openConversation(nextConversation.conversationId);
+    expect(TestEventSource.instances[0].closed).toBe(true);
+
+    resolveRecovery({ conversation, turns: [{ ...firstTurn, status: "running" }], hasMore: false });
+    await sending;
+    expect(TestEventSource.instances).toHaveLength(1);
+    expect(workspace.conversation.value).toEqual(nextConversation);
+    expect(workspace.sourceSubmissionId.value).toBe("submission-2");
+    expect(workspace.turns.value).toEqual([nextTurn]);
+    expect(workspace.events.value).toEqual([]);
+    expect(workspace.busy.value).toBe(false);
+    expect(workspace.currentTurn.value).toBeNull();
+    expect(workspace.error.value).toBe("");
+    expect(api.runConversationTurn).toHaveBeenCalledTimes(1);
+    scope.stop();
+  });
+
+  it("clears replacement warnings when the current run finishes through SSE before its POST settles", async () => {
+    const failed = {
+      ...firstTurn,
+      status: "failed",
+      failureReason: "citation_claim_unverified",
+    };
+    const current = {
+      ...failed,
+      runId: "new-run",
+      status: "running",
+      failureReason: null,
+    };
+    const completed = { ...current, status: "completed", answer: "Verified" };
+    let complete!: (value: unknown) => void;
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [failed],
+      hasMore: false,
+    });
+    api.runConversationTurn.mockReturnValue(
+      new Promise((resolve) => {
+        complete = resolve;
+      }),
+    );
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const running = workspace.retryTurn(failed, true);
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [current],
+      hasMore: false,
+    });
+    TestEventSource.instances[0].emit("stream_closed", {
+      reason: "run_replaced",
+    });
+    await flushPromises();
+    expect(workspace.error.value).toBe("runReplaced");
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [completed],
+      hasMore: false,
+    });
+    TestEventSource.instances
+      .at(-1)!
+      .emit("terminal", { runId: current.runId });
+    await flushPromises();
+    expect(workspace.busy.value).toBe(false);
+    expect(workspace.error.value).toBe("");
+    complete(completed);
+    await running;
+    scope.stop();
+  });
+
+  it("keeps a retry busy when the previous run's terminal event arrives before its POST completes", async () => {
+    const failed = {
+      ...firstTurn,
+      status: "failed",
+      failureReason: "citation_claim_unverified",
+    };
+    let complete!: (value: unknown) => void;
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [failed],
+      hasMore: false,
+    });
+    api.runConversationTurn.mockReturnValue(
+      new Promise((resolve) => {
+        complete = resolve;
+      }),
+    );
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const running = workspace.retryTurn(failed, true);
+    TestEventSource.instances[0].emit("terminal", { runId: firstTurn.runId });
+    await flushPromises();
+    expect(workspace.busy.value).toBe(true);
+    complete({
+      ...failed,
+      runId: "new-run",
+      status: "completed",
+      failureReason: null,
+      answer: "Verified",
+    });
+    await running;
+    expect(workspace.busy.value).toBe(false);
+    expect(workspace.turns.value[0].runId).toBe("new-run");
+    scope.stop();
+  });
+
+  it.each(["runReplaced", "streamFailed", "streamTimedOut"])(
+    "clears recovered %s after the run response confirms completion",
+    async (message) => {
+      let complete!: (value: unknown) => void;
+      api.getConversation.mockResolvedValue({
+        conversation,
+        turns: [firstTurn],
+        hasMore: false,
+      });
+      api.runConversationTurn.mockReturnValue(
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+      );
+      const scope = effectScope();
+      const workspace = scope.run(() => useAgentConversations())!;
+      await workspace.openConversation(conversation.conversationId);
+      const running = workspace.retryTurn(firstTurn, false);
+      const stream = TestEventSource.instances[0];
+      if (message === "streamFailed") stream.onerror?.(new Event("error"));
+      else
+        stream.emit("stream_closed", {
+          reason: message === "runReplaced" ? "run_replaced" : "stream_timeout",
+        });
+      await flushPromises();
+      expect(workspace.error.value).toBe(message);
+      complete({
+        ...firstTurn,
+        status: "completed",
+        answer: "Verified answer",
+      });
+      await running;
+      expect(
+        workspace.turns.value.find((turn) => turn.turnId === firstTurn.turnId)
+          ?.status,
+      ).toBe("completed");
+      expect(workspace.error.value).toBe("");
+      expect(workspace.busy.value).toBe(false);
+      scope.stop();
+    },
+  );
+
   it("clears a deleted conversation without refreshing or reconnecting its stream", async () => {
     const running = { ...firstTurn, status: "running" };
     api.getConversation.mockResolvedValue({
@@ -129,6 +364,7 @@ describe("useAgentConversations", () => {
       conversation.conversationId,
       firstTurn.turnId,
       false,
+      firstTurn.runId,
     );
     scope.stop();
   });
@@ -168,6 +404,58 @@ describe("useAgentConversations", () => {
       conversationId: conversation.conversationId,
       deleted: true,
     });
+  });
+
+  it("shows a confirmed failed turn without misreporting a connection failure or rerunning it", async () => {
+    api.getConversation
+      .mockResolvedValueOnce({ conversation, turns: [], hasMore: false })
+      .mockResolvedValueOnce({
+        conversation,
+        turns: [
+          {
+            ...firstTurn,
+            status: "failed",
+            failureReason: "ModelProtocolError",
+          },
+        ],
+        hasMore: false,
+      });
+    api.runConversationTurn.mockRejectedValue(new Error("upstream rejected"));
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    await workspace.retryTurn(firstTurn, false);
+    expect(workspace.error.value).toBe("");
+    expect(workspace.turns.value[0].failureReason).toBe("ModelProtocolError");
+    expect(workspace.busy.value).toBe(false);
+    expect(api.runConversationTurn).toHaveBeenCalledTimes(1);
+    scope.stop();
+  });
+
+  it("sorts Unix seconds together with ISO conversation dates", async () => {
+    const recent = {
+      ...conversation,
+      conversationId: "recent",
+      updatedAt: 1792750312.355659,
+    };
+    api.listConversations.mockResolvedValue({
+      conversations: [recent],
+      nextOffset: null,
+    });
+    api.getConversation.mockResolvedValue({
+      conversation,
+      turns: [],
+      hasMore: false,
+    });
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.loadConversations(true);
+    await workspace.openConversation(conversation.conversationId);
+    expect(
+      workspace.conversations.value.map((item) => item.conversationId),
+    ).toEqual(["recent", conversation.conversationId]);
+    expect(workspace.error.value).toBe("");
+    scope.stop();
   });
 
   it.each(["queued", "running"] as const)(
@@ -455,6 +743,7 @@ describe("useAgentConversations", () => {
       conversation.conversationId,
       firstTurn.turnId,
       false,
+      firstTurn.runId,
     );
     scope.stop();
   });
@@ -491,72 +780,144 @@ describe("useAgentConversations", () => {
     expect(TestEventSource.instances[1].closed).toBe(true);
   });
 
-  it("does not let an old POST settlement clear a later turn after a terminal event", async () => {
-    api.createConversation.mockResolvedValue({ conversation, turn: firstTurn });
-    let rejectRun!: (error: Error) => void;
-    api.runConversationTurn.mockReturnValueOnce(
-      new Promise((_resolve, reject) => {
-        rejectRun = reject;
-      }),
-    );
-    const second = {
-      ...firstTurn,
-      turnId: "turn-2",
-      runId: "run-2",
-      turnIndex: 2,
-    };
-    api.createConversationTurn.mockResolvedValue(second);
-    let resolveSecond!: (value: typeof second) => void;
-    api.runConversationTurn.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolveSecond = resolve;
-      }),
-    );
-    api.getConversation.mockResolvedValue({
-      conversation,
-      turns: [
-        { ...firstTurn, status: "completed", answer: "Done" },
-        { ...second, status: "running" },
-      ],
-      hasMore: false,
-    });
-    const scope = effectScope();
-    const workspace = scope.run(() => useAgentConversations())!;
-    workspace.startNewConversation("submission-1");
-    const firstRequest = workspace.sendTurn("Initial question", false);
-    await flushPromises();
-    TestEventSource.instances[0].listeners.get("terminal")?.(
-      new MessageEvent("terminal", {
-        data: JSON.stringify({ runId: firstTurn.runId }),
-      }),
-    );
-    await flushPromises();
-    expect(workspace.busy.value).toBe(false);
-    const secondRequest = workspace.sendTurn("Follow-up", false);
-    await flushPromises();
-    rejectRun(new Error("late response lost"));
-    await firstRequest;
-    expect(workspace.busy.value).toBe(true);
-    expect(workspace.currentTurn.value?.turnId).toBe(second.turnId);
-    expect(TestEventSource.instances[1].closed).toBe(false);
-    resolveSecond({ ...second, status: "queued" });
-    await secondRequest;
-    scope.stop();
-  });
+  it.each(["resolved", "rejected"])(
+    "ignores a late %s POST when the same turn has already been retried again",
+    async (outcome) => {
+      const failed = { ...firstTurn, status: "failed", failureReason: "citation_claim_unverified" };
+      const retried = { ...failed, runId: "run-2" };
+      const current = { ...retried, runId: "run-3", status: "running", failureReason: null };
+      api.getConversation.mockResolvedValue({ conversation, turns: [failed], hasMore: false });
+      let settle!: (value: unknown) => void;
+      let reject!: (reason: Error) => void;
+      api.runConversationTurn.mockReturnValueOnce(new Promise((resolve, fail) => { settle = resolve; reject = fail; }));
+      const scope = effectScope();
+      const workspace = scope.run(() => useAgentConversations())!;
+      await workspace.openConversation(conversation.conversationId);
+      const oldRequest = workspace.retryTurn(failed, false);
+      await flushPromises();
+      api.getConversation.mockResolvedValue({ conversation, turns: [retried], hasMore: false });
+      TestEventSource.instances[0].emit("stream_closed", { reason: "run_replaced" });
+      await flushPromises();
+      expect(workspace.busy.value).toBe(false);
+      let finish!: (value: unknown) => void;
+      api.runConversationTurn.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+      const newRequest = workspace.retryTurn(retried, false);
+      await flushPromises();
+      api.getConversation.mockResolvedValue({ conversation, turns: [current], hasMore: false });
+      TestEventSource.instances[1].emit("stream_closed", { reason: "run_replaced" });
+      await flushPromises();
+      if (outcome === "resolved") settle(retried);
+      else reject(new Error("old connection lost"));
+      await oldRequest;
+      expect(workspace.busy.value).toBe(true);
+      expect(workspace.currentTurn.value?.runId).toBe("run-3");
+      expect(workspace.currentTurn.value?.status).toBe("running");
+      expect(TestEventSource.instances[2].closed).toBe(false);
+      finish({ ...current, status: "completed", answer: "Verified" });
+      await newRequest;
+      scope.stop();
+    },
+  );
+
+  it.each(["resolved", "rejected"])(
+    "does not let an old %s POST settlement clear a later turn after a terminal event",
+    async (outcome) => {
+      api.createConversation.mockResolvedValue({
+        conversation,
+        turn: firstTurn,
+      });
+      let rejectRun!: (error: Error) => void;
+      let resolveRun!: (value: unknown) => void;
+      api.runConversationTurn.mockReturnValueOnce(
+        new Promise((resolve, reject) => {
+          resolveRun = resolve;
+          rejectRun = reject;
+        }),
+      );
+      const second = {
+        ...firstTurn,
+        turnId: "turn-2",
+        runId: "run-2",
+        turnIndex: 2,
+      };
+      api.createConversationTurn.mockResolvedValue(second);
+      let resolveSecond!: (value: typeof second) => void;
+      api.runConversationTurn.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSecond = resolve;
+        }),
+      );
+      api.getConversation.mockResolvedValue({
+        conversation,
+        turns: [
+          { ...firstTurn, status: "completed", answer: "Done" },
+          { ...second, status: "running" },
+        ],
+        hasMore: false,
+      });
+      const scope = effectScope();
+      const workspace = scope.run(() => useAgentConversations())!;
+      workspace.startNewConversation("submission-1");
+      const firstRequest = workspace.sendTurn("Initial question", false);
+      await flushPromises();
+      TestEventSource.instances[0].listeners.get("terminal")?.(
+        new MessageEvent("terminal", {
+          data: JSON.stringify({ runId: firstTurn.runId }),
+        }),
+      );
+      await flushPromises();
+      expect(workspace.busy.value).toBe(false);
+      const secondRequest = workspace.sendTurn("Follow-up", false);
+      await flushPromises();
+      TestEventSource.instances[1].onerror?.(new Event("error"));
+      await flushPromises();
+      expect(workspace.error.value).toBe("streamFailed");
+      if (outcome === "rejected") rejectRun(new Error("late response lost"));
+      else resolveRun({ ...firstTurn, status: "completed", answer: "Done" });
+      await firstRequest;
+      expect(workspace.busy.value).toBe(true);
+      expect(workspace.currentTurn.value?.turnId).toBe(second.turnId);
+      expect(workspace.error.value).toBe("streamFailed");
+      expect(TestEventSource.instances[1].closed).toBe(false);
+      resolveSecond({ ...second, status: "queued" });
+      await secondRequest;
+      scope.stop();
+    },
+  );
 
   it("refreshes and settles a recovered turn on terminal without a run id", async () => {
     const runningTurn = { ...firstTurn, status: "running" as const };
-    const completedTurn = { ...firstTurn, status: "completed" as const, answer: "Done" };
+    const completedTurn = {
+      ...firstTurn,
+      status: "completed" as const,
+      answer: "Done",
+    };
     api.getConversation
-      .mockResolvedValueOnce({ conversation, turns: [runningTurn], hasMore: false })
-      .mockResolvedValueOnce({ conversation, turns: [completedTurn], hasMore: false });
-    api.recoverConversationTurn.mockResolvedValue({ ...firstTurn, status: "running" });
+      .mockResolvedValueOnce({
+        conversation,
+        turns: [runningTurn],
+        hasMore: false,
+      })
+      .mockResolvedValueOnce({
+        conversation,
+        turns: [completedTurn],
+        hasMore: false,
+      });
+    api.recoverConversationTurn.mockResolvedValue({
+      ...firstTurn,
+      status: "running",
+    });
 
     const scope = effectScope();
     const workspace = scope.run(() => useAgentConversations())!;
     await workspace.openConversation(conversation.conversationId);
     const stream = TestEventSource.instances[0];
-    stream.emit("terminal", { status: "completed", seq: 3, reason: "completed", cancelRequested: false });
+    stream.emit("terminal", {
+      status: "completed",
+      seq: 3,
+      reason: "completed",
+      cancelRequested: false,
+    });
 
     await vi.waitFor(() => {
       expect(workspace.turns.value[0]?.status).toBe("completed");
@@ -613,17 +974,20 @@ describe("useAgentConversations", () => {
       "conversation-1",
       "turn-1",
       true,
+      "run-1",
     );
     expect(api.createConversationTurn).toHaveBeenCalledWith(
       "conversation-1",
       expect.any(String),
       "Follow-up question",
+      undefined,
     );
     expect(api.runConversationTurn).toHaveBeenNthCalledWith(
       2,
       "conversation-1",
       "turn-2",
       false,
+      "run-2",
     );
     expect(workspace.turns.value.map((turn) => turn.answer)).toEqual([
       "First answer",

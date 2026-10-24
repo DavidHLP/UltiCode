@@ -5,12 +5,15 @@ import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.error.NamespacedErrorCode;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.response.DegradationStatus;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.admin.port.adapter.CancellableQueryExecutor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -151,6 +154,15 @@ public final class AdminReadContract {
             return OwnerRead.unavailable(ownerMessage(owner, "timed out"));
         } catch (CancellationException exception) {
             return OwnerRead.unavailable(ownerMessage(owner, "cancelled"));
+        }
+    }
+
+    public static void requirePage(PageResult<?> page, String owner) {
+        if (page == null || page.getItems() == null
+                || page.getItems().stream().anyMatch(Objects::isNull)
+                || page.getTotal() == null || page.getTotal() < 0
+                || page.getDegradationStatus() == DegradationStatus.UNAVAILABLE) {
+            throw ownerUnavailable(owner);
         }
     }
 

@@ -51,10 +51,4 @@ public final class CoreModuleRegistry {
                 .filter(CoreModuleDefinition::enabled)
                 .toList();
     }
-
-    public List<CoreModuleDefinition> disabledModules() {
-        return modules.stream()
-                .filter(module -> !module.enabled())
-                .toList();
-    }
 }

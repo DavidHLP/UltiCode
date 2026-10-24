@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,10 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -113,6 +118,96 @@ class AdminUserEnricherTest {
     }
 
     @Nested
+    @DisplayName("requireUsers()")
+    class RequireUsers {
+
+        @Test
+        void emptyInputReturnsHealthyEmptyUsersWithoutEnrichment() {
+            AdminUserEnricher required = spy(enricher);
+
+            AdminUserEnricher.EnrichedUsers result = required.requireUsers(Set.of());
+
+            assertThat(result.users()).isEmpty();
+            assertThat(result.status()).isEqualTo(DegradationStatus.OK);
+            verify(required, never()).enrichWithStatus(any());
+        }
+
+        @Test
+        void nullInputRetainsTheExistingNullPointerFailure() {
+            AdminUserEnricher required = spy(enricher);
+
+            assertThatThrownBy(() -> required.requireUsers(null))
+                    .isInstanceOf(NullPointerException.class);
+            verify(required, never()).enrichWithStatus(any());
+        }
+
+        @Test
+        void healthyAndPartialResultsPassThroughWithoutAdditionalMapValidation() {
+            AdminUserEnricher required = spy(enricher);
+            Set<String> ids = Set.of("u1");
+            Map<String, AdminUserSummary> populatedUsers = Map.of(
+                    "u1", new AdminUserSummary("u1", "user-u1", "ADMIN", "Display u1", null, null));
+            for (DegradationStatus status : List.of(DegradationStatus.OK, DegradationStatus.PARTIAL)) {
+                for (Map<String, AdminUserSummary> users : Arrays.<Map<String, AdminUserSummary>>asList(
+                        populatedUsers, Map.of(), null)) {
+                    AdminUserEnricher.EnrichedUsers expected =
+                            new AdminUserEnricher.EnrichedUsers(users, status);
+                    doReturn(expected).when(required).enrichWithStatus(ids);
+
+                    assertThat(required.requireUsers(ids)).isSameAs(expected);
+                }
+            }
+        }
+
+        @Test
+        void missingOrUnavailableResultsUseTheExistingOwnerError() {
+            AdminUserEnricher required = spy(enricher);
+            Set<String> ids = Set.of("u1");
+            for (AdminUserEnricher.EnrichedUsers result : Arrays.asList(
+                    null,
+                    new AdminUserEnricher.EnrichedUsers(Map.of(), null),
+                    new AdminUserEnricher.EnrichedUsers(Map.of(), DegradationStatus.UNAVAILABLE))) {
+                doReturn(result).when(required).enrichWithStatus(ids);
+
+                assertThatThrownBy(() -> required.requireUsers(ids))
+                        .isInstanceOf(BusinessException.class)
+                        .hasMessage("Auth/App user owner query unavailable")
+                        .hasNoCause()
+                        .satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
+                                .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE));
+            }
+        }
+
+        @Test
+        void businessFailuresPassThroughUnchanged() {
+            AdminUserEnricher required = spy(enricher);
+            Set<String> ids = Set.of("u1");
+            for (AdminErrorCode errorCode : List.of(
+                    AdminErrorCode.FORBIDDEN, AdminErrorCode.UNAUTHORIZED, AdminErrorCode.OWNER_QUERY_UNAVAILABLE)) {
+                BusinessException failure = new BusinessException(errorCode);
+                doThrow(failure).when(required).enrichWithStatus(ids);
+
+                assertThatThrownBy(() -> required.requireUsers(ids)).isSameAs(failure);
+            }
+        }
+
+        @Test
+        void transportFailuresKeepTheirCauseAndOwnerMessage() {
+            AdminUserEnricher required = spy(enricher);
+            Set<String> ids = Set.of("u1");
+            RuntimeException failure = new IllegalStateException("provider down");
+            doThrow(failure).when(required).enrichWithStatus(ids);
+
+            assertThatThrownBy(() -> required.requireUsers(ids))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage("Auth/App user owner query unavailable")
+                    .hasCause(failure)
+                    .satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
+                            .isEqualTo(AdminErrorCode.OWNER_QUERY_UNAVAILABLE));
+        }
+    }
+
+    @Nested
     @DisplayName("owner account aggregation")
     class OwnerAccountAggregation {
 
@@ -142,7 +237,7 @@ class AdminUserEnricherTest {
             when(accountQueryService.getAccountById("missing")).thenReturn(
                     RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, "t"));
 
-            assertThat(enricher.findAccountWithProfile("missing")).isNull();
+            assertThat(enricher.findAccountAuthoritatively("missing")).isNull();
         }
     }
 
@@ -375,24 +470,24 @@ class AdminUserEnricherTest {
     class PermissionErrorPropagation {
 
         @Test
-        @DisplayName("findAccountWithProfile: FORBIDDEN RPC error propagates instead of UNAVAILABLE")
+        @DisplayName("findAccountAuthoritatively: FORBIDDEN RPC error propagates instead of UNAVAILABLE")
         void findAccountAuthoritativelyForbiddenPropagates() {
             when(accountQueryService.getAccountById("u1")).thenReturn(
                     RpcResult.failure(BaseErrorCode.FORBIDDEN, "t"));
 
-            assertThatThrownBy(() -> enricher.findAccountWithProfile("u1"))
+            assertThatThrownBy(() -> enricher.findAccountAuthoritatively("u1"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
                             .isEqualTo(AdminErrorCode.FORBIDDEN));
         }
 
         @Test
-        @DisplayName("findAccountWithProfile: UNAUTHORIZED RPC error propagates instead of UNAVAILABLE")
+        @DisplayName("findAccountAuthoritatively: UNAUTHORIZED RPC error propagates instead of UNAVAILABLE")
         void findAccountAuthoritativelyUnauthorizedPropagates() {
             when(accountQueryService.getAccountById("u1")).thenReturn(
                     RpcResult.failure(BaseErrorCode.UNAUTHORIZED, "t"));
 
-            assertThatThrownBy(() -> enricher.findAccountWithProfile("u1"))
+            assertThatThrownBy(() -> enricher.findAccountAuthoritatively("u1"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(e -> assertThat(((BusinessException) e).getErrorCode())
                             .isEqualTo(AdminErrorCode.UNAUTHORIZED));

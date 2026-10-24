@@ -11,12 +11,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionJudgedContestConsumerTest {
@@ -102,5 +106,59 @@ class SubmissionJudgedContestConsumerTest {
 
         verify(adjudicationService, never()).applyJudgeResult(
                 org.mockito.ArgumentMatchers.any(SubmissionJudgedEvent.class));
+    }
+
+    @Test
+    void malformedGenerationPropagatesBeforeContestReadsOrScoring() {
+        Object[][] cases = {
+                {null, "Missing"},
+                {-1, "Negative"},
+                {1.5d, "Invalid"},
+                {BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE), "Invalid"}
+        };
+        for (Object[] testCase : cases) {
+            Map<String, Object> payload = new HashMap<>(Map.of(
+                    "submissionId", "submission-1",
+                    "userId", "user-1",
+                    "verdict", "Accepted",
+                    "contestId", "contest-1"));
+            if (testCase[0] != null) {
+                payload.put("generation", testCase[0]);
+            }
+
+            assertThatThrownBy(() -> consumer.consume(payload))
+                    .as("generation %s", testCase[0])
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage(testCase[1] + " SubmissionJudged field: generation");
+        }
+        verifyNoInteractions(contestSubmissionMapper, adjudicationService);
+    }
+
+    @Test
+    void missingGenerationIsRejectedBeforeNonScoringVerdictsAreAcknowledged() {
+        for (String verdict : new String[]{"Judging", "Sandbox Error"}) {
+            assertThatThrownBy(() -> consumer.consume(Map.of(
+                    "submissionId", "submission-1",
+                    "userId", "user-1",
+                    "verdict", verdict)))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Missing SubmissionJudged field: generation")
+                    .hasNoCause();
+        }
+        verifyNoInteractions(contestSubmissionMapper, adjudicationService);
+    }
+
+    @Test
+    void zeroGenerationStillMapsToFirstAdjudicationGeneration() {
+        consumer.consume(Map.of(
+                "submissionId", "submission-1",
+                "userId", "user-1",
+                "generation", 0,
+                "verdict", "Accepted"));
+
+        ArgumentCaptor<SubmissionJudgedEvent> captor = ArgumentCaptor.forClass(SubmissionJudgedEvent.class);
+        verify(adjudicationService).applyJudgeResult(captor.capture());
+        assertThat(captor.getValue().getGeneration()).isEqualTo(1L);
+        verifyNoInteractions(contestSubmissionMapper);
     }
 }

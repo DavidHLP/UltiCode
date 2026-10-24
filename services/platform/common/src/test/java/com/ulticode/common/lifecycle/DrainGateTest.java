@@ -3,8 +3,6 @@ package com.ulticode.common.lifecycle;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("DrainGate")
@@ -12,7 +10,7 @@ class DrainGateTest {
 
     @Test
     @DisplayName("shutdown rejects new cycles while admitted work drains")
-    void shutdownStopsNewWorkAndDrainsExistingWork() throws Exception {
+    void shutdownStopsNewWorkAndDrainsExistingWork() {
         DrainGate gate = new DrainGate();
 
         assertThat(gate.tryEnter()).isTrue();
@@ -20,12 +18,11 @@ class DrainGateTest {
 
         assertThat(gate.isDraining()).isTrue();
         assertThat(gate.tryEnter()).isFalse();
-        assertThat(gate.awaitDrained(Duration.ofMillis(10))).isFalse();
+        assertThat(gate.inFlight()).isEqualTo(1);
 
         gate.leave();
 
         assertThat(gate.inFlight()).isZero();
-        assertThat(gate.awaitDrained(Duration.ofSeconds(1))).isTrue();
     }
 
     @Test

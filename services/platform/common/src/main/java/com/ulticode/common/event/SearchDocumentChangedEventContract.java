@@ -1,6 +1,5 @@
 package com.ulticode.common.event;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,18 +53,6 @@ public final class SearchDocumentChangedEventContract {
             "accessToken", "refreshToken", "cookie", "password", "token");
 
     private SearchDocumentChangedEventContract() {
-    }
-
-    /** Validate a key collection (legacy flat-key entry point). */
-    public static void requireSafeDocumentKeys(Collection<?> keys) {
-        if (keys == null) {
-            return;
-        }
-        for (Object key : keys) {
-            if (key instanceof String k) {
-                rejectForbiddenKey(k);
-            }
-        }
     }
 
     /**

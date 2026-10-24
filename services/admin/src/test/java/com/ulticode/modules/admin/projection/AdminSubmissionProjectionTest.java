@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
@@ -58,6 +59,7 @@ class AdminSubmissionProjectionTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(userEnricher.requireUsers(anySet())).thenCallRealMethod();
         projection = new DefaultAdminSubmissionProjection(
                 submissionReadPort, userEnricher, problemReadPort,
                 java.time.Clock.systemDefaultZone());

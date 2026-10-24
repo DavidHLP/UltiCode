@@ -194,8 +194,6 @@ class BackendAppApplicationTest {
     @MockitoBean
     private com.ulticode.app.api.service.UserExistencePort userExistencePort;
     @MockitoBean
-    private com.ulticode.modules.queue.port.JudgeEnqueuePort judgeEnqueuePort;
-    @MockitoBean
     private com.ulticode.modules.contest.integration.ContestSubmissionAdapter contestSubmissionAdapter;
     // FeatureFlagsProperties is a real @ConfigurationProperties bean; must NOT be mocked
     @MockitoBean

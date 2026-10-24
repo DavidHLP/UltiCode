@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedLong;
+
 /**
  * Handles the durable {@code SubmissionJudged} event for Notification.
  *
@@ -38,7 +40,7 @@ public class SubmissionJudgedNotificationConsumer {
             return;
         }
 
-        long generation = requiredLong(payload, "generation");
+        long generation = requiredJudgedLong(payload, "generation");
         long elapsedMs = nonNegativeLong(payload.get("runtimeMs"));
         long memoryBytes = memoryBytes(payload.get("memoryMb"));
         String problemId = optionalString(payload.get("problemId"));
@@ -68,32 +70,6 @@ public class SubmissionJudgedNotificationConsumer {
 
     private static String optionalString(Object value) {
         return value == null ? null : String.valueOf(value);
-    }
-
-    private static long requiredLong(Map<String, Object> payload, String key) {
-        Object value = payload.get(key);
-        if (value == null) {
-            throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
-        }
-        try {
-            long parsed = value instanceof Number number
-                    ? exactLong(number)
-                    : Long.parseLong(String.valueOf(value));
-            if (parsed < 0) {
-                throw new IllegalArgumentException("Negative SubmissionJudged field: " + key);
-            }
-            return parsed;
-        } catch (NumberFormatException | ArithmeticException e) {
-            throw new IllegalArgumentException("Invalid SubmissionJudged field: " + key, e);
-        }
-    }
-
-    private static long exactLong(Number number) {
-        if (number instanceof Byte || number instanceof Short
-                || number instanceof Integer || number instanceof Long) {
-            return number.longValue();
-        }
-        return new java.math.BigDecimal(String.valueOf(number)).longValueExact();
     }
 
     private static long nonNegativeLong(Object value) {

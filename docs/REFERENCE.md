@@ -39,11 +39,11 @@ The opt-in Python Agent service is separate from Java `/learning-plans`: it owns
 | `GET /agent/conversations?limit=N&offset=N` | — | Read the caller's paged conversation history; returns `conversations` and nullable `nextOffset` |
 | `GET /agent/conversations/{conversation_id}?limit=N&before=N` | — | Read conversation metadata and a bounded ordered turn page; `before` is optional |
 | `POST /agent/conversations/{conversation_id}/turns` | `{"clientTurnId":"<UUID>","question":"..."}` | Add an idempotent queued turn after revalidating the bound submission |
-| `POST /agent/conversations/{conversation_id}/turns/{turn_id}/run` | `{"sourceConsent":false}` | Explicitly run one turn; `sourceConsent` is required on every run |
+| `POST /agent/conversations/{conversation_id}/turns/{turn_id}/run` | `{"sourceConsent":false,"expectedRunId":"<UUID>"}` | Explicitly run one turn; consent and the expected current run are required on every request; a stale run returns HTTP 409 `run_replaced` before model execution |
 | `POST /agent/conversations/{conversation_id}/turns/{turn_id}/cancel` | `{}` | Cancel only this turn and fence its later writes |
 | `POST /agent/conversations/{conversation_id}/turns/{turn_id}/recover` | `{}` | Reconcile this turn's interrupted run state |
 | `DELETE /agent/conversations/{conversation_id}` | — | Delete only this user's conversation and turns; active turns return HTTP 409 |
-| `GET /agent/conversations/{conversation_id}/turns/{turn_id}/events/stream?after=N` | — | Subscribe to bounded SSE for this turn's run |
+| `GET /agent/conversations/{conversation_id}/turns/{turn_id}/events/stream?after=N&runId=<UUID>` | — | Subscribe to bounded SSE for the specified run; an old run closes with `run_replaced`; omitting `runId` subscribes to the current run |
 
 `GET /agent/capabilities` returns `{analysisAvailable, persistenceAvailable, conversationHistoryAvailable, sourceMode}`. Availability fields are booleans; `sourceMode` is `metadata` or `owner_source` (the existing manual analysis-only mode). `conversationHistoryAvailable` is currently true and independent of LearningPlan persistence. The endpoint checks the authenticated principal and current runtime configuration; it neither dispatches a model nor creates a thread. Persistence requires the explicit deployment opt-in and mounted LearningPlan write routes; manual analysis-only mode never enables it. This is a UI availability hint, not authorization or a reservation of model quota: each operation retains its own runtime, budget and ownership checks.
 
@@ -87,6 +87,20 @@ owner-authorized thread source. Model-answer citations are added only after same
 document-integrity, support, and derivability checks.
 
 Conversation requests use independent conversation/turn storage and do not enter the LearningPlan thread state machine. Each run requires a strict `sourceConsent` boolean; in `owner_source` mode, consent applies to that run only, and the exact bound submission is re-fetched for the request. Fetched source and citation excerpts are not persisted in conversation rows, turns, events, or checkpoints; citation responses keep safe reference fields without excerpt text. Prior context is limited to recent completed turns and a 16,000-character cap. Conversation history remains until the owner deletes it; deletion is rejected while a turn runs and does not cascade into separately saved LearningPlans.
+Conversation creation and follow-up turn requests accept an optional `context` object:
+`{"includeProblem": true, "comments": [{"solutionId": "sol-s-006", "commentId": "scmt-006-001"}]}`.
+For forum comments/replies, use `{"postId": "fpost-006", "commentId": "fcmt-006-005"}` instead;
+each reference must contain exactly one of `solutionId` and `postId`. These IDs preserve case and accept
+1–40 ASCII letters, digits, underscores or hyphens; they are opaque resource IDs, not necessarily UUIDs.
+Only references are accepted (at most three distinct comments); client-provided bodies are rejected.
+The Agent stores the selection per turn in its private SQLite store with an additive default for existing turns.
+Each run, including retries, re-reads the selected public problem statement and session-visible solution/comments or forum thread,
+checks that solutions belong to the bound submission's problem, and rejects inaccessible, missing or mismatched comments before model dispatch.
+Forum references are explicitly labeled and need not belong to the selected problem.
+Problem text is bounded to 8,000 characters with a truncation flag; each comment is bounded to 2,000 characters.
+Only the projected statement and comment bodies enter the prompt as untrusted references; author identity, submission source,
+and unrelated solution bodies are excluded. Source consent is still independent. Empty/omitted context preserves the prior behavior.
+
 The Agent keeps the business idempotency key private. Its recovery action uses that original key
 for owner-scoped by-key reconciliation; a user-facing saved-record readback uses
 `GET /learning-plans/{planId}` with the returned `planId`.

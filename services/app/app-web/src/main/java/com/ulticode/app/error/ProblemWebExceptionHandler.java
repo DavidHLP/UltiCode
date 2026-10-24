@@ -39,13 +39,7 @@ public class ProblemWebExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Result<Void>> handleBusinessException(BusinessException exception) {
-        NamespacedErrorCode errorCode = exception.getErrorCode();
-        Integer code = errorCode == null ? BaseErrorCode.UNKNOWN_ERROR.code() : errorCode.code();
-        String message = exception.getMessage() != null
-                ? exception.getMessage()
-                : errorCode != null ? errorCode.message() : BaseErrorCode.UNKNOWN_ERROR.message();
-        return ResponseEntity.status(httpStatus(errorCode)).body(
-                Result.error(code, message, exception.getTraceId()));
+        return BusinessExceptionResponse.create(exception, httpStatus(exception.getErrorCode()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -93,18 +87,6 @@ public class ProblemWebExceptionHandler {
         if (errorCode instanceof ProblemErrorCode problemErrorCode) {
             return problemErrorCode.httpStatus();
         }
-        if (errorCode instanceof BaseErrorCode baseErrorCode) {
-            return switch (baseErrorCode) {
-                case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
-                case FORBIDDEN -> HttpStatus.FORBIDDEN;
-                case NOT_FOUND -> HttpStatus.NOT_FOUND;
-                case CONFLICT -> HttpStatus.CONFLICT;
-                case TOO_MANY_REQUESTS -> HttpStatus.TOO_MANY_REQUESTS;
-                case BAD_REQUEST, VALIDATION_FAILED -> HttpStatus.BAD_REQUEST;
-                case METHOD_NOT_ALLOWED -> HttpStatus.METHOD_NOT_ALLOWED;
-                default -> HttpStatus.INTERNAL_SERVER_ERROR;
-            };
-        }
-        return HttpStatus.INTERNAL_SERVER_ERROR;
+        return BusinessExceptionResponse.baseHttpStatus(errorCode);
     }
 }

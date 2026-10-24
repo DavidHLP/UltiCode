@@ -127,15 +127,6 @@ public class DefaultAdminProblemListProjection implements AdminProblemListProjec
     // Internal helpers
     // ------------------------------------------------------------------
 
-    private ProblemListSummaryDTO enrichAuthor(ProblemListSummaryDTO dto) {
-        AdminUserSummary author = userEnricher.enrichOne(dto.getAuthorId());
-        if (author != null) {
-            dto.setAuthorName(author.name());
-            dto.setAuthorUsername(author.username());
-        }
-        return dto;
-    }
-
     private ProblemListDetailDTO.ProblemListStatsDTO assembleStats(
             String listId, List<ProblemListDetailDTO.ProblemInListDTO> problems) {
         ProblemListDetailDTO.ProblemListStatsDTO statsVO =

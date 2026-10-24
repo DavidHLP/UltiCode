@@ -232,6 +232,20 @@ describe("submission fetchers", () => {
     });
   });
 
+  it("uses the owner-scoped problem endpoint for paginated context selection", async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      items: [],
+      total: 0,
+      page: 2,
+      pageSize: 10,
+      totalPages: 0,
+    });
+    await fetchUserSubmissions({ problemId: 6, page: 2 });
+    expect(apiGet).toHaveBeenCalledWith(
+      "/problems/6/submissions?page=2&pageSize=10",
+    );
+  });
+
   it("fetchSubmissionStatuses maps each item including snake_case fallback", async () => {
     vi.mocked(apiGet).mockResolvedValueOnce([
       { key: "Accepted", code: "ACCEPTED", is_terminal: true, sort_order: 2 },

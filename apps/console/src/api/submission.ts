@@ -30,9 +30,7 @@ export { mapSubmissionStatus };
 export async function fetchProblemSubmissions(
   problemId: number,
 ): Promise<PageResult<SubmissionRecord>> {
-  const response = await apiGet<unknown>(
-    `/problems/${problemId}/submissions`,
-  );
+  const response = await apiGet<unknown>(`/problems/${problemId}/submissions`);
   const pageResult = readPage<unknown>(response);
   return {
     ...pageResult,
@@ -54,10 +52,14 @@ export async function fetchBestSubmission(
   return mapSubmission(data);
 }
 
-export async function fetchUserSubmissions(): Promise<
-  PageResult<SubmissionRecord>
-> {
-  const response = await apiGet<unknown>(`/submissions`);
+export async function fetchUserSubmissions(options?: {
+  problemId: number;
+  page: number;
+}): Promise<PageResult<SubmissionRecord>> {
+  const path = options
+    ? `/problems/${options.problemId}/submissions?page=${options.page}&pageSize=10`
+    : "/submissions";
+  const response = await apiGet<unknown>(path);
   const pageResult = readPage<unknown>(response);
   return {
     ...pageResult,

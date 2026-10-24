@@ -50,27 +50,27 @@ class SubmissionStatusCodecTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    // === fromWireLenient ===
+    // === historic database values ===
 
     @Test
-    @DisplayName("fromWireLenient returns null for unknown values")
-    void fromWireLenient_unknown_returnsNull() {
-        assertThat(SubmissionStatusCodec.fromWireLenient("Legacy Value"))
+    @DisplayName("fromDbName returns null for unknown values")
+    void fromDbName_unknown_returnsNull() {
+        assertThat(SubmissionStatus.fromDbName("Legacy Value"))
                 .isNull();
     }
 
     @Test
-    @DisplayName("fromWireLenient returns null for null input")
-    void fromWireLenient_null_returnsNull() {
-        assertThat(SubmissionStatusCodec.fromWireLenient(null))
+    @DisplayName("fromDbName returns null for null input")
+    void fromDbName_null_returnsNull() {
+        assertThat(SubmissionStatus.fromDbName(null))
                 .isNull();
     }
 
     @Test
-    @DisplayName("fromWireLenient agrees with fromWire on known values")
-    void fromWireLenient_matchesStrictOnKnown() {
+    @DisplayName("fromDbName agrees with fromWire on known values")
+    void fromDbName_matchesStrictOnKnown() {
         for (SubmissionStatus s : SubmissionStatus.values()) {
-            assertThat(SubmissionStatusCodec.fromWireLenient(s.wireValue()))
+            assertThat(SubmissionStatus.fromDbName(s.wireValue()))
                     .as("lenient round-trip for %s", s.name())
                     .isEqualTo(s);
         }

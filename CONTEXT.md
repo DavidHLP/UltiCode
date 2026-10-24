@@ -73,11 +73,11 @@
   (`RedisTokenBlacklistAdapter`) hides SHA-256 fingerprinting and the
   `blacklist:token:<sha256>` key-prefix convention. Fail-closed: storage
   errors propagate so revoked tokens can never slip through on a Redis outage.
-- **AdminReadModel seam** — the running series of typed read ports the
-  admin module owns to stop reaching across into submission / user /
-  forum / solution mappers: `AdminSubmissionReadPort` (dashboard global),
-  `AdminCommentReadPort` (comment-view enrichment), and
-  `AdminContestReadPort`. The retired per-user stats port
+- **AdminReadModel seam** — typed read ports keep Admin from reaching
+  across into submission / user / forum / solution mappers:
+  `AdminSubmissionReadPort` (dashboard global) and `AdminCommentReadPort`
+  (comment-view enrichment). Contest aggregates use the App-owned
+  `ContestAdminReadPort`. The retired per-user stats port
   (`AdminUserStatsReadPort`) was replaced by the single use-case
   `AdminUserDetailQuery` deep module backed by the Auth
   `AuthorizationSnapshotService` and the provider-owned Submission

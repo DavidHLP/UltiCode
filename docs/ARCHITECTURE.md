@@ -119,6 +119,8 @@ flowchart LR
 
 `services/platform/observability` 是所有 Owner/Worker 共用的 OTLP
 credential-to-endpoint security guard：配置 authorization 时只允许 HTTPS。
+Admin, Search, and Submission also share `SchedulerFactory` for scheduler
+shutdown policies and metrics; each owner retains its Bean names and pool settings.
 
 ### 服务边界
 
@@ -143,6 +145,10 @@ Submission 是唯一 mutation/fence owner。App 请求边界组装不可变 `Sub
 #### Notification
 
 Notification 是 notifications、preferences、delivery ledger 和 email 的唯一持久化 owner。App 保留 intent 发布与 WebSocket relay，不保留 Notification SQL。Admin 通过 `NotificationReconciliationReadPort` 消费 500 行上限的 owner facts。
+
+App and Notification share the Submission-owned `SubmissionLifecycleEventContract`
+validation for required non-negative integer fields in `SubmissionJudged` payloads.
+Each consumer retains its own terminal-status checks and inbox retry boundary.
 
 #### Judge / Search
 

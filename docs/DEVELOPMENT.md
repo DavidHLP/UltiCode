@@ -16,7 +16,7 @@
 
 仓库提供 `.devcontainer/devcontainer.json`，固定 Java 17、Node 22、pnpm、
 mise、PM2、Maven wrapper 和 Docker-in-Docker。创建容器时只安装依赖和
-Maven 离线缓存，不启动全栈；其 postCreateCommand 当前固定 pnpm 10.15.1，与前端 CI 的 11.0.0 不一致。需要复现 CI 时，应在容器内选择 pnpm 11.0.0 并确认 Node 22.x 至少为 22.22.2；不能将默认容器配置视为 CI 同版本环境。容器启动后的默认检查仅执行
+Maven 离线缓存，不启动全栈；Node Feature 的 `22` 与前端 CI 的 `22.x` 均选择 Node 22 系列，postCreateCommand 固定启用 pnpm 11.0.0，与 CI 一致。当前锁定依赖要求 Node 22 系列至少为 22.22.2；两端均未固定相同 patch，已创建的容器需重建才能更新 Node Feature，并重新执行创建阶段以启用新的 pnpm 版本。容器启动后的默认检查仅执行
 `./scripts/dev/test.sh unit`。运行真实 journey 必须显式选择 scope。
 
 mise Feature 使用 `ghcr.io/devcontainers-extra/features/mise:1`，配置与锁文件
@@ -197,7 +197,7 @@ dependabot-core 当作 support file 丢弃，PR 只改 manifest，会被 CI 的
 沿用 Vue 3、TypeScript、Vite、Pinia、Vue Router、Tailwind CSS；通用组件统一使用 shadcn-vue；
 依赖的精确版本由根 `pnpm-lock.yaml` 固定，不另建 v2 应用、第二份 lock 或平行共享层。
 安装使用根目录 `pnpm install --frozen-lockfile`；前端 CI 选择 Node 22.x、固定 pnpm 11.0.0。
-当前锁定依赖在 Node 22 系列要求至少 22.22.2；应用 manifest 的 `>=22.12.0` 下限不能代替依赖引擎要求。Dev Container 的 pnpm 差异见前置环境说明。
+当前锁定依赖在 Node 22 系列要求至少 22.22.2；应用 manifest 的 `>=22.12.0` 下限不能代替依赖引擎要求。Dev Container 使用相同的 Node 22 系列与 pnpm 11.0.0，环境更新方式见前置环境说明。
 
 Management forms use patched Zod 4 through `src/lib/toTypedSchema.ts`, which preserves the
 vee-validate 4 form contract for parsed values, defaults, field errors and required metadata.

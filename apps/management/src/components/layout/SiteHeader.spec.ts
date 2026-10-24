@@ -29,6 +29,17 @@ beforeEach(() => {
 })
 
 describe('header navigation shortcuts', () => {
+  it('keeps global search in the header after moving tools into the account menu', () => {
+    const view = mountHeader()
+    try {
+      expect(view.findAll('header button')).toHaveLength(1)
+      expect(view.findComponent({ name: 'DropdownMenu' }).exists()).toBe(false)
+      expect(view.findComponent({ name: 'ThemeSwitcher' }).exists()).toBe(false)
+      expect(view.findComponent({ name: 'LanguageSwitcher' }).exists()).toBe(false)
+    } finally {
+      view.unmount()
+    }
+  })
   it.each([
     ['d', '/'],
     ['u', '/users'],

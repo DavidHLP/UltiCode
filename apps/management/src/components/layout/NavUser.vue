@@ -4,13 +4,20 @@ import {
   LogOut as IconLogout,
   BellRing as IconNotification,
   UserCircle as IconUserCircle,
+  Bolt,
+  Plus,
+  Settings,
 } from '@lucide/vue'
 
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useAvatar } from '@ulticode/auth-ui'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { usePermissionMap } from '@/composables/usePermissionMap'
+import { problemPermissionRules, contestPermissionRules } from '@/composables/domainPermissionMaps'
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@ulticode/design-system/ui/avatar'
 import {
   DropdownMenu,
@@ -20,6 +27,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@ulticode/design-system/ui/dropdown-menu'
 import {
   SidebarMenu,
@@ -38,12 +48,15 @@ interface User {
 
 const props = defineProps<{
   user: User
+  systemItems: { title: string; url: string; icon?: Component; onClick?: () => void }[]
 }>()
 
 const router = useRouter()
 const { t } = useI18n()
 const { isMobile } = useSidebar()
 const authStore = useAuthStore()
+const problemCan = usePermissionMap(problemPermissionRules)
+const contestCan = usePermissionMap(contestPermissionRules)
 const { normalizedAvatar } = useAvatar(
   computed(() => props.user.username || props.user.name),
   computed(() => props.user.avatar),
@@ -68,11 +81,7 @@ async function handleLogout() {
     <SidebarMenuItem>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <SidebarMenuButton
-            size="lg"
-            :tooltip="t('nav.account')"
-            class="uc-sidebar-user-trigger"
-          >
+          <SidebarMenuButton size="lg" :tooltip="t('nav.account')" class="uc-sidebar-user-trigger">
             <Avatar class="uc-sidebar-avatar size-8 rounded-lg">
               <AvatarImage :src="normalizedAvatar" :alt="user.name" />
               <AvatarFallback class="uc-sidebar-avatar-fallback rounded-lg">{{
@@ -134,6 +143,41 @@ async function handleLogout() {
               {{ t('nav.notifications') }}
             </DropdownMenuItem>
           </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuSub v-if="problemCan.read.value || contestCan.read.value">
+            <DropdownMenuSubTrigger>
+              <Bolt />
+              {{ t('dashboard.quickActions.title') }}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem v-if="problemCan.read.value" @select="router.push('/problems')">
+                <Plus />
+                {{ t('dashboard.quickActions.createProblem') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem v-if="contestCan.read.value" @select="router.push('/contests')">
+                <Plus />
+                {{ t('dashboard.quickActions.createContest') }}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSub v-if="systemItems.length">
+            <DropdownMenuSubTrigger>
+              <Settings />
+              {{ t('nav.system') }}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem
+                v-for="item in systemItems"
+                :key="item.url"
+                @select="item.onClick ? item.onClick() : router.push(item.url)"
+              >
+                <component :is="item.icon" v-if="item.icon" />
+                {{ item.title }}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <ThemeSwitcher />
+          <LanguageSwitcher />
           <DropdownMenuSeparator />
           <DropdownMenuItem @click="handleLogout">
             <IconLogout />

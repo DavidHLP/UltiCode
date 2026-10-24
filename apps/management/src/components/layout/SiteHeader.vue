@@ -16,25 +16,7 @@ import {
 } from '@ulticode/design-system/ui/breadcrumb'
 import { useI18n } from 'vue-i18n'
 import { useSearchPalette } from '@/composables/useSearchPalette'
-import {
-  Search as IconSearch,
-  Bell as IconBell,
-  Bolt as IconBolt,
-  Plus as IconPlus,
-  Settings as IconSettings,
-} from '@lucide/vue'
-
-import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
-import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuGroup,
-} from '@ulticode/design-system/ui/dropdown-menu'
+import { Search as IconSearch } from '@lucide/vue'
 import {
   CommandDialog,
   CommandInput,
@@ -164,52 +146,6 @@ onUnmounted(() => {
         <span class="hidden sm:inline">{{ t('common.search') }}</span>
         <Kbd class="ml-auto hidden lg:inline-flex">{{ shortcutLabel }}</Kbd>
       </Button>
-      <!-- Quick Actions Menu -->
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <Button
-            variant="ghost"
-            class="uc-header-icon"
-            :aria-label="t('common.actions.label')"
-            :title="t('common.actions.label')"
-          >
-            <IconBolt class="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" class="w-48">
-          <DropdownMenuGroup
-            ><DropdownMenuLabel>{{ t('dashboard.quickActions.title') }}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem @click="router.push('/problems')">
-              <IconPlus class="size-3.5 mr-2 text-muted-foreground" />
-              <span>{{ t('dashboard.quickActions.createProblem') }}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem @click="router.push('/contests')">
-              <IconPlus class="size-3.5 mr-2 text-muted-foreground" />
-              <span>{{ t('dashboard.quickActions.createContest') }}</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem @click="router.push('/settings')">
-              <IconSettings class="size-3.5 mr-2 text-muted-foreground" />
-              <span>{{ t('nav.settings') }}</span>
-            </DropdownMenuItem></DropdownMenuGroup
-          >
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <!-- Notifications Bell -->
-      <Button
-        variant="ghost"
-        @click="router.push('/notifications')"
-        class="uc-header-icon"
-        :aria-label="t('nav.notifications')"
-        :title="t('nav.notifications')"
-      >
-        <IconBell class="size-4" />
-      </Button>
-
-      <ThemeSwitcher class="uc-header-icon" />
-      <LanguageSwitcher />
     </div>
   </header>
 

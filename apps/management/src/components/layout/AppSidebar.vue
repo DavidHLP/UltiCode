@@ -38,7 +38,6 @@ import {
 } from '@lucide/vue'
 
 import NavMain from './NavMain.vue'
-import NavSecondary from './NavSecondary.vue'
 import NavUser from './NavUser.vue'
 import {
   Sidebar,
@@ -275,10 +274,9 @@ const navSecondary = computed(() => {
       <NavMain :items="overviewItems" :title="t('nav.overview')" />
       <NavMain :items="contentItems" :title="t('nav.content')" />
       <NavMain :items="userSecurityItems" :title="t('nav.usersAndSecurity')" />
-      <NavSecondary :items="navSecondary" class="mt-auto" />
     </SidebarContent>
     <SidebarFooter class="p-2">
-      <NavUser :user="user" />
+      <NavUser :user="user" :system-items="navSecondary" />
     </SidebarFooter>
     <SidebarRail />
   </Sidebar>

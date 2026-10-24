@@ -73,6 +73,11 @@ class AdminSolutionProjectionTest {
     @InjectMocks
     private DefaultAdminSolutionProjection projection;
 
+    @BeforeEach
+    void setUp() {
+        when(userEnricher.requireUsers(anySet())).thenCallRealMethod();
+    }
+
     @Nested
     @DisplayName("getSolution(id) — single-detail read")
     class GetSolution {

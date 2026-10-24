@@ -56,6 +56,12 @@ def canonical_uuid(value: object, name: str = "value") -> str:
     return value.lower()
 
 
+def context_reference_id(value: object) -> str:
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,40}", value):
+        raise ValueError("invalid context reference ID")
+    return value
+
+
 def _java_blank(value: str) -> bool:
     """Mirror ``LearningPlanController.isBlankLikePythonStrip``.
 
@@ -320,6 +326,24 @@ class UlticodeClient:
             raise ValueError("problem_id must be a positive integer")
         response = await self._app.get(f"/problems/{problem_id}")
         data = self._unwrap_dict(response)
+        return data
+
+    async def get_solution(self, solution_id: str) -> dict[str, object]:
+        solution_id = context_reference_id(solution_id)
+        response = await self._app.get(f"/api/solutions/{solution_id}", headers=self._session_headers())
+        return self._unwrap_dict(response)
+
+    async def get_forum_thread(self, post_id: str) -> dict[str, object]:
+        post_id = context_reference_id(post_id)
+        response = await self._app.get(f"/forum/posts/{post_id}/thread", headers=self._session_headers())
+        return self._unwrap_dict(response)
+
+    async def get_solution_comments(self, solution_id: str) -> list[dict[str, object]]:
+        solution_id = context_reference_id(solution_id)
+        response = await self._app.get(f"/api/solutions/{solution_id}/comments", headers=self._session_headers())
+        data = self._unwrap(response)
+        if not isinstance(data, list) or any(not isinstance(item, dict) for item in data):
+            raise UlticodeError("invalid comments response")
         return data
 
     async def login(self, username: str, password: str) -> dict[str, object]:

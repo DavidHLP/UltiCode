@@ -183,12 +183,7 @@ public class DefaultContestOwnerPort implements ContestOwnerPort {
             throw new BusinessException(ContestErrorCode.CONTEST_NOT_STARTED);
         }
 
-        // The original admin path asked the read port
-        // (AdminContestReadPort#countProblemsByContestId) for the
-        // problem count. The port's read path (selectList on
-        // ContestProblemMapper) is a sanctioned admin read per
-        // the owner-port contract; the port implementation goes through its own
-        // mapper here so the port owns the invariant.
+        // Enforce the start guard through the Contest owner's local mapper.
         final List<ContestProblem> existing =
                 contestProblemMapper.findByContestId(id);
         if (existing.isEmpty()) {

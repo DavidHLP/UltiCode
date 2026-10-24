@@ -97,7 +97,7 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
         } catch (RuntimeException exception) {
             throw AdminReadContract.ownerUnavailable("Notification", exception);
         }
-        requirePage(result, "Notification");
+        AdminReadContract.requirePage(result, "Notification");
 
         CreatorEnrichment creators = loadCreators(result.getItems());
         List<AdminNotificationVO> vos = toAdminVOList(result.getItems(), creators.users());
@@ -192,16 +192,6 @@ public class DefaultAdminNotificationProjection implements AdminNotificationProj
             return DegradationStatus.PARTIAL;
         }
         return pageStatus == null ? DegradationStatus.OK : pageStatus;
-    }
-
-    private static void requirePage(PageResult<?> page, String owner) {
-        if (page == null || page.getItems() == null
-                || page.getItems().stream().anyMatch(java.util.Objects::isNull)
-                || page.getTotal() == null
-                || page.getTotal() < 0
-                || page.getDegradationStatus() == DegradationStatus.UNAVAILABLE) {
-            throw AdminReadContract.ownerUnavailable(owner);
-        }
     }
 
     /**

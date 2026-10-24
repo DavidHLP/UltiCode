@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.Map;
 
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedLong;
+
 /**
  * Handles durable {@code SubmissionJudged} inbox payloads for contest scoring.
  *
@@ -30,7 +32,7 @@ public class SubmissionJudgedContestConsumer {
         String submissionId = requiredString(payload, "submissionId");
         String userId = requiredString(payload, "userId");
         Long problemId = optionalLong(payload.get("problemId"));
-        long generation = requiredLong(payload, "generation");
+        long generation = requiredJudgedLong(payload, "generation");
         String verdict = requiredString(payload, "verdict");
         SubmissionStatus status = SubmissionStatus.fromWire(verdict);
 
@@ -85,24 +87,6 @@ public class SubmissionJudgedContestConsumer {
                     : Long.parseLong(String.valueOf(value));
         } catch (NumberFormatException | ArithmeticException e) {
             throw new IllegalArgumentException("Invalid SubmissionJudged problemId", e);
-        }
-    }
-
-    private static long requiredLong(Map<String, Object> payload, String key) {
-        Object value = payload.get(key);
-        if (value == null) {
-            throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
-        }
-        try {
-            long parsed = value instanceof Number number
-                    ? exactLong(number)
-                    : Long.parseLong(String.valueOf(value));
-            if (parsed < 0) {
-                throw new IllegalArgumentException("Negative SubmissionJudged field: " + key);
-            }
-            return parsed;
-        } catch (NumberFormatException | ArithmeticException e) {
-            throw new IllegalArgumentException("Invalid SubmissionJudged field: " + key, e);
         }
     }
 

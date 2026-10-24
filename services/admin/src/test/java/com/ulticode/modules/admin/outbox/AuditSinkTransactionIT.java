@@ -1,5 +1,7 @@
 package com.ulticode.modules.admin.outbox;
 
+import com.ulticode.admin.support.AdminOwnerContractMocks;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -31,6 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
         + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration")
 @Testcontainers
+@AdminOwnerContractMocks
 class AuditSinkTransactionIT {
 
     @Container

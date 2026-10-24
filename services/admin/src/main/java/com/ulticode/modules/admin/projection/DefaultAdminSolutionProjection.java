@@ -91,7 +91,7 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
                 .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        AdminUserEnricher.EnrichedUsers users = batchLoadUsers(userIds);
+        AdminUserEnricher.EnrichedUsers users = userEnricher.requireUsers(userIds);
         ProblemBatch problems = batchLoadProblems(problemIds);
         DegradationStatus status = mergeStatus(users.status(), problems.status());
 
@@ -146,25 +146,6 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
     // ------------------------------------------------------------------
     // Batch-loaders (cross-module enrichment — N+1-safe)
     // ------------------------------------------------------------------
-
-    private AdminUserEnricher.EnrichedUsers batchLoadUsers(Set<String> userIds) {
-        if (userIds.isEmpty()) {
-            return new AdminUserEnricher.EnrichedUsers(Collections.emptyMap(), DegradationStatus.OK);
-        }
-        AdminUserEnricher.EnrichedUsers result;
-        try {
-            result = userEnricher.enrichWithStatus(userIds);
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (RuntimeException exception) {
-            throw AdminReadContract.ownerUnavailable("Auth/App user", exception);
-        }
-        if (result == null || result.status() == null
-                || result.status() == DegradationStatus.UNAVAILABLE) {
-            throw AdminReadContract.ownerUnavailable("Auth/App user");
-        }
-        return result;
-    }
 
     private ProblemBatch batchLoadProblems(Set<Long> problemIds) {
         if (problemIds.isEmpty()) {

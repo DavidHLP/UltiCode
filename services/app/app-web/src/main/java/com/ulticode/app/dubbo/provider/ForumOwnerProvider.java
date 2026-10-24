@@ -1,6 +1,5 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ForumPostModerationCommand;
 import com.ulticode.app.api.dto.ForumPostModerationResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
@@ -13,6 +12,9 @@ import com.ulticode.modules.forum.port.DefaultForumOwnerPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
+
+import static com.ulticode.app.dubbo.provider.AdminCommandValidation.rejectIfNotAdmin;
+import static com.ulticode.app.dubbo.provider.AdminCommandValidation.traceId;
 
 /**
  * Exposes the App-owned forum-post moderation command boundary.
@@ -34,7 +36,7 @@ public class ForumOwnerProvider implements ForumPostAdministrationService {
 
     @Override
     public RpcResult<ForumPostModerationResultDTO> moderate(ForumPostModerationCommand command) {
-        RpcResult<ForumPostModerationResultDTO> rejected = rejectIfNotAdmin(command);
+        RpcResult<ForumPostModerationResultDTO> rejected = rejectIfNotAdmin(command, actorAuthorizer);
         if (rejected != null) {
             return rejected;
         }
@@ -63,27 +65,5 @@ public class ForumOwnerProvider implements ForumPostAdministrationService {
             case 40900 -> RpcResult.failure(AppErrorCode.CONTENT_STATE_CONFLICT, traceId);
             default -> RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
         };
-    }
-
-    private <T> RpcResult<T> rejectIfNotAdmin(ForumPostModerationCommand command) {
-        if (command == null) {
-            return RpcResult.failure(AppErrorCode.BAD_REQUEST, null);
-        }
-        ActorDelegation actor = command.actor();
-        if (actor == null || actor.actorId() == null || actor.actorId().isBlank()
-                || actor.delegatorId() == null || actor.delegatorId().isBlank()
-                || !actor.actorId().equals(actor.delegatorId())
-                || (!"ADMIN".equalsIgnoreCase(actor.actorType())
-                && !"SUPER_ADMIN".equalsIgnoreCase(actor.actorType()))) {
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
-        }
-        if (!actorAuthorizer.isAuthorized(actor)) {
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
-        }
-        return null;
-    }
-
-    private static String traceId(ForumPostModerationCommand command) {
-        return command == null || command.trace() == null ? null : command.trace().traceId();
     }
 }

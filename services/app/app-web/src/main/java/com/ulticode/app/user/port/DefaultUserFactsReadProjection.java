@@ -2,10 +2,7 @@ package com.ulticode.app.user.port;
 
 import com.ulticode.modules.user.port.AvatarUrls;
 import com.ulticode.auth.api.dto.AuthAccountDTO;
-import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
-import com.ulticode.common.error.BaseErrorCode;
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcPolicy;
 import com.ulticode.common.rpc.RpcResult;
 import java.util.Collection;
@@ -13,10 +10,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
+
+import static com.ulticode.app.user.port.AuthAccountReadSupport.accountOrNull;
+import static com.ulticode.app.user.port.AuthAccountReadSupport.ownerCall;
+import static com.ulticode.app.user.port.AuthAccountReadSupport.requireSuccess;
+import static com.ulticode.app.user.port.AuthAccountReadSupport.unavailable;
 
 /**
  * Owner-composed User Facts View projection.
@@ -151,35 +152,5 @@ public class DefaultUserFactsReadProjection
             throw unavailable();
         }
         return accountQueryService;
-    }
-
-    private <T> T ownerCall(Supplier<T> operation) {
-        try {
-            return operation.get();
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (RuntimeException exception) {
-            throw unavailable();
-        }
-    }
-
-    private AuthAccountDTO accountOrNull(RpcResult<AuthAccountDTO> response) {
-        if (response != null && !response.success() && response.error() != null
-                && AuthErrorCode.NAMESPACE.equals(response.error().namespace())
-                && response.error().code() == AuthErrorCode.ACCOUNT_NOT_FOUND.code()) {
-            return null;
-        }
-        requireSuccess(response);
-        return response.data();
-    }
-
-    private void requireSuccess(RpcResult<?> response) {
-        if (response == null || !response.success()) {
-            throw unavailable();
-        }
-    }
-
-    private BusinessException unavailable() {
-        return new BusinessException(BaseErrorCode.UNKNOWN_ERROR, "Auth account query unavailable");
     }
 }

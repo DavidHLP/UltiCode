@@ -18,10 +18,28 @@ for config in \
   services/submission/src/main/java/com/ulticode/submission/config/SubmissionSchedulerConfiguration.java \
   services/search/src/main/java/com/ulticode/search/config/SearchSchedulerConfiguration.java; do
   contains "$config" 'ThreadPoolTaskScheduler'
-  contains "$config" 'setPoolSize'
-  contains "$config" 'setAwaitTerminationSeconds(30)'
-  contains "$config" 'ExecutorServiceMetrics.monitor'
-  contains "$config" 'pool size must be between 1 and 16'
+  contains "$config" 'import static com.ulticode.observability.scheduling.SchedulerFactory.create;'
+  contains "$config" 'return create('
+  not_contains "$config" 'new ThreadPoolTaskScheduler'
+done
+
+factory=services/platform/observability/src/main/java/com/ulticode/observability/scheduling/SchedulerFactory.java
+for policy in \
+  'poolSize < 1 || poolSize > 16' \
+  'pool size must be between 1 and 16' \
+  'setPoolSize(poolSize)' \
+  'setThreadNamePrefix(schedulerName + "-")' \
+  'setRejectedExecutionHandler' \
+  'rejected.increment()' \
+  'throw new RejectedExecutionException' \
+  'setRemoveOnCancelPolicy(true)' \
+  'setContinueExistingPeriodicTasksAfterShutdownPolicy(false)' \
+  'setExecuteExistingDelayedTasksAfterShutdownPolicy(false)' \
+  'setWaitForTasksToCompleteOnShutdown(true)' \
+  'setAwaitTerminationSeconds(30)' \
+  'setAcceptTasksAfterContextClose(false)' \
+  'ExecutorServiceMetrics.monitor'; do
+  contains "$factory" "$policy"
 done
 
 for source in \
@@ -55,12 +73,12 @@ printf 'scheduler source/config isolation contract: PASS\n'
   cd "$ROOT_DIR/services"
   if command -v mise >/dev/null 2>&1; then
     mise exec java@zulu-17.68.203.0 -- bash ./mvnw -pl admin -am \
-      -Dtest=AdminSchedulerConfigurationTest \
+      -Dtest=AdminSchedulerConfigurationTest,SchedulerFactoryTest \
       -Dsurefire.failIfNoSpecifiedTests=false \
       test -B
   else
     bash ./mvnw -pl admin -am \
-      -Dtest=AdminSchedulerConfigurationTest \
+      -Dtest=AdminSchedulerConfigurationTest,SchedulerFactoryTest \
       -Dsurefire.failIfNoSpecifiedTests=false \
       test -B
   fi

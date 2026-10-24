@@ -472,10 +472,11 @@ def test_foreign_conversation_access_is_uniform_404_without_run_lock(tmp_path):
             }),
             await client.post(
                 f"/agent/conversations/{conversation_id}/turns/{turn_id}/run", headers=foreign,
-                json={"sourceConsent": False},
+                json={"sourceConsent": False, "expectedRunId": created.json()["data"]["turn"]["runId"]},
             ),
             await client.post(
-                f"/agent/conversations/{conversation_id}/turns/{turn_id}/cancel", headers=foreign, json={},
+                f"/agent/conversations/{conversation_id}/turns/{turn_id}/cancel", headers=foreign,
+                json={"expectedRunId": created.json()["data"]["turn"]["runId"]},
             ),
             await client.delete(f"/agent/conversations/{conversation_id}", headers=foreign),
         ]

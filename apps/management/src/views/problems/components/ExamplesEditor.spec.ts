@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createApp, h, nextTick } from 'vue'
 import { useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
+import { toTypedSchema } from '@/lib/toTypedSchema'
 import { z } from 'zod'
 import ExamplesEditor from './ExamplesEditor.vue'
 

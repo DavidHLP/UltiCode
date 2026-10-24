@@ -9,6 +9,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -73,6 +75,31 @@ class SubmissionJudgedAchievementConsumerTest {
         assertThatThrownBy(() -> consumer.consume(payload("Accepted")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("achievement store unavailable");
+    }
+
+    @Test
+    void malformedGenerationPropagatesBeforeBusinessReadsEvenForNonAcceptedVerdicts() {
+        Object[][] cases = {
+                {null, "Missing"},
+                {-1, "Negative"},
+                {1.5d, "Invalid"},
+                {BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE), "Invalid"}
+        };
+        for (String verdict : new String[]{"Accepted", "Wrong Answer"}) {
+            for (Object[] testCase : cases) {
+                Map<String, Object> payload = new HashMap<>(payload(verdict));
+                payload.remove("generation");
+                if (testCase[0] != null) {
+                    payload.put("generation", testCase[0]);
+                }
+
+                assertThatThrownBy(() -> consumer().consume(payload))
+                        .as("%s verdict with generation %s", verdict, testCase[0])
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessage(testCase[1] + " SubmissionJudged field: generation");
+            }
+        }
+        verifyNoInteractions(contestSubmissionPort, submissionUserStats, achievementTriggerService);
     }
 
     private SubmissionJudgedAchievementConsumer consumer() {

@@ -7,6 +7,35 @@ import pytest
 from ulticode_client import UlticodeClient, UlticodeError, UlticodeServiceError, canonical_uuid
 
 
+@pytest.mark.parametrize("reference_id", ["11111111-1111-4111-8111-111111111111", "sol-s-006"])
+def test_context_reference_reads_forward_only_the_session_to_fixed_routes(reference_id):
+    paths = []
+    async def handler(request):
+        paths.append(request.url.path)
+        assert request.headers["cookie"] == "access_token=access"
+        data = [] if request.url.path.endswith("/comments") else {}
+        return httpx.Response(200, json={"code": 0, "data": data})
+    async def scenario():
+        async with UlticodeClient.for_session("http://app", "http://auth", access_token="access", transport=httpx.MockTransport(handler)) as client:
+            await client.get_solution(reference_id)
+            await client.get_solution_comments(reference_id)
+            await client.get_forum_thread(reference_id)
+    asyncio.run(scenario())
+    assert paths == [f"/api/solutions/{reference_id}", f"/api/solutions/{reference_id}/comments", f"/forum/posts/{reference_id}/thread"]
+
+
+@pytest.mark.parametrize("reference_id", ["../solutions", "fpost-006?x=1", "sol-s-006#x", "x" * 41, ""])
+def test_context_reference_routes_reject_invalid_ids_before_network_access(reference_id):
+    async def handler(_request):
+        pytest.fail("invalid context reference must not reach the network")
+    async def scenario():
+        async with UlticodeClient.for_session("http://app", "http://auth", access_token="access", transport=httpx.MockTransport(handler)) as client:
+            for read in (client.get_solution, client.get_solution_comments, client.get_forum_thread):
+                with pytest.raises(ValueError):
+                    await read(reference_id)
+    asyncio.run(scenario())
+
+
 def test_unwraps_result_envelope_to_data() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(

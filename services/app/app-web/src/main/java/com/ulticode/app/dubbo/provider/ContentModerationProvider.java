@@ -1,6 +1,5 @@
 package com.ulticode.app.dubbo.provider;
 
-import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import com.ulticode.app.api.dto.ContentLifecycleState;
@@ -15,6 +14,9 @@ import com.ulticode.modules.moderation.port.ContentModerationActionPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
+
+import static com.ulticode.app.dubbo.provider.AdminCommandValidation.rejectIfNotAdmin;
+import static com.ulticode.app.dubbo.provider.AdminCommandValidation.traceId;
 
 /**
  * Dubbo Provider implementation of {@link ContentModerationService} in
@@ -33,7 +35,7 @@ public class ContentModerationProvider implements ContentModerationService {
 
     @Override
     public RpcResult<ModerationApplyResultDTO> apply(ApplyModerationCommand command) {
-        RpcResult<ModerationApplyResultDTO> rejected = rejectIfNotAdmin(command);
+        RpcResult<ModerationApplyResultDTO> rejected = rejectIfNotAdmin(command, actorAuthorizer);
         if (rejected != null) {
             return rejected;
         }
@@ -72,24 +74,6 @@ public class ContentModerationProvider implements ContentModerationService {
         }
     }
 
-    private <T> RpcResult<T> rejectIfNotAdmin(ApplyModerationCommand command) {
-        if (command == null) {
-            return RpcResult.failure(AppErrorCode.BAD_REQUEST, null);
-        }
-        ActorDelegation actor = command.actor();
-        if (actor == null || actor.actorId() == null || actor.actorId().isBlank()
-                || actor.delegatorId() == null || actor.delegatorId().isBlank()
-                || !actor.actorId().equals(actor.delegatorId())
-                || (!"ADMIN".equalsIgnoreCase(actor.actorType())
-                && !"SUPER_ADMIN".equalsIgnoreCase(actor.actorType()))) {
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
-        }
-        if (!actorAuthorizer.isAuthorized(actor)) {
-            return RpcResult.failure(AppErrorCode.FORBIDDEN, traceId(command));
-        }
-        return null;
-    }
-
     private static <T> RpcResult<T> toFailure(BusinessException exception, String traceId) {
         if (exception.getErrorCode() == null) {
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
@@ -99,9 +83,5 @@ public class ContentModerationProvider implements ContentModerationService {
             case 40400 -> RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, traceId);
             default -> RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
         };
-    }
-
-    private static String traceId(ApplyModerationCommand command) {
-        return command == null || command.trace() == null ? null : command.trace().traceId();
     }
 }

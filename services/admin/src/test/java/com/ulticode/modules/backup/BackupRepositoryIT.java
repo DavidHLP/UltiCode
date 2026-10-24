@@ -1,5 +1,7 @@
 package com.ulticode.modules.backup;
 
+import com.ulticode.admin.support.AdminOwnerContractMocks;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -47,6 +49,7 @@ import org.testcontainers.utility.MountableFile;
         + "org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration,"
         + "com.alibaba.cloud.dubbo.bootstrap.DubboBootstrapAutoConfiguration")
 @Testcontainers
+@AdminOwnerContractMocks
 @DisplayName("BackupRepositoryIT — Real MySQL CRUD round-trip for /admin/backups")
 class BackupRepositoryIT {
 

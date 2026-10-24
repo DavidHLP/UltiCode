@@ -1,4 +1,5 @@
 export default {
+  agent: "Agent",
   // Forum sidebar
   forum: {
     platform: "Platform",

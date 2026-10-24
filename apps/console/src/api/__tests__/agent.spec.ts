@@ -12,6 +12,28 @@ vi.mock("@/utils/request", () => ({
 describe("agentApi", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("sends only selected context references with each turn", async () => {
+    vi.mocked(apiPost).mockResolvedValue({});
+    const context = {
+      includeProblem: true,
+      comments: [{ solutionId: "solution-1", commentId: "comment-1" }],
+    };
+    await agentApi.createConversationTurn(
+      "conversation-1",
+      "client-turn-1",
+      "Explain this comment",
+      context,
+    );
+    expect(apiPost).toHaveBeenCalledWith(
+      "/agent/conversations/conversation-1/turns",
+      {
+        clientTurnId: "client-turn-1",
+        question: "Explain this comment",
+        context,
+      },
+    );
+  });
+
   it("reads capabilities and an owned saved learning plan through the request helper", async () => {
     vi.mocked(apiGet).mockResolvedValue({ analysisAvailable: true, persistenceAvailable: false, sourceMode: "metadata" });
     await agentApi.getCapabilities();
@@ -88,16 +110,16 @@ describe("agentApi", () => {
       clientTurnId: "client-turn-2",
       question: "Follow up",
     });
-    await agentApi.runConversationTurn("conversation/one", "turn/2", true);
-    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation%2Fone/turns/turn%2F2/run", { sourceConsent: true });
-    await agentApi.cancelConversationTurn("conversation-1", "turn-1");
-    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation-1/turns/turn-1/cancel", {});
+    await agentApi.runConversationTurn("conversation/one", "turn/2", true, "run-1");
+    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation%2Fone/turns/turn%2F2/run", { sourceConsent: true, expectedRunId: "run-1" });
+    await agentApi.cancelConversationTurn("conversation-1", "turn-1", "run-1");
+    expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation-1/turns/turn-1/cancel", { expectedRunId: "run-1" });
     await agentApi.recoverConversationTurn("conversation-1", "turn-1");
     expect(apiPost).toHaveBeenLastCalledWith("/agent/conversations/conversation-1/turns/turn-1/recover", {});
     await agentApi.deleteConversation("conversation-1");
     expect(apiDelete).toHaveBeenCalledWith("/agent/conversations/conversation-1");
-    expect(agentApi.conversationEventStreamUrl("conversation/one", "turn/2", 7)).toBe(
-      "/api/agent/conversations/conversation%2Fone/turns/turn%2F2/events/stream?after=7",
+    expect(agentApi.conversationEventStreamUrl("conversation/one", "turn/2", 7, "run/1")).toBe(
+      "/api/agent/conversations/conversation%2Fone/turns/turn%2F2/events/stream?after=7&runId=run%2F1",
     );
   });
 });

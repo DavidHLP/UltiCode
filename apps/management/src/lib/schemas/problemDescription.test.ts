@@ -17,6 +17,7 @@ vi.mock('@/utils/request', () => ({
 }))
 
 import { problemDescriptionSchema } from './problemDescription'
+import { problemFormSchema } from './problem'
 
 describe('problemDescriptionSchema', () => {
   const validData = {
@@ -40,6 +41,11 @@ describe('problemDescriptionSchema', () => {
     tags: ['array', 'hash-table'],
   }
 
+  it('does not let a default empty array bypass the required example', () => {
+    const { examples: _examples, ...withoutExamples } = validData
+    expect(problemFormSchema.safeParse(withoutExamples).success).toBe(false)
+  })
+
   it('valid data passes', () => {
     const result = problemDescriptionSchema.safeParse(validData)
     expect(result.success).toBe(true)
@@ -52,7 +58,7 @@ describe('problemDescriptionSchema', () => {
     })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.errors[0].message).toContain('lowercase')
+      expect(result.error.issues[0]!.message).toContain('lowercase')
     }
   })
 
@@ -87,7 +93,7 @@ describe('problemDescriptionSchema', () => {
     })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.errors[0].message).toContain('example')
+      expect(result.error.issues[0]!.message).toContain('example')
     }
   })
 
@@ -98,7 +104,7 @@ describe('problemDescriptionSchema', () => {
     })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.errors[0].message).toContain('constraint')
+      expect(result.error.issues[0]!.message).toContain('constraint')
     }
   })
 

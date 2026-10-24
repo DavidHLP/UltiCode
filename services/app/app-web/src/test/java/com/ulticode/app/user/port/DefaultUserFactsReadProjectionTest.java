@@ -1,12 +1,16 @@
 package com.ulticode.app.user.port;
 
 import com.ulticode.auth.api.dto.AuthAccountDTO;
+import com.ulticode.auth.api.error.AuthErrorCode;
 import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -18,9 +22,12 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,11 +37,14 @@ class DefaultUserFactsReadProjectionTest {
     @Mock private AccountQueryService accountQueryService;
 
     private DefaultUserFactsReadProjection projection;
+    private DefaultUserDirectoryReadProjection directory;
 
     @BeforeEach
     void setUp() {
         projection = new DefaultUserFactsReadProjection(profileReadMapper);
         projection.setAccountQueryService(accountQueryService);
+        directory = new DefaultUserDirectoryReadProjection(profileReadMapper);
+        directory.setAccountQueryService(accountQueryService);
     }
 
     @Test
@@ -115,6 +125,84 @@ class DefaultUserFactsReadProjectionTest {
                 .hasMessageContaining("Auth account query unavailable");
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void bothProjectionsTreatOnlyAuthAccountNotFoundAsMissing(boolean directoryRead) {
+        when(accountQueryService.getAccountById("missing"))
+                .thenReturn(RpcResult.failure(AuthErrorCode.ACCOUNT_NOT_FOUND, "t-missing"));
+
+        assertThat(readById(directoryRead, "missing")).isNull();
+        verifyNoInteractions(profileReadMapper);
+
+        when(accountQueryService.getAccountById("missing")).thenReturn(RpcResult.failure(
+                new RpcResult.ErrorPayload("other-owner", AuthErrorCode.ACCOUNT_NOT_FOUND.code(), "missing"),
+                "t-other-owner"));
+
+        assertThatExceptionOfType(BusinessException.class)
+                .isThrownBy(() -> readById(directoryRead, "missing"))
+                .satisfies(exception -> assertThat(exception.getErrorCode()).isEqualTo(BaseErrorCode.UNKNOWN_ERROR))
+                .withMessage("Auth account query unavailable");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void bothProjectionsRejectNullResponsesAndRpcAuthorizationFailures(boolean directoryRead) {
+        when(accountQueryService.getAccountById("u-1")).thenReturn(null,
+                RpcResult.failure(BaseErrorCode.UNAUTHORIZED, "t-unauthorized"),
+                RpcResult.failure(BaseErrorCode.FORBIDDEN, "t-forbidden"));
+
+        for (int attempt = 0; attempt < 3; attempt++) {
+            assertThatExceptionOfType(BusinessException.class)
+                    .isThrownBy(() -> readById(directoryRead, "u-1"))
+                    .satisfies(exception -> assertThat(exception.getErrorCode()).isEqualTo(BaseErrorCode.UNKNOWN_ERROR))
+                    .withMessage("Auth account query unavailable");
+        }
+        verifyNoInteractions(profileReadMapper);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void bothProjectionsPreserveThrownBusinessFailuresAndTraceIds(boolean directoryRead) {
+        for (BaseErrorCode code : List.of(BaseErrorCode.UNAUTHORIZED, BaseErrorCode.FORBIDDEN)) {
+            BusinessException failure = new BusinessException(code, "owner denied", "t-owner-denied");
+            doThrow(failure).when(accountQueryService).getAccountById("u-1");
+
+            assertThatThrownBy(() -> readById(directoryRead, "u-1")).isSameAs(failure);
+        }
+        verifyNoInteractions(profileReadMapper);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void bothProjectionsTranslateTransportFailuresToUnavailable(boolean directoryRead) {
+        when(accountQueryService.getAccountById("u-1"))
+                .thenThrow(new IllegalStateException("transport failed"));
+
+        assertThatExceptionOfType(BusinessException.class)
+                .isThrownBy(() -> readById(directoryRead, "u-1"))
+                .satisfies(exception -> assertThat(exception.getErrorCode()).isEqualTo(BaseErrorCode.UNKNOWN_ERROR))
+                .withMessage("Auth account query unavailable");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void bothProjectionsRejectMissingBatchData(boolean directoryRead) {
+        when(accountQueryService.getAccountsByIds(Set.of("u-1")))
+                .thenReturn(new RpcResult<>(true, null, null, null, "t-null-data", null, null));
+
+        assertThatExceptionOfType(BusinessException.class)
+                .isThrownBy(() -> {
+                    if (directoryRead) {
+                        directory.selectByIds(Set.of("u-1"));
+                    } else {
+                        projection.findByIds(Set.of("u-1"));
+                    }
+                })
+                .satisfies(exception -> assertThat(exception.getErrorCode()).isEqualTo(BaseErrorCode.UNKNOWN_ERROR))
+                .withMessage("Auth account query unavailable");
+        verifyNoInteractions(profileReadMapper);
+    }
+
     @Test
     void publicReadSeamsRemainNarrow() {
         assertThat(UserFactsProjection.class.isAssignableFrom(DefaultUserFactsReadProjection.class))
@@ -131,6 +219,10 @@ class DefaultUserFactsReadProjectionTest {
                 .containsExactlyInAnyOrder(
                         "selectById", "selectByUsername", "selectByEmail",
                         "selectByIds", "selectActiveUsers", "countActiveUsers", "countById");
+    }
+
+    private Object readById(boolean directoryRead, String id) {
+        return directoryRead ? directory.selectById(id) : projection.findById(id);
     }
 
     private AuthAccountDTO account(String id, String username) {

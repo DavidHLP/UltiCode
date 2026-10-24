@@ -16,6 +16,15 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/api/agent", () => ({
   agentApi: { getCapabilities: mocks.getCapabilities },
 }));
+vi.mock("@/api/problem", () => ({ fetchProblems: vi.fn() }));
+vi.mock("@/api/forum", () => ({
+  fetchForumPosts: vi.fn(),
+  fetchForumThread: vi.fn(),
+}));
+vi.mock("@/api/solution", () => ({
+  fetchSolutionFeed: vi.fn(),
+  fetchSolutionComments: vi.fn(),
+}));
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => mocks.auth,
 }));
@@ -90,6 +99,27 @@ function createWorkspace() {
 
 describe("AgentConversationWorkspace", () => {
   beforeEach(() => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(min-width: 1024px)",
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    );
     vi.clearAllMocks();
     mocks.route.query = { submissionId };
     mocks.workspace = createWorkspace();
@@ -104,7 +134,106 @@ describe("AgentConversationWorkspace", () => {
     });
   });
 
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("toggles desktop navigation without changing the conversation or draft", async () => {
+    const wrapper = mount(AgentConversationWorkspace, {
+      attachTo: document.body,
+      global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+    });
+    await flushPromises();
+    await wrapper.get("textarea").setValue("Keep my question");
+    const toggle = wrapper.get('[aria-controls="agent-desktop-history"]');
+    expect(toggle.attributes("aria-expanded")).toBe("true");
+    wrapper.findComponent({ name: "ResizablePanel" }).vm.$emit("resize", 27);
+    await toggle.trigger("click");
+    await flushPromises();
+    const reopen = wrapper.get('[aria-controls="agent-desktop-history"]');
+    expect(reopen.attributes("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(reopen.element);
+    expect(wrapper.find("#agent-desktop-history").exists()).toBe(false);
+    expect(wrapper.get('[role="separator"]').attributes("style")).toContain(
+      "display: none",
+    );
+    await reopen.trigger("click");
+    await flushPromises();
+    expect(document.activeElement).toBe(
+      wrapper.get('[aria-controls="agent-desktop-history"]').element,
+    );
+    expect(
+      wrapper.findComponent({ name: "ResizablePanel" }).props("defaultSize"),
+    ).toBe(27);
+    expect(wrapper.find('[role="separator"]').exists()).toBe(true);
+    expect((wrapper.get("textarea").element as HTMLTextAreaElement).value).toBe(
+      "Keep my question",
+    );
+    expect(
+      (mocks.workspace as ReturnType<typeof createWorkspace>).sendTurn,
+    ).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("filters loaded history without making another request", async () => {
+    const state = mocks.workspace as ReturnType<typeof createWorkspace>;
+    state.conversations.value = [
+      {
+        conversationId,
+        title: "Complexity review",
+        lastQuestion: "Explain memory",
+        updatedAt: 1792750312.355659,
+        turnCount: 1,
+      },
+    ];
+    const wrapper = mount(AgentConversationWorkspace);
+    await flushPromises();
+    await wrapper.get("input").setValue("MEMORY");
+    expect(wrapper.text()).toContain("Complexity review");
+    expect(wrapper.text()).toContain("2026");
+    expect(wrapper.text()).not.toContain("1970");
+    await wrapper.get("input").setValue("unmatched");
+    expect(wrapper.text()).not.toContain("Complexity review");
+    expect(wrapper.text()).toContain("agent.workspace.noSearchResults");
+    await wrapper
+      .get('[aria-label="agent.workspace.clearSearch"]')
+      .trigger("click");
+    expect((wrapper.get("input").element as HTMLInputElement).value).toBe("");
+    expect(wrapper.text()).toContain("Complexity review");
+    await wrapper.get("input").setValue("unmatched");
+    await wrapper.get("input").trigger("keydown", { key: "Escape" });
+    expect(wrapper.text()).toContain("Complexity review");
+    expect((wrapper.get("input").element as HTMLInputElement).value).toBe("");
+    expect(state.loadConversations).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it("fills suggestions without sending and ignores Enter during IME composition", async () => {
+    const wrapper = mount(AgentConversationWorkspace);
+    await flushPromises();
+    const state = mocks.workspace as ReturnType<typeof createWorkspace>;
+    const suggestion = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "agent.promptComplexity");
+    await suggestion!.trigger("click");
+    expect((wrapper.get("textarea").element as HTMLTextAreaElement).value).toBe(
+      "agent.promptComplexity",
+    );
+    expect(state.sendTurn).not.toHaveBeenCalled();
+    await wrapper.get('[role="checkbox"]').trigger("click");
+    await wrapper
+      .get("textarea")
+      .trigger("keydown", { key: "Enter", isComposing: true });
+    expect(state.sendTurn).not.toHaveBeenCalled();
+    await wrapper
+      .get("textarea")
+      .trigger("keydown", { key: "Enter", shiftKey: true });
+    expect(state.sendTurn).not.toHaveBeenCalled();
+    await wrapper.get("textarea").trigger("keydown", { key: "Enter" });
+    expect(state.sendTurn).toHaveBeenCalledWith("agent.promptComplexity", true);
+    wrapper.unmount();
+  });
 
   it("keeps the unbound state focused and selects a verified submission without sending", async () => {
     mocks.route.query = {};
@@ -255,6 +384,39 @@ describe("AgentConversationWorkspace", () => {
     wrapper.unmount();
   });
 
+  it("unlocks fresh consent after canonical completion and keeps a new draft when the old POST settles", async () => {
+    const state = mocks.workspace as ReturnType<typeof createWorkspace>;
+    let finishOld!: () => void;
+    let finishNew!: () => void;
+    state.sendTurn.mockImplementationOnce(() => {
+      state.busy.value = true;
+      return new Promise<void>((resolve) => { finishOld = resolve; });
+    }).mockImplementationOnce(() => new Promise<void>((resolve) => { finishNew = resolve; }));
+    const wrapper = mount(AgentConversationWorkspace, {
+      global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+    });
+    await flushPromises();
+    await wrapper.get('[role="checkbox"]').trigger("click");
+    await wrapper.find("textarea").setValue("First question");
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+    state.busy.value = false;
+    await flushPromises();
+    expect(wrapper.get('[role="checkbox"]').attributes("disabled")).toBeUndefined();
+    expect((wrapper.find("textarea").element as HTMLTextAreaElement).value).toBe("");
+    await wrapper.get('[role="checkbox"]').trigger("click");
+    await wrapper.find("textarea").setValue("New question");
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+    finishOld();
+    await flushPromises();
+    expect((wrapper.find("textarea").element as HTMLTextAreaElement).value).toBe("New question");
+    expect(wrapper.get('[role="checkbox"]').attributes("disabled")).toBeDefined();
+    finishNew();
+    await flushPromises();
+    wrapper.unmount();
+  });
+
   it("renders stored answers safely and exposes cancellation for queued turns", async () => {
     const state = mocks.workspace as ReturnType<typeof createWorkspace>;
     state.openConversation.mockImplementation(async () => {
@@ -276,9 +438,29 @@ describe("AgentConversationWorkspace", () => {
           runId: "run-1",
           status: "completed",
           question: "Explain the result",
+          context: {
+            includeProblem: true,
+            comments: [{ postId: "fpost-001", commentId: "fcmt-001" }],
+          },
           answer: "<script>alert(1)</script>\n\n**Safe conclusion**",
-          citations: [],
-          trace: [],
+          citations: [
+            {
+              chunk_id: "source-1",
+              doc_id: "submission",
+              version: "current",
+              source_path: "owner-submission",
+              source_position: "lines 1-21",
+              access_scope: "owner",
+              sample_kind: "owner-submission",
+              source_trust: "untrusted-data",
+              claim: '<img src=x onerror="alert(1)">',
+              text: "PRIVATE_EXCERPT",
+            },
+          ],
+          trace: [
+            { tool_name: "get_submission_source", failed: false },
+            { tool_name: "search_evidence", failed: true },
+          ],
           failureReason: null,
           cancelRequested: false,
           eventSeq: 0,
@@ -300,6 +482,83 @@ describe("AgentConversationWorkspace", () => {
       "<script",
     );
     expect(state.openConversation).toHaveBeenCalledWith(conversationId);
+    expect(wrapper.find('[data-slot="bubble-content"]').text()).toContain(
+      "Explain the result",
+    );
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("agent.citations"))!
+      .trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("agent.workspace.activity"))!
+      .trigger("click");
+    await flushPromises();
+    expect(
+      wrapper.find('[data-slot="trace-collapsible-content"] img').exists(),
+    ).toBe(false);
+    expect(wrapper.text()).toContain('onerror="alert(1)"');
+    expect(wrapper.text()).toContain("agent.workspace.readSource");
+    expect(
+      wrapper.find('[data-slot="trace-line"][data-status="error"]').text(),
+    ).toContain("agent.workspace.searchEvidence");
+    expect(wrapper.text()).not.toContain("PRIVATE_EXCERPT");
+    await wrapper.get('[role="checkbox"]').trigger("click");
+    await wrapper
+      .get('[aria-label="agent.workspace.reuseQuestion"]')
+      .trigger("click");
+    await flushPromises();
+    expect((wrapper.get("textarea").element as HTMLTextAreaElement).value).toBe(
+      "Explain the result",
+    );
+    expect(wrapper.get('[role="checkbox"]').attributes("aria-checked")).toBe(
+      "false",
+    );
+    expect(wrapper.text()).toContain("agent.context.forumComments");
+    expect(state.sendTurn).not.toHaveBeenCalled();
+    await wrapper.get('[role="checkbox"]').trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "agent.context.clear")!
+      .trigger("click");
+    expect(wrapper.get('[role="checkbox"]').attributes("aria-checked")).toBe(
+      "false",
+    );
+    expect(wrapper.text()).not.toContain("agent.context.forumComments");
+    await wrapper.get("textarea").setValue("Keep this unsent draft");
+    expect(
+      wrapper
+        .get('[aria-label="agent.workspace.reuseQuestion"]')
+        .attributes("disabled"),
+    ).toBeDefined();
+    await wrapper.get("textarea").setValue("");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "agent.workspace.followupEdges")!
+      .trigger("click");
+    expect((wrapper.get("textarea").element as HTMLTextAreaElement).value).toBe(
+      "agent.workspace.followupEdges",
+    );
+    expect(state.sendTurn).not.toHaveBeenCalled();
+    await wrapper.get("textarea").setValue("");
+    await wrapper
+      .get('[aria-label="agent.workspace.conversationActions"]')
+      .trigger("keydown", { key: "Enter" });
+    await flushPromises();
+    const remove = Array.from(
+      document.querySelectorAll('[role="menuitem"]'),
+    ).find((item) => item.textContent?.includes("agent.workspace.delete"));
+    (remove as HTMLElement).click();
+    await flushPromises();
+    const dialog = document.querySelector('[role="alertdialog"]');
+    expect(dialog?.textContent).toContain("agent.workspace.deleteConfirm");
+    expect(state.deleteCurrentConversation).not.toHaveBeenCalled();
+    const keep = Array.from(dialog!.querySelectorAll("button")).find(
+      (button) => button.textContent === "agent.workspace.keepConversation",
+    );
+    keep!.click();
+    await flushPromises();
+    expect(state.deleteCurrentConversation).not.toHaveBeenCalled();
     state.turns.value[0].answer = null;
     state.turns.value[0].status = "queued";
     await flushPromises();
@@ -309,6 +568,51 @@ describe("AgentConversationWorkspace", () => {
     expect(cancel).toBeDefined();
     await cancel!.trigger("click");
     expect(state.cancelTurn).toHaveBeenCalledWith(state.turns.value[0]);
+    state.turns.value[0].status = "failed";
+    state.turns.value[0].failureReason = "ModelProtocolError";
+    await flushPromises();
+    expect(wrapper.text()).toContain("agent.workspace.modelResponseInvalid");
+    for (const reason of [
+      "model_answer_json_invalid",
+      "model_answer_bounds_invalid",
+      "model_citation_invalid",
+    ]) {
+      state.turns.value[0].failureReason = reason;
+      await flushPromises();
+      expect(wrapper.text()).toContain("agent.workspace.modelResponseInvalid");
+    }
+    for (const reason of [
+      "answer_source_diagnosis_unverified",
+      "citation_claim_unverified",
+    ]) {
+      state.turns.value[0].failureReason = reason;
+      await flushPromises();
+      expect(wrapper.text()).toContain("agent.workspace.evidenceNotVerified");
+      expect(wrapper.text()).not.toContain("agent.workspace.turnFailed");
+    }
+    state.turns.value[0].failureReason = "answer_source_reference_unverified";
+    state.turns.value.push({
+      ...state.turns.value[0],
+      turnId: "turn-2",
+      turnIndex: 2,
+      status: "completed",
+      answer: "Verified result",
+      failureReason: null,
+    });
+    await flushPromises();
+    const earlier = wrapper
+      .findAll("button")
+      .find((button) =>
+        button.text().includes("agent.workspace.earlierAnalysisIncomplete"),
+      );
+    expect(earlier?.attributes("aria-expanded")).toBe("false");
+    expect(wrapper.text()).not.toContain(
+      "agent.workspace.sourceResponseBlocked",
+    );
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    await earlier!.trigger("click");
+    await flushPromises();
+    expect(wrapper.text()).toContain("agent.workspace.sourceResponseBlocked");
     wrapper.unmount();
   });
 

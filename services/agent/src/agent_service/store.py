@@ -233,6 +233,9 @@ class WorkflowStore:
             db.execute("CREATE INDEX IF NOT EXISTS conversations_by_owner_updated ON conversations(owner_id,updated_at DESC)")
             db.execute("CREATE INDEX IF NOT EXISTS turns_by_conversation_index ON conversation_turns(conversation_id,turn_index)")
             db.execute("CREATE INDEX IF NOT EXISTS conversation_events_by_turn ON conversation_events(turn_id,seq)")
+            turn_columns = {row["name"] for row in db.execute("PRAGMA table_info(conversation_turns)")}
+            if "context_json" not in turn_columns:
+                db.execute("ALTER TABLE conversation_turns ADD COLUMN context_json TEXT NOT NULL DEFAULT '{}'")
             columns = {row["name"] for row in db.execute("PRAGMA table_info(threads)")}
             if "save_retry_count" not in columns:
                 db.execute("ALTER TABLE threads ADD COLUMN save_retry_count INTEGER NOT NULL DEFAULT 0")
@@ -402,6 +405,7 @@ class WorkflowStore:
         result = dict(row)
         result["citations"] = json.loads(result.pop("citations_json"))
         result["trace"] = json.loads(result.pop("trace_json"))
+        result["context"] = json.loads(result.pop("context_json"))
         result["cancel_requested"] = bool(result["cancel_requested"])
         return result
 
@@ -487,7 +491,7 @@ class WorkflowStore:
 
     def create_conversation_turn(
         self, conversation_id: str, owner_id: str, turn_id: str,
-        client_turn_id: str, question: str, *, now: float,
+        client_turn_id: str, question: str, *, now: float, context: dict[str, object] | None = None,
     ) -> dict[str, object]:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -502,7 +506,7 @@ class WorkflowStore:
                     (conversation_id, client_turn_id),
                 ).fetchone()
                 if existing is not None:
-                    if existing["question"] != question:
+                    if existing["question"] != question or json.loads(existing["context_json"]) != (context or {}):
                         raise Conflict("idempotency_conflict")
                     db.commit()
                     return self._conversation_turn_decode(existing)
@@ -515,10 +519,10 @@ class WorkflowStore:
                 db.execute(
                     """INSERT INTO conversation_turns (
                            turn_id,conversation_id,owner_id,turn_index,client_turn_id,run_id,status,
-                           question,created_at,updated_at,event_seq
-                       ) VALUES (?,?,?,?,?,?, 'queued',?,?,?,1)""",
+                           question,created_at,updated_at,event_seq,context_json
+                       ) VALUES (?,?,?,?,?,?, 'queued',?,?,?,1,?)""",
                     (turn_id, conversation_id, owner_id, turn_index, client_turn_id, run_id,
-                     question, now, now),
+                     question, now, now, json.dumps(context or {}, ensure_ascii=False, separators=(",", ":"))),
                 )
                 self._conversation_event(db, turn_id, 1, run_id, "turn_created", {"turnIndex": turn_index}, now)
                 db.execute(
@@ -680,7 +684,7 @@ class WorkflowStore:
         return self._conversation_turn_decode(updated)
 
     def cancel_conversation_turn(
-        self, conversation_id: str, turn_id: str, owner_id: str, *, now: float,
+        self, conversation_id: str, turn_id: str, owner_id: str, *, expected_run_id: str, now: float,
     ) -> dict[str, object]:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -691,6 +695,8 @@ class WorkflowStore:
                 ).fetchone()
                 if row is None:
                     raise NotFound("conversation_turn_not_found")
+                if row["run_id"] != expected_run_id:
+                    raise Conflict("run_replaced")
                 if row["status"] in {"queued", "running"}:
                     seq = int(row["event_seq"]) + 1
                     db.execute(

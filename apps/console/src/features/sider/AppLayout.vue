@@ -50,6 +50,11 @@ const navItems = computed<NavItem[]>(() => [
     to: { name: "contest-list" },
     activePath: "/contest",
   },
+  {
+    label: t("sidebar.agent"),
+    to: { name: "agent-workspace" },
+    activePath: "/agent",
+  },
 ]);
 
 const isActiveNav = (item: NavItem) => {
@@ -75,7 +80,7 @@ const isActiveNav = (item: NavItem) => {
             </TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" class="mr-2 hidden !h-4 md:block" />
-          <NavigationMenu class="hidden md:flex">
+          <NavigationMenu class="hidden whitespace-nowrap md:flex">
             <NavigationMenuList
               class="flex h-full items-center gap-[var(--uc-layout-control-gap)]"
             >
@@ -132,6 +137,12 @@ const isActiveNav = (item: NavItem) => {
 </template>
 
 <style scoped>
+@media (min-width: 768px) and (max-width: 1023px) {
+  .uc-app-header-actions :deep(.uc-header-search) {
+    width: auto;
+  }
+}
+
 .uc-page-main :deep(:where([id], .markdown-view strong, .markdown-view p)) {
   scroll-margin-block-start: var(--uc-app-header-height);
 }

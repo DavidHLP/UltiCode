@@ -88,9 +88,6 @@ class SearchWorkerEndToEndIT {
         props = new SearchWorkerProperties();
         props.setEnabled(true);
         props.setConsumerName("search-worker-it");
-        worker = new SearchDocumentIndexWorker(redis, new MeiliSearchIndexAdapter(meiliClient),
-                new com.fasterxml.jackson.databind.ObjectMapper(), props,
-                new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }
 
     @AfterAll
@@ -104,6 +101,10 @@ class SearchWorkerEndToEndIT {
         WRITE_BODIES.clear();
         DELETED_IDS.clear();
         redis.delete(List.of(STREAM, props.getDlqKey(), props.getVersionKeyPrefix() + ":problems"));
+        // Deleting the stream also deletes its group; do not reuse cached transport state.
+        worker = new SearchDocumentIndexWorker(redis, new MeiliSearchIndexAdapter(meiliClient),
+                new com.fasterxml.jackson.databind.ObjectMapper(), props,
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }
 
     private static void handleMeili(HttpExchange exchange) throws IOException {

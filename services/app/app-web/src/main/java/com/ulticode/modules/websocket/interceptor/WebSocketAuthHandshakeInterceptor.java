@@ -26,6 +26,15 @@ public class WebSocketAuthHandshakeInterceptor implements HandshakeInterceptor {
   private static final Logger log =
       LoggerFactory.getLogger(WebSocketAuthHandshakeInterceptor.class);
 
+  // Framework error messages may stringify session attributes before CONNECT.
+  // Keep the credential opaque until its single authentication use.
+  record SessionCredential(String value) {
+    @Override
+    public String toString() {
+      return "[REDACTED]";
+    }
+  }
+
   private final TokenExtractor tokenExtractor;
 
   public WebSocketAuthHandshakeInterceptor(TokenExtractor tokenExtractor) {
@@ -44,7 +53,7 @@ public class WebSocketAuthHandshakeInterceptor implements HandshakeInterceptor {
 
     var tokenOpt = tokenExtractor.extractToken(request);
     if (tokenOpt.isPresent()) {
-      attributes.put("auth", tokenOpt.get());
+      attributes.put("auth", new SessionCredential(tokenOpt.get()));
     } else {
       log.warn("WebSocket handshake rejected: no authentication token found");
       return false;

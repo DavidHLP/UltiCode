@@ -76,6 +76,14 @@ class JwtChannelInterceptorTest {
   }
 
   @Test
+  void handshakeCredential_isRedactedBeforeConnect() {
+    Map<String, Object> attributes = new HashMap<>();
+    attributes.put("auth", new WebSocketAuthHandshakeInterceptor.SessionCredential("private-cookie-token"));
+    assertFalse(attributes.toString().contains("private-cookie-token"));
+    assertTrue(attributes.toString().contains("[REDACTED]"));
+  }
+
+  @Test
   void preSend_withValidToken_delegatesAndAttachesPrincipal() {
     String token = "valid-token";
     String userId = "user-123";
@@ -86,7 +94,7 @@ class JwtChannelInterceptorTest {
     Map<String, Object> sessionAttrs = new HashMap<>();
     accessor.setSessionAttributes(sessionAttrs);
 
-    sessionAttrs.put("auth", token);
+    sessionAttrs.put("auth", new WebSocketAuthHandshakeInterceptor.SessionCredential(token));
     when(authenticator.authenticate(Optional.of(token))).thenReturn(clientData);
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
@@ -94,6 +102,8 @@ class JwtChannelInterceptorTest {
 
     assertSame(message, result);
     verify(authenticator).authenticate(Optional.of(token));
+    assertFalse(accessor.getSessionAttributes().containsKey("auth"));
+    assertFalse(message.toString().contains(token));
     assertEquals(clientData, accessor.getSessionAttributes().get("user"));
     assertNotNull(accessor.getUser());
   }
@@ -106,7 +116,7 @@ class JwtChannelInterceptorTest {
     Map<String, Object> sessionAttrs = new HashMap<>();
     accessor.setSessionAttributes(sessionAttrs);
 
-    sessionAttrs.put("auth", token);
+    sessionAttrs.put("auth", new WebSocketAuthHandshakeInterceptor.SessionCredential(token));
     when(authenticator.authenticate(any()))
             .thenThrow(new WebSocketAuthenticationException(
                     WebSocketErrorCode.TOKEN_BLACKLISTED, "Token has been revoked"));
@@ -117,6 +127,8 @@ class JwtChannelInterceptorTest {
             WebSocketAuthenticationException.class,
             () -> interceptor.preSend(message, channel));
     assertEquals(WebSocketErrorCode.TOKEN_BLACKLISTED, ex.getErrorCode());
+    assertFalse(accessor.getSessionAttributes().containsKey("auth"));
+    assertFalse(message.toString().contains(token));
   }
 
   @Test
@@ -171,7 +183,7 @@ class JwtChannelInterceptorTest {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
     accessor.setLeaveMutable(true);
     Map<String, Object> sessionAttrs = new HashMap<>();
-    sessionAttrs.put("auth", sessionToken);
+    sessionAttrs.put("auth", new WebSocketAuthHandshakeInterceptor.SessionCredential(sessionToken));
     accessor.setSessionAttributes(sessionAttrs);
 
     when(authenticator.authenticate(Optional.of(sessionToken)))

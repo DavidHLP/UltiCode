@@ -161,6 +161,12 @@ release-selected/full runs 都必须成功，不能把 skipped/cancelled 当成�
 才导出完成标记。每个 JVM 有 heap 上限；不会并行启动多个本机 acceptance stack。
 不使用生产 secret、生产数据、mock API 或付费模型。
 
+HTTP 存活不代表 Dubbo 接口已被消费者发现。Admin readiness 额外检查 ProblemAdminReadPort
+与 TestCaseOwnerPort 的实际 consumer invoker；缺失时返回 503。Submission 在两分钟的
+有界发现期限内检查 ProblemFactsPort 与 SubmissionUserReadPort，成功后才输出 launcher
+使用的就绪标记；超时则启动失败。检查只读取发现状态，不调用业务 RPC 或重试写入。
+launcher 记录本次启动前日志偏移，旧标记不会被当成本次成功。
+
 测试账号仅由 disposable dev bootstrap 与 Auth registration 创建。Manager 的直接权限
 通过真实 Auth API 临时授予并过期，不改全局 role policy；Console participant 保持 USER。
 随后执行基础与扩展 browser scripts，覆盖 AC/WA、重判、完整 admin create/edit/readback、

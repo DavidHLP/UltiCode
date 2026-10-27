@@ -60,13 +60,43 @@ class AdminReadinessControllerTest {
         return (Map<String, Object>) response.getBody().get("components");
     }
 
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static ObjectProvider<org.apache.dubbo.config.spring.reference.ReferenceBeanManager> rpcProvider(boolean available) {
+        var manager = mock(org.apache.dubbo.config.spring.reference.ReferenceBeanManager.class);
+        java.util.List<org.apache.dubbo.config.spring.ReferenceBean> references = new java.util.ArrayList<>();
+        for (String name : java.util.List.of(com.ulticode.app.api.service.TestCaseOwnerPort.class.getName(),
+                com.ulticode.app.api.service.ProblemAdminReadPort.class.getName())) {
+            var reference = mock(org.apache.dubbo.config.spring.ReferenceBean.class);
+            var config = mock(org.apache.dubbo.config.ReferenceConfig.class);
+            var invoker = mock(org.apache.dubbo.rpc.Invoker.class);
+            when(reference.getServiceInterface()).thenReturn(name);
+            when(reference.getReferenceConfig()).thenReturn(config);
+            when(config.getInvoker()).thenReturn(invoker);
+            when(invoker.isAvailable()).thenReturn(available);
+            references.add(reference);
+        }
+        when(manager.getReferences()).thenReturn(references);
+        ObjectProvider<org.apache.dubbo.config.spring.reference.ReferenceBeanManager> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(manager);
+        return provider;
+    }
+
+    @Test
+    void missingProblemProviderCannotReportReadyDespiteHealthyDatabase() throws Exception {
+        var controller = new AdminReadinessController(dataSourceProvider(), redisProvider(),
+                readinessProvider(null), rpcProvider(false));
+        assertThat(controller.ready().getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(components(controller.ready())).containsEntry("problemOwnerRpc", "DOWN");
+    }
+
     @Test
     @DisplayName("reports the verified object store and answers 200")
     void reportsVerifiedStorage() throws Exception {
         StorageReadiness readiness = new StorageReadiness();
         readiness.markReady();
         AdminReadinessController controller = new AdminReadinessController(
-                dataSourceProvider(), redisProvider(), readinessProvider(readiness));
+                dataSourceProvider(), redisProvider(), readinessProvider(readiness), rpcProvider(true));
 
         ResponseEntity<Map<String, Object>> response = controller.ready();
 
@@ -80,7 +110,7 @@ class AdminReadinessControllerTest {
         StorageReadiness readiness = new StorageReadiness();
         readiness.markFailed("runtime outage");
         AdminReadinessController controller = new AdminReadinessController(
-                dataSourceProvider(), redisProvider(), readinessProvider(readiness));
+                dataSourceProvider(), redisProvider(), readinessProvider(readiness), rpcProvider(true));
 
         ResponseEntity<Map<String, Object>> failedResponse = controller.ready();
 
@@ -99,7 +129,7 @@ class AdminReadinessControllerTest {
     @DisplayName("a context without the shared storage module keeps db/redis semantics")
     void absentStorageModuleIsNotReportedDown() throws Exception {
         AdminReadinessController controller = new AdminReadinessController(
-                dataSourceProvider(), redisProvider(), readinessProvider(null));
+                dataSourceProvider(), redisProvider(), readinessProvider(null), rpcProvider(true));
 
         ResponseEntity<Map<String, Object>> response = controller.ready();
 

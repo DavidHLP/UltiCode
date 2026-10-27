@@ -825,6 +825,14 @@ echo "Starting PM2 services: $PM2_APPS"
       echo "Named scope $DEV_SCOPE: leaving processes of other scopes running (use stop.sh --scope/--all to tear down)." >&2
       ;;
   esac
+  if [[ ",$PM2_APPS," == *",ulticode-submission,"* ]]; then
+    mkdir -p "$ROOT_DIR/logs"
+    if [[ -f "$ROOT_DIR/logs/backend-submission.out.log" ]]; then
+      wc -c < "$ROOT_DIR/logs/backend-submission.out.log" > "$ROOT_DIR/logs/.submission-ready-offset"
+    else
+      echo 0 > "$ROOT_DIR/logs/.submission-ready-offset"
+    fi
+  fi
   if [[ ",$PM2_APPS," == *",ulticode-judge,"* && ",$PM2_APPS," == *",ulticode-app,"* ]]; then
     first="${PM2_APPS//ulticode-judge,/}"
     first="${first//,ulticode-judge/}"
@@ -884,12 +892,13 @@ check_pm2_online() {
   # (pid/status 在 JVM 完全起来之前就可能就位)。
   # ecosystem.config.cjs 将 judge 日志写到 logs/backend-judge.out.log,
   # 不是 PM2 默认目录 (此前 grep 错路径导致 judge 就绪检查永远失败)。
-  log="$ROOT_DIR/logs/backend-judge.out.log"
+  local owner="${app#ulticode-}"
+  log="$ROOT_DIR/logs/backend-$owner.out.log"
   # 只搜本次启动 (步骤 6 记录偏移) 之后的新内容, 忽略历史 banner,
   # 否则慢启动/重启中的 judge 会被上一次运行的旧 banner 误判就绪。
   local offset=0
-  if [[ -f "$ROOT_DIR/logs/.judge-ready-offset" ]]; then
-    offset="$(<"$ROOT_DIR/logs/.judge-ready-offset")"
+  if [[ -f "$ROOT_DIR/logs/.$owner-ready-offset" ]]; then
+    offset="$(<"$ROOT_DIR/logs/.$owner-ready-offset")"
   fi
   # 不用 grep -q: 它在首个匹配即提前退出, tail 收到 SIGPIPE(141),
   # 在 set -o pipefail 下管道非零 → 假阴性。改为读完全部输入并丢弃输出。

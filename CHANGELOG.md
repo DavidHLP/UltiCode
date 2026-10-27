@@ -4,6 +4,10 @@
 
 No next release has been published from this development branch.
 
+- Reserve backend owner versions `1.0.5` for the next complete source-matched image set.
+- Gate Admin/Submission readiness on required RPC discovery without retrying writes.
+- Preserve server errors on internal App error dispatches while ordinary routes remain authenticated.
+
 - Clarify release-pinned installation versus existing-environment upgrades.
 - Add selected real business/migration acceptance to the CI summary gate.
 - Reattach the rotated CSRF token when replaying an authenticated mutation after

@@ -100,7 +100,7 @@ assert_file_not_contains services/admin/src/main/java/com/ulticode/admin/securit
 [[ "$(devstack_readiness ulticode-9004)" == "http|9004|/landing/" ]]
 [[ "$(devstack_readiness_banner ulticode-judge)" == "Started BackendJudgeApplication" ]]
 [[ "$(devstack_readiness_banner ulticode-core)" == "Started CoreApplication" ]]
-[[ -z "$(devstack_readiness_banner ulticode-submission)" ]]
+[[ "$(devstack_readiness_banner ulticode-submission)" == "Submission projection providers discovered" ]]
 [[ "$DEVSTACK_SERVICE_READINESS_ATTEMPTS" == 90 ]]
 [[ "$DEVSTACK_READINESS_INTERVAL_SECONDS" == 2 ]]
 [[ "$DEVSTACK_BOOTSTRAP_TIMEOUT_SECONDS" == 90 ]]

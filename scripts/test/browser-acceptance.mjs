@@ -14,6 +14,7 @@ assert.equal(process.env.ACCEPTANCE_DISPOSABLE, 'true', 'Explicit disposable-sta
 const output = resolve(process.env.ACCEPTANCE_OUTPUT || '.local/browser-acceptance')
 await mkdir(output, { recursive: true })
 const report = { startedAt: new Date().toISOString(), evidence: 'real-local-services', checks: [] }
+const authObservations = []
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.ACCEPTANCE_CHROMIUM ? { executablePath: process.env.ACCEPTANCE_CHROMIUM } : {}),
@@ -22,6 +23,22 @@ const timer = setTimeout(() => { console.error('Acceptance exceeded five minutes
 try {
   const context = await browser.newContext({ locale: 'en-US' })
   const page = await context.newPage()
+  page.on('response', response => {
+    if (response.status() !== 401 || authObservations.length >= 20) return
+    authObservations.push((async () => {
+      const request = response.request()
+      const cookie = await request.headerValue('cookie') || ''
+      const authorization = await request.headerValue('authorization') || ''
+      const envelope = await response.json().catch(() => ({}))
+      const code = envelope.code
+      const safeCode = typeof code === 'number' && Number.isFinite(code) ? code
+        : typeof code === 'string' && /^[A-Z0-9_:-]{1,80}$/i.test(code) ? code : null
+      report.httpAuthFailures ||= []
+      report.httpAuthFailures.push({ path: new URL(response.url()).pathname, method: request.method(),
+        status: 401, code: safeCode, accessCookiePresent: /(?:^|;\s*)access_token=/.test(cookie),
+        bearerPresent: authorization.startsWith('Bearer ') })
+    })())
+  })
   page.setDefaultTimeout(30_000)
   await login(page, consoleOrigin)
   await page.waitForURL(`${consoleOrigin}/problemset`)
@@ -123,6 +140,7 @@ try {
   report.failure = failure.replaceAll(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED]').slice(0, 2000)
   process.exitCode = 1
 } finally {
+  await Promise.allSettled(authObservations)
   report.finishedAt = new Date().toISOString()
   await writeFile(resolve(output, 'report.json'), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 })
   console.log(JSON.stringify(report))

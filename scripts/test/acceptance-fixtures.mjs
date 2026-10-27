@@ -5,7 +5,7 @@ import { request } from 'playwright'
 
 assert.equal(process.env.ACCEPTANCE_DISPOSABLE, 'true')
 const origin = 'http://127.0.0.1:9002'
-const admin = await request.newContext({ baseURL: origin })
+const admin = await request.newContext({ baseURL: 'http://127.0.0.1:9003' })
 const participant = await request.newContext({ baseURL: origin })
 try {
   const login = await admin.post('/api/auth/login', { data: {
@@ -31,6 +31,37 @@ try {
     assert(response.ok(), `Fixture permission ${action}:${resource} rejected`)
     assert.equal((await response.json()).code, 0)
   }
+  // The canonical DEV-LOCAL seed supplies the published problem, languages and
+  // tags. Judge cases are separate owner data: prepare them explicitly through
+  // the real Management API, with server-generated IDs and structured inputs.
+  const descriptionResponse = await admin.get('/api/admin/problems/1/description')
+  assert(descriptionResponse.ok(), 'Canonical problem seed is missing')
+  const description = (await descriptionResponse.json()).data
+  assert.equal(description.slug, 'two-sum')
+  assert.equal(description.isPublished, true)
+  assert(description.tags.length > 0, 'CRUD tag roundtrip requires seeded tags')
+  const codeResponse = await admin.get('/api/admin/problems/1/code')
+  assert(codeResponse.ok())
+  assert((await codeResponse.json()).data.languages.some(language => language.value === 'python'))
+  for (const [nums, target, expected] of [[[3, 3], 6, [0, 1]], [[2, 5, 5, 11], 10, [1, 2]]]) {
+    const inputs = JSON.stringify([{ name: 'nums', value: nums }, { name: 'target', value: target }])
+    const created = await admin.post('/api/admin/problems/1/test-cases', {
+      headers: { 'X-CSRF-Token': decodeURIComponent(csrf.value) },
+      data: { isSample: false, isHidden: true, inputText: `nums = ${JSON.stringify(nums)}, target = ${target}`,
+        outputText: JSON.stringify(expected), inputs },
+    })
+    assert(created.ok(), 'Disposable hidden Judge fixture creation failed')
+    const envelope = await created.json()
+    assert.equal(envelope.code, 0)
+    assert(envelope.data?.id, 'Judge fixture must have a server-generated ID')
+    const readback = await admin.get(`/api/admin/problems/1/test-cases/${envelope.data.id}`)
+    assert(readback.ok())
+    const persisted = (await readback.json()).data
+    assert.equal(persisted.isHidden, true)
+    assert.equal(persisted.isSample, false)
+    assert.equal(persisted.outputText, JSON.stringify(expected))
+    assert.deepEqual(JSON.parse(persisted.inputs), JSON.parse(inputs))
+  }
   const registered = await participant.post('/api/auth/register', { data: {
     username: process.env.ACCEPTANCE_USERNAME,
     password: process.env.ACCEPTANCE_PASSWORD,
@@ -41,7 +72,7 @@ try {
   const currentParticipant = await participant.get('/api/auth/me')
   assert(currentParticipant.ok())
   assert.equal((await currentParticipant.json()).data.user.role, 'USER')
-  console.log('Disposable ordinary participant and expiring direct manager permissions: PASS')
+  console.log('Canonical problem, persisted hidden Judge cases, ordinary participant and expiring manager permissions: PASS')
 } finally {
   await admin.dispose()
   await participant.dispose()

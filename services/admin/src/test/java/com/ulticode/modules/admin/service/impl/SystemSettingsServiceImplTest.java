@@ -84,11 +84,11 @@ class SystemSettingsServiceImplTest {
 
     @Test
     void agentAvailabilityRejectsCorruptStoredSettings() {
-        assertThat(service.isAgentEnabled()).isTrue();
+        assertThat(service.isAgentEnabled()).isFalse();
         store.rows.put(SystemSettingsStore.KEY_FEATURES, "broken-json");
         assertThatThrownBy(() -> service.isAgentEnabled()).isInstanceOf(BusinessException.class);
         store.rows.put(SystemSettingsStore.KEY_FEATURES, "{\"featureForum\":true}");
-        assertThat(service.isAgentEnabled()).isTrue();
+        assertThat(service.isAgentEnabled()).isFalse();
         store.rows.put(SystemSettingsStore.KEY_FEATURES, "{\"featureAgent\":false}");
         assertThat(service.isAgentEnabled()).isFalse();
     }
@@ -103,14 +103,18 @@ class SystemSettingsServiceImplTest {
     }
 
     @Test
-    void agentDefaultsOnForOldSettingsAndCanBeDisabled() throws Exception {
-        assertThat(service.getFeatureToggles().isFeatureAgent()).isTrue();
+    void agentDefaultsOffForOldSettingsAndCanBeExplicitlyEnabled() throws Exception {
+        assertThat(service.getFeatureToggles().isFeatureAgent()).isFalse();
         FeatureTogglesVO legacy = objectMapper.readValue("{\"featureForum\":true}", FeatureTogglesVO.class);
-        assertThat(legacy.isFeatureAgent()).isTrue();
+        assertThat(legacy.isFeatureAgent()).isFalse();
+        legacy.setFeatureAgent(true);
+        service.updateFeatureToggles(legacy);
+        assertThat(service.getFeatureToggles().isFeatureAgent()).isTrue();
+        assertThat(service.getAllSettings().isFeatureAgent()).isTrue();
+        assertThat(service.isAgentEnabled()).isTrue();
         legacy.setFeatureAgent(false);
         service.updateFeatureToggles(legacy);
-        assertThat(service.getFeatureToggles().isFeatureAgent()).isFalse();
-        assertThat(service.getAllSettings().isFeatureAgent()).isFalse();
+        assertThat(service.isAgentEnabled()).isFalse();
     }
 
     @Nested

@@ -99,6 +99,26 @@ health 通过只证明 readiness。发布前仍须用真实 Auth/App/Submission/
 mock API、sample verdict、容器 healthy 和截图均不能替代这项验收。Agent 默认关闭，
 不属于这个基础安装的模型验收。
 
+### 真实服务浏览器验收
+
+`scripts/test/browser-acceptance.mjs` 只允许 loopback origins，并要求
+`ACCEPTANCE_DISPOSABLE=true`。准备上述 disposable stack、`two-sum` 示例、可用
+Python Judge sandbox 和已授权的测试账号后，通过安全环境提供
+`ACCEPTANCE_USERNAME` / `ACCEPTANCE_PASSWORD`。Management 可独立提供
+`ACCEPTANCE_MANAGEMENT_USERNAME` / `ACCEPTANCE_MANAGEMENT_PASSWORD`；账号必须具有
+READ:PROBLEM、READ:CONTEST、CREATE:CONTEST 及评分规则读取所需权限。缺少权限应失败，
+不得修改全局角色策略或在测试中伪造授权。只在 disposable fixture 上显式准备所需权限。
+
+```bash
+ACCEPTANCE_DISPOSABLE=true node scripts/test/browser-acceptance.mjs
+```
+
+默认使用 Playwright 的 Chromium；可通过 `ACCEPTANCE_CHROMIUM` 选择已安装的浏览器。
+脚本使用真实登录、Monaco model、提交按钮、Submission readback、Judge terminal
+Accepted、Management 数据读取与未发布 contest 的创建/readback，不拦截 API。
+报告在 `.local/browser-acceptance/report.json`，不保存 cookies、凭据或源码。提交与
+未发布 contest fixture 保留用于诊断，不自动删除数据。此检查不是生产、性能或模型验收。
+
 ### 已准备环境启动
 
 ```bash
@@ -170,7 +190,7 @@ During a retry, an old run's terminal event cannot release the pending run reque
 
 Console 的提交场景入口是共享提交详情中的可收起复盘面板，用于 `/submissions/:id` 和题目页选中的提交。“我的提交”直接进入对应结果；旧 `/personal/agent?threadId=...` 只负责验证线程归属并跳转，无线程时返回个人提交列表。
 
-Agent 对话默认开启，不再读取 `VITE_AGENT_REVIEW_ENABLED`。管理员通过 Management“系统设置 → 功能开关 → Agent 智能体”统一控制，沿用该页的保存流程和管理权限。设置持久化在 Admin 的既有 features 配置中，旧配置缺少字段时默认开启。用户端不提供开关。Agent 每次请求从 Admin 的 `/api/v1/public/features/agent` 读取可用状态；关闭后拒绝新的对话、分析及保存操作，保留已有数据和正在执行的分析。配置读取失败返回 503，不继续调用模型。独立部署可通过 `ULTICODE_ADMIN_BASE` 配置 Admin 地址，默认 `http://127.0.0.1:9102`。此设置不替代模型及持久化授权。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。
+Agent 对话是实验功能，默认关闭，不再读取 `VITE_AGENT_REVIEW_ENABLED`。管理员通过 Management“系统设置 → 功能开关 → Agent 智能体”统一控制，沿用该页的保存流程和管理权限。设置持久化在 Admin 的既有 features 配置中，旧配置缺少字段时默认关闭。用户端不提供开关。Agent 每次请求从 Admin 的 `/api/v1/public/features/agent` 读取可用状态；关闭后拒绝新的对话、分析及保存操作，保留已有数据和正在执行的分析。配置读取失败返回 503，不继续调用模型。独立部署可通过 `ULTICODE_ADMIN_BASE` 配置 Admin 地址，默认 `http://127.0.0.1:9102`。此设置不替代模型及持久化授权。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。
 
 打开面板后，认证的 `GET /agent/capabilities` 返回分析、持久化和来源模式。查询失败不影响原提交查看；打开、收起和恢复线程均不自动分析。`metadata` 模式使用提交元数据与授权参考资料；`owner_source` 模式要求用户明确同意源码外发，只读取当前线程绑定的本人源码，限制为 12,000 字符，不持久化源码正文或引用摘录。 授权源码的会话由后端先调用 `get_submission_source`，将返回内容作为当前轮的不可信证据传给模型，并记录实际读取轨迹，再依据返回证据回答。源码专用预算日志中的连接失败仅可在官方用量统计与既有回执完整吻合后，按零额外计费核账；保留失败原因、原始备份、证据摘要和调用保留额度，恢复日志区分核账凭据与模型响应回执。
 
@@ -279,7 +299,7 @@ The published Zod 3 adapter is not used; production dependency audits retain the
 - 中文/英文文案同步，保留键盘操作、焦点管理和窄屏可用性。UI 行为变化需要对应回归测试，
   关键用户旅程需要单独的浏览器验证，不能用构建成功代替。
 - 保留 Agent 工作区、提交复盘与学习计划的既有资格、授权及降级行为；
-  Agent 对话默认开启，仅管理员通过系统设置中的功能开关关闭；它不代表分析或保存授权。
+  Agent 对话是实验功能，默认关闭，仅管理员通过系统设置中的功能开关显式启用；它不代表分析或保存授权。
 
 复现前端基线时运行只读门禁，避免 `lint --fix` 或全树格式化改变对照源码：
 

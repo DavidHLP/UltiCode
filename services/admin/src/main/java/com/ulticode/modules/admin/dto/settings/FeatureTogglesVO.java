@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  */
 @Data
 public class FeatureTogglesVO {
-    private boolean featureAgent = true;
+    private boolean featureAgent;
     @JsonIgnore
     private boolean featureAgentSpecified;
 

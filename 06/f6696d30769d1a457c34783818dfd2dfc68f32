@@ -1,0 +1,14 @@
+scripts/test/browser-acceptance.mjs
+  h_77173abe25c3ff 17,26-41,143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "06f6696d30769d1a457c34783818dfd2dfc68f32",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

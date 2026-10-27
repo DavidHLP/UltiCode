@@ -130,7 +130,7 @@ function defaultAllSettings(): AllSettings {
     feature_notifications: true,
     feature_bookmarks: true,
     feature_problem_lists: true,
-    feature_agent: true,
+    feature_agent: false,
   }
 }
 

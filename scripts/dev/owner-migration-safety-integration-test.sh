@@ -147,6 +147,28 @@ for OWNER_SCHEMA in auth app; do
 done
 printf 'Auth/App owner migrations: PASS\n'
 
+# Fresh owner chain must allocate IDs, preserve references, and retain FK enforcement.
+mysql_root -e "INSERT INTO app.problems (slug,title,difficulty) VALUES ('id-fresh-check','Fresh ID check','Easy');"
+FRESH_PROBLEM_ID="$(mysql_root -N -B -e "SELECT id FROM app.problems WHERE slug='id-fresh-check'")"
+[[ "$FRESH_PROBLEM_ID" -gt 0 ]]
+# Rehearse the same additive migration against pre-existing IDs and a live reference.
+mysql_root -e "CREATE DATABASE problem_id_upgrade;
+CREATE TABLE problem_id_upgrade.problems (id BIGINT NOT NULL PRIMARY KEY, slug VARCHAR(120));
+CREATE TABLE problem_id_upgrade.test_cases (id VARCHAR(40) PRIMARY KEY, problem_id BIGINT,
+ CONSTRAINT fk_test_cases_problem_id FOREIGN KEY(problem_id) REFERENCES problem_id_upgrade.problems(id));
+INSERT INTO problem_id_upgrade.problems VALUES (73,'existing');
+INSERT INTO problem_id_upgrade.test_cases VALUES ('existing-case',73);"
+mysql_root problem_id_upgrade -e "$(cat "$ROOT_DIR/init-db/migrations/app/V20261027070000__Restore_Server_Generated_Problem_Ids.sql")"
+mysql_root -e "INSERT INTO problem_id_upgrade.problems (slug) VALUES ('new');"
+[[ "$(mysql_root -N -B -e "SELECT id FROM problem_id_upgrade.problems WHERE slug='new'")" -gt 73 ]]
+[[ "$(mysql_root -N -B -e "SELECT COUNT(*) FROM problem_id_upgrade.test_cases t JOIN problem_id_upgrade.problems p ON t.problem_id=p.id WHERE p.id=73 AND p.slug='existing'")" == 1 ]]
+if mysql_root -e "INSERT INTO problem_id_upgrade.test_cases VALUES ('orphan',999999)" > "$TEST_DIR/orphan.log" 2>&1; then
+  echo 'problem ID migration lost FK enforcement' >&2
+  exit 1
+fi
+printf 'Problem IDs fresh/upgrade/reference preservation: PASS\n'
+
+
 env ENV_FILE="$TEST_ENV" MIGRATION_DB_HOST=127.0.0.1 \
   MIGRATION_DB_PORT="$MYSQL_TEST_PORT" MIGRATION_DB_NAME=ulticode \
   MIGRATION_DB_USER=root MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \
@@ -342,6 +364,28 @@ env ENV_FILE="$TEST_ENV" \
   bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-cutover.log" 2>&1
 CUTOVER_COUNTS="$(mysql_root -N -B -e "SELECT (SELECT COUNT(*) FROM submission.submissions),(SELECT COUNT(*) FROM submission.judge_outbox),(SELECT COUNT(*) FROM submission.submission_result_outbox),(SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE=CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)) AND TABLE_SCHEMA='ulticode' AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE')); ")"
 [[ "$CUTOVER_COUNTS" == $'1\t1\t1\t0' ]]
+
+# Fresh provisioning and repeated cutovers share the already-isolated state.
+# Neither may restore compatibility grants as compensation for an empty REVOKE.
+env ENV_FILE="$TEST_ENV" \
+  SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
+  SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
+  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-cutover-repeat.log" 2>&1
+grep -q 'App grants are already absent; no grant mutation required' "$TEST_DIR/submission-cutover-repeat.log"
+[[ "$(mysql_root -N -B -e "SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE=CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)) AND TABLE_SCHEMA='ulticode';")" == 0 ]]
+printf 'already-isolated submission cutover: PASS\n'
+
+cp "$TEST_ENV" "$TEST_DIR/missing-app-account.env"
+printf '\nSUBMISSION_APP_DB_HOST=missing-host\n' >> "$TEST_DIR/missing-app-account.env"
+if env ENV_FILE="$TEST_DIR/missing-app-account.env" \
+  SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
+  SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
+  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-missing-account.log" 2>&1; then
+  echo 'Already-isolated cutover accepted a missing runtime account.' >&2
+  exit 1
+fi
+grep -q 'writer differences are not zero' "$TEST_DIR/submission-missing-account.log"
+printf 'already-isolated missing account rejection: PASS\n'
 
 env ENV_FILE="$TEST_ENV" \
   SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_ROLLBACK \

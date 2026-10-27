@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.service;
 
+import com.ulticode.app.api.dto.ProblemWriteFields;
 import com.ulticode.app.api.command.CreateProblemCommand;
 import com.ulticode.app.api.command.DeleteProblemCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;
@@ -62,7 +63,14 @@ public class ProblemCutoverService {
                         envelope.commandId(), envelope.idempotency(), envelope.actor(), envelope.trace(),
                         createDTO.getSlug(),
                         createDTO.getTitle(),
-                        actorId));
+                        actorId,
+                        new ProblemWriteFields(
+                                createDTO.getSlug(), createDTO.getDifficulty(), createDTO.getIsPremium(),
+                                createDTO.getIsPublished(), null, createDTO.getSummary(), createDTO.getContent(),
+                                createDTO.getExamples(), createDTO.getConstraints(), createDTO.getHints(),
+                                createDTO.getLanguages() == null ? null : createDTO.getLanguages().stream()
+                                        .map(language -> new ProblemWriteFields.Language(language, null)).toList(),
+                                createDTO.getTags())));
         if (result == null || !result.success()) {
             throw AdminOwnerErrorMapper.mapOwnerError(AdminOwnerErrorMapper.Owner.PROBLEM, result);
         }
@@ -82,7 +90,14 @@ public class ProblemCutoverService {
                         idStr,
                         current.version(),
                         updateDTO.getTitle(),
-                        "cutover update"));
+                        "cutover update",
+                        new ProblemWriteFields(
+                                updateDTO.getSlug(), updateDTO.getDifficulty(), updateDTO.getIsPremium(),
+                                updateDTO.getIsPublished(), updateDTO.getHasSolution(), updateDTO.getSummary(), updateDTO.getContent(),
+                                updateDTO.getExamples(), updateDTO.getConstraintsJson(), updateDTO.getHints(),
+                                updateDTO.getLanguages() == null ? null : updateDTO.getLanguages().stream()
+                                        .map(language -> new ProblemWriteFields.Language(language.getLanguage(), language.getStarterCode())).toList(),
+                                updateDTO.getTags())));
         if (result == null || !result.success()) {
             throw AdminOwnerErrorMapper.mapOwnerError(AdminOwnerErrorMapper.Owner.PROBLEM, result);
         }

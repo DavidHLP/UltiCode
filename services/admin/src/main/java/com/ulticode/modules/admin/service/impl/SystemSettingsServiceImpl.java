@@ -198,7 +198,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
     @Override
     public boolean isAgentEnabled() {
         Map<String, String> raw = store.loadAllRaw(List.of(SystemSettingsStore.KEY_FEATURES));
-        if (!raw.containsKey(SystemSettingsStore.KEY_FEATURES)) return true;
+        if (!raw.containsKey(SystemSettingsStore.KEY_FEATURES)) return false;
         FeatureTogglesVO flags = store.parseOrDefault(raw.get(SystemSettingsStore.KEY_FEATURES),
                 FeatureTogglesVO.class, () -> {
                     throw new BusinessException(AdminErrorCode.SETTING_INVALID_VALUE);

@@ -134,6 +134,16 @@ class DefaultProblemDetailPortTest {
     }
 
     @Test
+    void contentOnlyDetailInsertInitializesOptionalSummaryForStorage() {
+        var dto = new UpdateProblemDTO();
+        dto.setContent("content only");
+        port.applyDetailUpdate(1L, problem(1L, "content-only"), dto);
+        verify(problemDetailMapper).insert(argThat((ProblemDetail detail) ->
+                "".equals(detail.getSummary()) && "content only".equals(detail.getContent())
+                        && "[]".equals(detail.getConstraintsJson())));
+    }
+
+    @Test
     void upsertDetailContent_newDetail_insertsAndDenormalizesSlug() {
         UpdateProblemDTO dto = new UpdateProblemDTO();
         dto.setContent("## content");

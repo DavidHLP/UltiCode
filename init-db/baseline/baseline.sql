@@ -2143,7 +2143,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01 17:49:57
+-- Dump completed on 2026-10-27  7:01:43
 --
 -- Dumping schema: auth
 --
@@ -2401,7 +2401,7 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01 17:49:57
+-- Dump completed on 2026-10-27  7:01:43
 --
 -- Dumping schema: admin
 --
@@ -2716,7 +2716,7 @@ CREATE TABLE `user_warnings` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01 17:49:58
+-- Dump completed on 2026-10-27  7:01:44
 --
 -- Dumping schema: app
 --
@@ -3872,7 +3872,7 @@ CREATE TABLE `problem_versions` (
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `problems` (
-  `id` bigint NOT NULL,
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `slug` varchar(120) NOT NULL,
   `title` varchar(255) NOT NULL,
   `difficulty` enum('Easy','Medium','Hard') NOT NULL,
@@ -4367,7 +4367,7 @@ CREATE TABLE `virtual_contest_sessions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01 17:49:59
+-- Dump completed on 2026-10-27  7:01:44
 --
 -- Dumping schema: notification
 --
@@ -4584,7 +4584,7 @@ CREATE TABLE `notifications` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01 17:49:59
+-- Dump completed on 2026-10-27  7:01:44
 --
 -- Dumping schema: submission
 --
@@ -4778,4 +4778,4 @@ CREATE TABLE `submissions` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01 17:49:59
+-- Dump completed on 2026-10-27  7:01:44

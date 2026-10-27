@@ -62,6 +62,11 @@ if [ "$MODE" = "disposable" ]; then
   docker exec -i "$CID" mysql -uroot -proot < "$BASELINE_SQL"
   docker exec "$CID" mysql -uroot -proot -e "$CUTOVER_STATE_SEED_SQL" >/dev/null
   # Per-schema baseline via flyway docker
+  # Table-name parity alone cannot detect a stale identity-column definition.
+  docker exec "$CID" mysql -uroot -proot -e "INSERT INTO app.problems (slug,title,difficulty) VALUES ('baseline-id-check','Baseline ID check','Easy');" >/dev/null
+  ID_CHECK=$(docker exec "$CID" mysql -uroot -proot -N -B -e "SELECT id FROM app.problems WHERE slug='baseline-id-check';")
+  [[ "$ID_CHECK" -gt 0 ]] || { echo '[adopt] generated problem ID check failed' >&2; exit 1; }
+  echo '[adopt] generated problem ID check: PASS'
   echo "[adopt] baselining shared (ulticode) at $SHARED_VER..."
   docker run --rm --network "container:$CID" -v "$ROOT/init-db:/flyway/init-db:ro" \
     flyway/flyway:10.17.0 -url="jdbc:mysql://127.0.0.1:3306/ulticode?$JDBC_PARAMS" -user=root -password=root \

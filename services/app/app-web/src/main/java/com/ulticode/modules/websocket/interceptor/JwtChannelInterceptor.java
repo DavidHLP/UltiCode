@@ -78,12 +78,10 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
   private Message<?> handleConnect(StompHeaderAccessor accessor, Message<?> message, MessageChannel channel) {
     log.debug("=== Handling CONNECT for sessionId: {} ===", accessor.getSessionId());
-    log.debug("Session attributes BEFORE auth: {}", accessor.getSessionAttributes());
 
     try {
       authenticateConnection(accessor);
       log.debug("=== CONNECT authenticated successfully for sessionId: {} ===", accessor.getSessionId());
-      log.debug("Session attributes AFTER auth: {}", accessor.getSessionAttributes());
       log.debug("User principal AFTER auth: {}", accessor.getUser());
     } catch (WebSocketAuthenticationException e) {
       log.error("=== CONNECT auth FAILED for sessionId: {}: {} ===",
@@ -136,8 +134,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   }
 
   private void authenticateConnection(StompHeaderAccessor accessor) {
-    log.debug("Authenticating WebSocket CONNECT, sessionId: {}, sessionAttributes: {}",
-        accessor.getSessionId(), accessor.getSessionAttributes());
+    log.debug("Authenticating WebSocket CONNECT, sessionId: {}", accessor.getSessionId());
 
     // The handshake interceptor is the only token source; client-controlled
     // STOMP headers must never authenticate a connection.
@@ -165,9 +162,10 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private Optional<String> extractTokenFromSession(StompHeaderAccessor accessor) {
     Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
     if (sessionAttributes != null) {
-      Object auth = sessionAttributes.get("auth");
-      if (auth instanceof String token && !token.isEmpty()) {
-        return Optional.of(token);
+      Object auth = sessionAttributes.remove("auth");
+      if (auth instanceof WebSocketAuthHandshakeInterceptor.SessionCredential credential
+          && credential.value() != null && !credential.value().isEmpty()) {
+        return Optional.of(credential.value());
       }
     }
     return Optional.empty();

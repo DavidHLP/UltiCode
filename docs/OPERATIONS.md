@@ -24,6 +24,17 @@ Each service must pass HIGH/CRITICAL Trivy scanning, then be signed and receive 
 
 Use the `release-manifest` artifact from a successful CI run's Docker Publish stage as canonical deployment input. It contains complete nine-service `release-manifest.txt`, `release-set.json`, and per-service evidence. Docker Publish is a reusable workflow called only after the same commit passes `ci-ok`; its authorization still requires a `main` push, never a PR, merge-group or manual verification run. Local `scripts/runbooks/promote-release.sh EVIDENCE_DIR SOURCE_SHA ghcr.io/davidhlp/ulticode` supports read-only dry-run only; `--execute` remains restricted to the authorized publisher on `main`. The workflow uses repository-wide `ulticode-release-tag-writer` concurrency with cancellation disabled. If promotion fails after candidate builds succeed, rerun only the failed `promote` job in that same Actions run, while its nine candidate artifacts remain within their retention period; do not rerun successful `build-and-push` jobs, since a rebuild may produce a different digest and collide with immutable tags. There is no independent push trigger or `workflow_dispatch` publishing entry point. Do not promote tags through local commands or other writers. This serializes repository-controlled writers, not external registry actors, and GHCR offers no compare-and-swap guarantee here. Existing manifest conflicts fail before registry inspection/writes; all planned tags are read back after promotion, including tags that already existed, before complete manifests are written. Matching existing tags are idempotent; a different digest is a hard failure. A mid-promotion failure may leave already verified tags in place, but emits no complete manifest. Never retarget or delete old tags/digests; retain previous successful release artifact for rollback.
 
+### 未发布的源码制品准备
+
+`python3 scripts/runbooks/prepare-release-bundle.py FULL_COMMIT_SHA NEW_OUTPUT_DIR`
+生成固定 commit 的源码 tarball、release notes、MIT notice、SHA256SUMS 和九服务
+release plan。工具拒绝覆盖已有目录，不创建 tag、镜像、GitHub Release 或部署。
+plan 的 image_ref 保持 null，并标记 source-only-unpublished；它不是完整 digest manifest，
+不能传给部署入口。批准发布后，仍须由受控 publisher 生成全部九服务的签名、SBOM、
+provenance、扫描和 immutable digest manifest，再与源码及 release notes 一起保留。
+GitHub Actions 的限期 artifact 不能单独充当长期发行存储；正式发布前应批准长期资产
+存放位置及保留策略，不得把本地 source bundle 宣称为已验证运行镜像。
+
 After validating the manifest locally, provide its nine lines to the manual `cd-deploy.yml` or `cd-rollback.yml` `image_refs` input. Do not hand-assemble a partial candidate list. Deployment still independently verifies immutable digest references and supply-chain evidence before mutating the host. The exact certificate identity remains `https://github.com/<owner>/<repo>/.github/workflows/docker-publish.yml@refs/heads/main`: Fulcio derives the GitHub certificate SAN from `job_workflow_ref`, including reusable workflows. This is distinct from `GITHUB_WORKFLOW_REF`, which identifies the calling `ci.yml` and is used by the promotion execution guard. Both new and retained releases use the same signer identity; no additional legacy identity or wildcard fallback is needed. Signature, SPDX and SLSA verification must all require that exact identity and issuer.
 
 Trivy JSON reports are uploaded per candidate even when scanning fails; a failed or skipped scan cannot produce candidate evidence or reach promotion. For vulnerability triage, inspect affected package, installed version, and fixed version.

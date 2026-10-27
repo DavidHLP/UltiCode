@@ -43,7 +43,7 @@ Admin 负责管理、审核、审计、设置、监控、备份编排和运营�
 
 ### 提交复盘与学习计划
 
-Agent 提供独立的多轮分析工作区 `/agent`，首版仅支持本人普通练习提交。用户从提交详情进入后，会话固定绑定该提交；侧栏可恢复历史会话，后续问题继续使用同一对象与有界的前文上下文。`/personal/agent` 保留为旧学习计划线程链接的迁移入口，不替代新工作区。提交详情仍保留单次复盘与可选学习计划流程；新建对话不会复用或更改该工作流状态。工作区由 `VITE_AGENT_REVIEW_ENABLED=true` 显式启用，默认关闭；关闭或 Agent 不可用不改变题目、判题、源码查看与原题解流程。
+Agent 提供独立的多轮分析工作区 `/agent`，首版仅支持本人普通练习提交。用户从提交详情进入后，会话固定绑定该提交；侧栏可恢复历史会话，后续问题继续使用同一对象与有界的前文上下文。`/personal/agent` 保留为旧学习计划线程链接的迁移入口，不替代新工作区。提交详情仍保留单次复盘与可选学习计划流程；新建对话不会复用或更改该工作流状态。工作区是实验功能，由管理员通过 Management 的 Agent 功能设置显式启用，缺少设置时默认关闭；不再读取旧 `VITE_AGENT_REVIEW_ENABLED` 标志；关闭或 Agent 不可用不改变题目、判题、源码查看与原题解流程。
 
 这套整合沿用 [Notion 产品定义与交互契约](https://app.notion.com/p/3f374b09d6af81dca56fda4e4c1aaa35)、[DAV-54](https://linear.app/davidhlp/issue/DAV-54)、[DAV-56](https://linear.app/davidhlp/issue/DAV-56) 的“本人普通练习提交详情”主入口决定，复用 [GitHub #287](https://github.com/DavidHLP/UltiCode/pull/287) 的工作流交互和 [#288](https://github.com/DavidHLP/UltiCode/pull/288) 的受控本地分析边界。外部记录中的设计完成、历史测试及旧执行队列退役不代表当前版本已完成真实用户试点或正式模型/Java 验收；运行事实仍以当前代码、授权和当次验证为准。
 

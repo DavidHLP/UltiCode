@@ -38,7 +38,117 @@ mise Feature 使用 `ghcr.io/devcontainers-extra/features/mise:1`，配置与锁
 `host` 配置只接受 `scope` 和 `observability` 两个无密钥键；启动和
 生命周期逻辑仍由 `scripts/dev/*` 与 `devstack-manifest.sh` 所有。
 
-### 推荐启动
+### 干净卷首次安装（仅本机 disposable 开发环境）
+
+首次安装与已有数据库升级是两个入口。以下流程只用于新 checkout、全新
+Compose project 和空卷；不得对已有环境执行，也不删除或重置任何卷。
+已有环境继续使用 [Operations](OPERATIONS.md#数据库迁移与-owner-收敛) 的备份、
+writer drain、增量 backfill 和 cutover 流程。先安装上面的工具链及锁定依赖；
+默认端口必须空闲，独立 PM2 home 不会隔离 TCP 端口。
+
+```bash
+set -euo pipefail
+test ! -e .env                       # 已有配置应走升级入口，不能 --force
+export COMPOSE_PROJECT_NAME=ulticode-fresh
+export PM2_HOME="$PWD/.local/fresh-pm2"
+test -z "$(docker ps -aq --filter label=com.docker.compose.project=$COMPOSE_PROJECT_NAME)"
+test -z "$(docker volume ls -q --filter name=${COMPOSE_PROJECT_NAME}_)"
+./scripts/dev/init-env.sh
+pnpm install --frozen-lockfile
+./scripts/dev/up.sh --scope full-stack --prepare-submission-owner --skip-install
+```
+
+`--prepare-submission-owner` 只准备基础设施、canonical migrations、owner 账号和
+grant，不启动业务 writer。空卷不意味着迁移后没有数据：不可改写的历史共享迁移
+包含 sample submissions，仍必须经过 insert-only backfill 和完整 parity 检查。
+不要跳过这些检查，也不要先手工设置 `SUBMISSION_CUTOVER_COMPLETE=true`。
+
+在同一个 shell 中、所有业务 writer 仍未启动时执行：
+
+```bash
+set -a
+source .env
+set +a
+export MIGRATION_MYSQL_CONTAINER="$(docker compose --project-directory . --env-file .env \
+  -f docker/docker-compose.yml -f docker/docker-compose.dev.yml ps -q mysql)"
+export MYSQL_CONTAINER="$MIGRATION_MYSQL_CONTAINER"
+export MIGRATION_DB_USER=root MIGRATION_DB_PASSWORD="$MYSQL_ROOT_PASSWORD"
+./scripts/runbooks/submission-schema-cutover.sh backfill
+SUBMISSION_BACKFILL_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL \
+SUBMISSION_BACKFILL_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL_QUIESCE_ALL_WRITERS \
+  ./scripts/runbooks/submission-schema-cutover.sh backfill --execute
+./scripts/runbooks/submission-schema-cutover.sh verify
+SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
+SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
+  ./scripts/runbooks/submission-schema-cutover.sh cutover --execute
+./scripts/runbooks/submission-schema-cutover.sh verify
+export SUBMISSION_CUTOVER_COMPLETE=true
+./scripts/dev/up.sh --scope full-stack --skip-infra --skip-install --rebuild
+./scripts/dev/up.sh health --scope full-stack
+```
+
+只有最终 parity 和 writer checks 成功才导出完成标记。已隔离的 App 账号再次 cutover
+仍检查 schema、parity、权限和 source 稳定性，但不重复 REVOKE，也不恢复 legacy grant。
+此处的 root migration 身份、生成的 dev-admin 和示例数据仅属于这个 disposable project，
+不能复用于生产。生成的 `.env`、PM2 state、ACL、日志和数据库都不能提交。
+中断时保留卷并检查日志及正在运行的进程；不要重跑首次安装检查或删除卷来掩盖失败。
+恢复迁移可显式传入上述 `MIGRATION_MYSQL_CONTAINER`，无需安装 host mysql CLI。
+若本地 Maven 编译进程触发已有 PM2 1 GiB memory restart，可在 disposable `.env`
+设置 `JAVA_TOOL_OPTIONS="-Xms128m -Xmx512m"` 后通过支持的 launcher 刷新进程；
+本次验收使用该本地 heap 上限，未提高或关闭 PM2 memory gate。
+
+health 通过只证明 readiness。发布前仍须用真实 Auth/App/Submission/Judge 验证浏览器
+登录、题目、提交和 terminal verdict，以及 Management/contest 权限与业务操作；
+mock API、sample verdict、容器 healthy 和截图均不能替代这项验收。Agent 默认关闭，
+不属于这个基础安装的模型验收。
+
+### 真实服务浏览器验收
+
+`scripts/test/browser-acceptance.mjs` 只允许 loopback origins，并要求
+`ACCEPTANCE_DISPOSABLE=true`。准备上述 disposable stack、`two-sum` 示例、可用
+Python Judge sandbox 和已授权的测试账号后，通过安全环境提供
+`ACCEPTANCE_USERNAME` / `ACCEPTANCE_PASSWORD`。Management 可独立提供
+`ACCEPTANCE_MANAGEMENT_USERNAME` / `ACCEPTANCE_MANAGEMENT_PASSWORD`；账号必须具有
+READ:PROBLEM、READ:CONTEST、CREATE:CONTEST 及评分规则读取所需权限。缺少权限应失败，
+不得修改全局角色策略或在测试中伪造授权。只在 disposable fixture 上显式准备所需权限。
+
+```bash
+ACCEPTANCE_DISPOSABLE=true node scripts/test/browser-acceptance.mjs
+```
+
+默认使用 Playwright 的 Chromium；可通过 `ACCEPTANCE_CHROMIUM` 选择已安装的浏览器。
+脚本使用真实登录、Monaco model、提交按钮、Submission readback、Judge terminal
+Accepted、Management 数据读取与未发布 contest 的创建/readback，不拦截 API。
+报告在 `.local/browser-acceptance/report.json`，不保存 cookies、凭据或源码。提交与
+未发布 contest fixture 保留用于诊断，不自动删除数据。此检查不是生产、性能或模型验收。
+
+### 扩展业务验收与当前阻塞
+
+基础报告通过后，`scripts/test/browser-business-acceptance.mjs` 使用同一组已有测试账号，
+验证真实 Wrong Answer、Management problem create/edit/readback、重判与 contest
+注册、提交、live ranking、结束和最终 ranking。额外需要 CREATE/UPDATE:PROBLEM 与
+UPDATE:CONTEST 权限；不得修改全局角色策略。它会发布并结束基础脚本创建的 disposable
+contest，因此完整重跑前应先运行基础脚本创建新 fixture。可用 `ACCEPTANCE_CHECKS`
+逗号分隔选择检查；报告只代表实际选中的检查，不代表整个验收通过。
+
+```bash
+ACCEPTANCE_DISPOSABLE=true node scripts/test/browser-business-acceptance.mjs
+```
+
+当前实测：真实 Python Wrong Answer、重判 Pending → Judging → Accepted，以及
+contest 从注册到 FINISHED 最终排名通过。Management 创建、编辑、完整字段持久化
+readback、发布后 Console 可见性，以及非法子项创建/更新的事务回滚均已通过。
+Management 表单 difficulty 在传输层转换为后端接受的 Easy/Medium/Hard。
+Problem create/update 通过完整的类型化 Owner payload 传递详情、例子、语言与标签；
+partial update 保留未提供字段，原有 optimistic version 与授权约束不变。
+新增 Owner migration `V20261027070000` 恢复 `problems.id` 的数据库生成策略，保留
+已有 ID 与引用，并重新验证相同的 test_cases 外键；不关闭 foreign_key_checks。
+新建详情在初始版本快照前保存，API 可选 summary 按存储契约初始化为空字符串。
+RPC 返回失败值前显式标记写事务回滚，避免子项拒绝后留下部分创建或覆盖已有内容。
+Admin description readback 映射 nested detail，不能把读取已存在题目或单独 Judge
+验收当成创建/编辑验收。fresh/upgrade ID 与外键保持检查属于真实 MySQL migration drill。
+
+### 已准备环境启动
 
 ```bash
 ./scripts/dev/init-env.sh
@@ -109,7 +219,7 @@ During a retry, an old run's terminal event cannot release the pending run reque
 
 Console 的提交场景入口是共享提交详情中的可收起复盘面板，用于 `/submissions/:id` 和题目页选中的提交。“我的提交”直接进入对应结果；旧 `/personal/agent?threadId=...` 只负责验证线程归属并跳转，无线程时返回个人提交列表。
 
-Agent 对话默认开启，不再读取 `VITE_AGENT_REVIEW_ENABLED`。管理员通过 Management“系统设置 → 功能开关 → Agent 智能体”统一控制，沿用该页的保存流程和管理权限。设置持久化在 Admin 的既有 features 配置中，旧配置缺少字段时默认开启。用户端不提供开关。Agent 每次请求从 Admin 的 `/api/v1/public/features/agent` 读取可用状态；关闭后拒绝新的对话、分析及保存操作，保留已有数据和正在执行的分析。配置读取失败返回 503，不继续调用模型。独立部署可通过 `ULTICODE_ADMIN_BASE` 配置 Admin 地址，默认 `http://127.0.0.1:9102`。此设置不替代模型及持久化授权。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。
+Agent 对话是实验功能，默认关闭，不再读取 `VITE_AGENT_REVIEW_ENABLED`。管理员通过 Management“系统设置 → 功能开关 → Agent 智能体”统一控制，沿用该页的保存流程和管理权限。设置持久化在 Admin 的既有 features 配置中，旧配置缺少字段时默认关闭。用户端不提供开关。Agent 每次请求从 Admin 的 `/api/v1/public/features/agent` 读取可用状态；关闭后拒绝新的对话、分析及保存操作，保留已有数据和正在执行的分析。配置读取失败返回 503，不继续调用模型。独立部署可通过 `ULTICODE_ADMIN_BASE` 配置 Admin 地址，默认 `http://127.0.0.1:9102`。此设置不替代模型及持久化授权。仅本人、已知终态、明确 `contestSubmission: false` 的普通练习提交可用；旧 Java provider 缺少字段时不开放。Agent 服务再次核对来源资格。
 
 打开面板后，认证的 `GET /agent/capabilities` 返回分析、持久化和来源模式。查询失败不影响原提交查看；打开、收起和恢复线程均不自动分析。`metadata` 模式使用提交元数据与授权参考资料；`owner_source` 模式要求用户明确同意源码外发，只读取当前线程绑定的本人源码，限制为 12,000 字符，不持久化源码正文或引用摘录。 授权源码的会话由后端先调用 `get_submission_source`，将返回内容作为当前轮的不可信证据传给模型，并记录实际读取轨迹，再依据返回证据回答。源码专用预算日志中的连接失败仅可在官方用量统计与既有回执完整吻合后，按零额外计费核账；保留失败原因、原始备份、证据摘要和调用保留额度，恢复日志区分核账凭据与模型响应回执。
 
@@ -218,7 +328,7 @@ The published Zod 3 adapter is not used; production dependency audits retain the
 - 中文/英文文案同步，保留键盘操作、焦点管理和窄屏可用性。UI 行为变化需要对应回归测试，
   关键用户旅程需要单独的浏览器验证，不能用构建成功代替。
 - 保留 Agent 工作区、提交复盘与学习计划的既有资格、授权及降级行为；
-  Agent 对话默认开启，仅管理员通过系统设置中的功能开关关闭；它不代表分析或保存授权。
+  Agent 对话是实验功能，默认关闭，仅管理员通过系统设置中的功能开关显式启用；它不代表分析或保存授权。
 
 复现前端基线时运行只读门禁，避免 `lint --fix` 或全树格式化改变对照源码：
 

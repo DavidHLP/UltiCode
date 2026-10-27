@@ -1,0 +1,38 @@
+.github/workflows/_acceptance.yml
+  h_77173abe25c3ff 1-59
+.github/workflows/ci.yml
+  h_77173abe25c3ff 32,123-128,131,145
+docker/sandbox/harness/build.sh
+  h_77173abe25c3ff 81
+scripts/ci/business-acceptance.sh
+  h_77173abe25c3ff 1-107
+scripts/ci/check-results.py
+  h_77173abe25c3ff 29,34
+scripts/ci/check-workflows.py
+  h_77173abe25c3ff 126-138
+scripts/ci/select-checks.py
+  h_77173abe25c3ff 15,86,126
+scripts/runbooks/prepare-verified-release.py
+  h_77173abe25c3ff 1-171
+scripts/test/acceptance-fixtures.mjs
+  h_77173abe25c3ff 1-48
+scripts/test/cicd-contract.sh
+  h_77173abe25c3ff 18
+scripts/test/test_cicd_selection.py
+  h_77173abe25c3ff 159-169,175,177,183,185,192,194,201,208,215-222
+scripts/test/verified-release-package-contract.py
+  h_77173abe25c3ff 1-127
+scripts/test/workflow-policy-contract.py
+  h_77173abe25c3ff 47-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f62cba8608058b4909fa6a1e7049fb15ffcd912b",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

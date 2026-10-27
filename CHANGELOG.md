@@ -6,6 +6,9 @@ No next release has been published from this development branch.
 
 - Clarify release-pinned installation versus existing-environment upgrades.
 - Add selected real business/migration acceptance to the CI summary gate.
+- Reattach the rotated CSRF token when replaying an authenticated mutation after
+  access-token refresh; preserve the request body and account binding.
+- Keep disposable PM2 socket paths short when acceptance runs in nested worktrees.
 - Prepare repeatable eight-asset packages only from complete verified image evidence;
   external tag/Release publication still requires separate human authorization.
 

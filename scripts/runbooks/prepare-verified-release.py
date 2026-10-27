@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import tempfile
@@ -21,7 +22,11 @@ PREFIX = "ghcr.io/davidhlp/ulticode/"
 
 
 def command(args, **kwargs):
-    return subprocess.run(args, check=True, capture_output=True, timeout=900, **kwargs).stdout
+    # Identify the failed tool without exposing arguments, headers or logs.
+    result = subprocess.run(args, check=False, capture_output=True, timeout=900, **kwargs)
+    if result.returncode:
+        raise ValueError(f"Verification/packaging command {Path(args[0]).name} failed (exit {result.returncode})")
+    return result.stdout
 
 
 def sha256(path):
@@ -81,6 +86,16 @@ def validate_evidence(evidence, sha, names):
                 raise ValueError(f"Evidence checksum mismatch: {path.name}")
         if (directory / f"{name}.source-commit").read_text().strip() != sha:
             raise ValueError("Candidate source does not match")
+        version = (directory / f"{name}.version").read_text().strip()
+        tags = [f"sha-{sha[:7]}"]
+        if name.startswith("backend-"):
+            if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?", version):
+                raise ValueError("Backend evidence requires a valid service version")
+            tags.append(f"v{version}")
+        elif version:
+            raise ValueError("Frontend evidence must not invent a service version")
+        if service.get("tags") != tags:
+            raise ValueError("Promoted tag inventory does not match source/version evidence")
     if regular(evidence / "release-manifest.txt").read_text() != "".join(refs):
         raise ValueError("Manifest does not exactly match the complete release set")
     return release
@@ -90,7 +105,9 @@ def verify_published_set(root, evidence, sha, run_id):
     if not re.fullmatch(r"[1-9][0-9]*", run_id):
         raise ValueError("Workflow run must be a numeric ID")
     run = json.loads(command(["gh", "api", f"repos/{REPOSITORY}/actions/runs/{run_id}"]))
-    if (run.get("head_sha") != sha or run.get("conclusion") != "success"
+    if (run.get("id") != int(run_id) or run.get("path") != ".github/workflows/ci.yml"
+            or run.get("repository", {}).get("full_name") != REPOSITORY
+            or run.get("head_sha") != sha or run.get("conclusion") != "success"
             or run.get("event") != "push" or run.get("head_branch") != "main"):
         raise ValueError("Workflow must be a successful main push at the exact source")
     # Reuse the source revision's signature, SPDX/SLSA, scan, version and tag checks.
@@ -99,6 +116,17 @@ def verify_published_set(root, evidence, sha, run_id):
                       str(evidence.resolve()), sha, PREFIX.rstrip("/")]).decode()
     if "candidate set validated: 9 services; mode=dry-run" not in result:
         raise ValueError("Complete signed release verification did not succeed")
+    # Promotion dry-run also permits tags that would still need creating.
+    # Packaging a deployable release requires every planned tag to EXIST now
+    # and resolve to its already signed immutable digest; never create it here.
+    release = json.loads((evidence / "release-set.json").read_text())
+    for service in release["services"]:
+        image, digest = service["image_ref"].split("@", 1)
+        for tag in service["tags"]:
+            actual = command([os.environ.get("DOCKER_BIN", "docker"), "buildx", "imagetools", "inspect",
+                              f"{image}:{tag}", "--format", "{{.Manifest.Digest}}"]).decode().strip()
+            if actual != digest:
+                raise ValueError(f"Published tag readback mismatch: {service['name']}:{tag}")
 
 
 def prepare(root, evidence, sha, version, notes, run_id, output):

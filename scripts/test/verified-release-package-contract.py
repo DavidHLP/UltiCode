@@ -46,11 +46,13 @@ class PackagingTests(unittest.TestCase):
             ref = module.PREFIX + name + '@sha256:' + 'a' * 64
             hashes = {}
             for suffix in ['image-ref', 'release.json', 'spdx.json', 'provenance.json', 'trivy.json', 'version', 'source-commit']:
-                content = (self.sha if suffix == 'source-commit' else '{}') + '\n'
+                content = (self.sha if suffix == 'source-commit' else
+                           ('1.0.5' if name.startswith('backend-') else '') if suffix == 'version' else '{}') + '\n'
                 path = directory / f'{name}.{suffix}'
                 path.write_text(content)
                 hashes[suffix] = module.sha256(path)
-            services.append({'name': name, 'image_ref': ref, 'evidence_sha256': hashes})
+            tags = [f'sha-{self.sha[:7]}'] + (['v1.0.5'] if name.startswith('backend-') else [])
+            services.append({'name': name, 'image_ref': ref, 'tags': tags, 'evidence_sha256': hashes})
             refs.append(f"{name.upper().replace('-', '_')}_IMAGE_REF={ref}\n")
         (self.evidence / 'release-set.json').write_text(json.dumps({'source_commit': self.sha, 'services': services}))
         (self.evidence / 'release-manifest.txt').write_text(''.join(refs))
@@ -123,15 +125,45 @@ class PackagingTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
     def test_verifier_requires_successful_matching_main_and_read_only_command(self):
-        run = {'head_sha': self.sha, 'conclusion': 'success', 'event': 'push', 'head_branch': 'main'}
-        with patch.object(module, 'command', side_effect=[json.dumps(run).encode(), b'candidate set validated: 9 services; mode=dry-run']) as command:
+        run = {'id': 123, 'path': '.github/workflows/ci.yml', 'repository': {'full_name': module.REPOSITORY},
+               'head_sha': self.sha, 'conclusion': 'success', 'event': 'push', 'head_branch': 'main'}
+        proof = b'candidate set validated: 9 services; mode=dry-run'
+        with patch.object(module, 'command', side_effect=[json.dumps(run).encode(), proof] + [b'sha256:' + b'a' * 64] * 16) as command:
             module.verify_published_set(self.source, self.evidence, self.sha, '123')
-            self.assertEqual(command.call_count, 2)
-            self.assertNotIn('--execute', command.call_args.args[0])
+            self.assertEqual(command.call_count, 18)
+            self.assertTrue(all('--execute' not in call.args[0] for call in command.call_args_list))
+            self.assertEqual(command.call_args.args[0][1:4], ['buildx', 'imagetools', 'inspect'])
         run['head_sha'] = 'b' * 40
         with patch.object(module, 'command', return_value=json.dumps(run).encode()) as command:
             with self.assertRaises(ValueError): module.verify_published_set(self.source, self.evidence, self.sha, '123')
             self.assertEqual(command.call_count, 1)
+
+    def test_unrelated_successful_workflow_is_rejected(self):
+        run = {'id': 123, 'path': '.github/workflows/unrelated.yml', 'repository': {'full_name': module.REPOSITORY},
+               'head_sha': self.sha, 'conclusion': 'success', 'event': 'push', 'head_branch': 'main'}
+        with patch.object(module, 'command', return_value=json.dumps(run).encode()) as command:
+            with self.assertRaises(ValueError): module.verify_published_set(self.source, self.evidence, self.sha, '123')
+            self.assertEqual(command.call_count, 1)
+
+    def test_missing_or_different_promoted_tag_fails_without_writes(self):
+        run = {'id': 123, 'path': '.github/workflows/ci.yml', 'repository': {'full_name': module.REPOSITORY},
+               'head_sha': self.sha, 'conclusion': 'success', 'event': 'push', 'head_branch': 'main'}
+        for readback in [b'', b'sha256:' + b'b' * 64]:
+            with self.subTest(readback=readback), patch.object(module, 'command', side_effect=[
+                    json.dumps(run).encode(), b'candidate set validated: 9 services; mode=dry-run', readback]) as command:
+                with self.assertRaisesRegex(ValueError, 'tag readback'):
+                    module.verify_published_set(self.source, self.evidence, self.sha, '123')
+                self.assertEqual(command.call_count, 3)
+                self.assertTrue(all('--execute' not in call.args[0] for call in command.call_args_list))
+
+    def test_incomplete_promoted_tag_inventory_is_rejected(self):
+        path = self.evidence / 'release-set.json'
+        release = json.loads(path.read_text())
+        release['services'][0]['tags'] = []
+        path.write_text(json.dumps(release))
+        with patch.object(module, 'verify_published_set') as verify:
+            with self.assertRaisesRegex(ValueError, 'tag inventory'): self.prepare()
+            verify.assert_not_called()
 
 
 if __name__ == '__main__':

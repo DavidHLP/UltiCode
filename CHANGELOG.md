@@ -6,9 +6,11 @@ This is release-candidate preparation, not an official stable release or a
 production-readiness declaration.
 
 - Normalize Management problem difficulty at the API boundary, with regression tests.
-- Add extended disposable business acceptance; problem creation remains a release
-  blocker because owner ID generation and the complete create-command contract
-  are not aligned. Do not claim problem CRUD acceptance.
+- Restore database-generated problem IDs with an additive owner migration;
+  preserve existing IDs and validated test-case references. Carry complete
+  create/update fields across the owner seam and return nested detail readback.
+  Persist detail before the first version snapshot and roll back rejected child
+  writes. Extend real-service acceptance through persisted create/edit and Console visibility.
 - Restore Management's language-menu CI contract and test actual selection-event
   handling and the current-language indicator.
 - Refresh Agent repository-document version binding while preserving license,

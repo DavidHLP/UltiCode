@@ -89,6 +89,54 @@ class ProblemAdministrationProviderTest {
         return new TraceMetadata("t-12345", null, null, null);
     }
 
+    @Test
+    void completePayloadSurvivesCreateAndPartialUpdate() {
+        var fields = new com.ulticode.app.api.dto.ProblemWriteFields(
+                "new-slug", "Hard", true, false, true, "summary", "content", "[]", "[\"limit\"]", "[\"hint\"]",
+                java.util.List.of(new com.ulticode.app.api.dto.ProblemWriteFields.Language("python", "starter")),
+                java.util.List.of("Array"));
+        var entity = problemEntity(42L, "new-slug", "Title", 1);
+        when(domainService.createProblem(any(), eq("admin-1"))).thenReturn(entity);
+        when(domainService.updateProblem(eq(42L), any(), eq("admin-1"), eq(1L))).thenReturn(entity);
+        assertThat(provider.createProblem(new CreateProblemCommand(UUID.randomUUID().toString(), IdMetadata.mint(),
+                adminActor(), trace(), "new-slug", "Title", "admin-1", fields)).success()).isTrue();
+        var create = org.mockito.ArgumentCaptor.forClass(CreateProblemDTO.class);
+        verify(domainService).createProblem(create.capture(), eq("admin-1"));
+        assertThat(create.getValue().getDifficulty()).isEqualTo("Hard");
+        assertThat(create.getValue().getIsPublished()).isFalse();
+        assertThat(create.getValue().getContent()).isEqualTo("content");
+        assertThat(create.getValue().getConstraints()).isEqualTo("[\"limit\"]");
+        assertThat(create.getValue().getLanguages()).containsExactly("python");
+        assertThat(create.getValue().getTags()).containsExactly("Array");
+        assertThat(provider.updateProblem(new UpdateProblemCommand(UUID.randomUUID().toString(), IdMetadata.mint(),
+                adminActor(), trace(), "42", 1L, null, "partial", fields)).success()).isTrue();
+        var update = org.mockito.ArgumentCaptor.forClass(UpdateProblemDTO.class);
+        verify(domainService).updateProblem(eq(42L), update.capture(), eq("admin-1"), eq(1L));
+        assertThat(update.getValue().getTitle()).isNull();
+        assertThat(update.getValue().getSlug()).isEqualTo("new-slug");
+        assertThat(update.getValue().getHasSolution()).isTrue();
+        assertThat(update.getValue().getSummary()).isEqualTo("summary");
+        assertThat(update.getValue().getHints()).isEqualTo("[\"hint\"]");
+        assertThat(update.getValue().getExamples()).isEqualTo("[]");
+        assertThat(update.getValue().getLanguages().get(0).getStarterCode()).isEqualTo("starter");
+    }
+
+    @Test
+    void failedCompleteCreateMarksTheOwnerTransactionForRollback() {
+        var status = new org.springframework.transaction.support.SimpleTransactionStatus();
+        try (var synchronization = org.mockito.Mockito.mockStatic(org.springframework.transaction.support.TransactionSynchronizationManager.class);
+             var aspect = org.mockito.Mockito.mockStatic(org.springframework.transaction.interceptor.TransactionAspectSupport.class)) {
+            synchronization.when(org.springframework.transaction.support.TransactionSynchronizationManager::isActualTransactionActive).thenReturn(true);
+            aspect.when(org.springframework.transaction.interceptor.TransactionAspectSupport::currentTransactionStatus).thenReturn(status);
+            when(domainService.createProblem(any(), any())).thenThrow(new BusinessException(BaseErrorCode.VALIDATION_FAILED, "Invalid child section"));
+            var result = provider.createProblem(new CreateProblemCommand(UUID.randomUUID().toString(), IdMetadata.mint(),
+                    adminActor(), trace(), "invalid-child", "Title", "admin-1"));
+            assertThat(result.success()).isFalse();
+            assertThat(status.isRollbackOnly()).isTrue();
+            assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
+        }
+    }
+
     @Nested
     @DisplayName("createProblem")
     class Create {

@@ -100,6 +100,8 @@ public class DefaultProblemDetailPort implements ProblemDetailDomainPort {
         if (detail == null) {
             detail = new ProblemDetail();
             detail.setProblemId(problemId);
+            // Summary is optional on the HTTP write contract but NOT NULL in storage.
+            detail.setSummary("");
             detail.setId(uuidGenerator.newId().replace("-", ""));
             // problem_details.slug NOT NULL — denormalize from Problem on insert.
             // Defensive null check: problems.slug is also NOT NULL in DB, so this

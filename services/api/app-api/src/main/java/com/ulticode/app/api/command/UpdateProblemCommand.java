@@ -1,6 +1,7 @@
 package com.ulticode.app.api.command;
 
 import java.io.Serializable;
+import com.ulticode.app.api.dto.ProblemWriteFields;
 
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
@@ -28,9 +29,15 @@ public record UpdateProblemCommand(
         String problemId,
         Long expectedVersion,
         String title,
-        String rationale) implements WriteCommand, Serializable {
+        String rationale,
+        ProblemWriteFields fields) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
+
+    /** Compatibility constructor for the original minimal contract. */
+    public UpdateProblemCommand(String commandId, IdMetadata idempotency, ActorDelegation actor, TraceMetadata trace, String problemId, Long expectedVersion, String title, String rationale) {
+        this(commandId, idempotency, actor, trace, problemId, expectedVersion, title, rationale, null);
+    }
 
     public UpdateProblemCommand {
         if (commandId == null || commandId.isBlank()) {
@@ -45,7 +52,7 @@ public record UpdateProblemCommand(
             throw new IllegalArgumentException(
                     "expectedVersion is required for optimistic locking");
         }
-        if (title == null || title.isBlank()) {
+        if ((title != null && title.isBlank()) || (fields == null && title == null)) {
             throw new IllegalArgumentException("title is required");
         }
         if (idempotency == null) {

@@ -153,7 +153,9 @@ class ProblemAdministrationDomainServiceTest {
             assertThat(created.getPublishedBy()).isEqualTo(ACTOR_ID);
 
             verify(writePort).insert(any(Problem.class));
-            verify(versionPort).createInitialVersion(42L, ACTOR_ID);
+            var ordered = org.mockito.Mockito.inOrder(detailPort, versionPort);
+            ordered.verify(detailPort).applyDetailUpdate(eq(42L), eq(created), any(UpdateProblemDTO.class));
+            ordered.verify(versionPort).createInitialVersion(42L, ACTOR_ID);
         }
 
         @Test

@@ -39,10 +39,12 @@ public interface AdminProblemMapper {
     @Mapping(target = "publishedAt", source = "problem.publishedAt")
     @Mapping(target = "createdAt", source = "problem.createdAt")
     @Mapping(target = "updatedAt", source = "problem.updatedAt")
+    @Mapping(target = "detail", expression = "java(toDetailInfo(dto))")
     DescriptionDataVO toDescriptionDataVO(ProblemAdminDescriptionDTO dto);
 
     default DescriptionDataVO.DetailInfo toDetailInfo(ProblemAdminDescriptionDTO dto) {
-        if (dto == null) {
+        if (dto == null || (dto.summary() == null && dto.content() == null
+                && dto.constraintsJson() == null && dto.hints() == null)) {
             return null;
         }
         DescriptionDataVO.DetailInfo info = new DescriptionDataVO.DetailInfo();

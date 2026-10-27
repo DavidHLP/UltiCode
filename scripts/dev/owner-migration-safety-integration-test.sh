@@ -147,6 +147,28 @@ for OWNER_SCHEMA in auth app; do
 done
 printf 'Auth/App owner migrations: PASS\n'
 
+# Fresh owner chain must allocate IDs, preserve references, and retain FK enforcement.
+mysql_root -e "INSERT INTO app.problems (slug,title,difficulty) VALUES ('id-fresh-check','Fresh ID check','Easy');"
+FRESH_PROBLEM_ID="$(mysql_root -N -B -e "SELECT id FROM app.problems WHERE slug='id-fresh-check'")"
+[[ "$FRESH_PROBLEM_ID" -gt 0 ]]
+# Rehearse the same additive migration against pre-existing IDs and a live reference.
+mysql_root -e "CREATE DATABASE problem_id_upgrade;
+CREATE TABLE problem_id_upgrade.problems (id BIGINT NOT NULL PRIMARY KEY, slug VARCHAR(120));
+CREATE TABLE problem_id_upgrade.test_cases (id VARCHAR(40) PRIMARY KEY, problem_id BIGINT,
+ CONSTRAINT fk_test_cases_problem_id FOREIGN KEY(problem_id) REFERENCES problem_id_upgrade.problems(id));
+INSERT INTO problem_id_upgrade.problems VALUES (73,'existing');
+INSERT INTO problem_id_upgrade.test_cases VALUES ('existing-case',73);"
+mysql_root problem_id_upgrade -e "$(cat "$ROOT_DIR/init-db/migrations/app/V20261027070000__Restore_Server_Generated_Problem_Ids.sql")"
+mysql_root -e "INSERT INTO problem_id_upgrade.problems (slug) VALUES ('new');"
+[[ "$(mysql_root -N -B -e "SELECT id FROM problem_id_upgrade.problems WHERE slug='new'")" -gt 73 ]]
+[[ "$(mysql_root -N -B -e "SELECT COUNT(*) FROM problem_id_upgrade.test_cases t JOIN problem_id_upgrade.problems p ON t.problem_id=p.id WHERE p.id=73 AND p.slug='existing'")" == 1 ]]
+if mysql_root -e "INSERT INTO problem_id_upgrade.test_cases VALUES ('orphan',999999)" > "$TEST_DIR/orphan.log" 2>&1; then
+  echo 'problem ID migration lost FK enforcement' >&2
+  exit 1
+fi
+printf 'Problem IDs fresh/upgrade/reference preservation: PASS\n'
+
+
 env ENV_FILE="$TEST_ENV" MIGRATION_DB_HOST=127.0.0.1 \
   MIGRATION_DB_PORT="$MYSQL_TEST_PORT" MIGRATION_DB_NAME=ulticode \
   MIGRATION_DB_USER=root MIGRATION_DB_PASSWORD="$ROOT_PASSWORD" \

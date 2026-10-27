@@ -41,6 +41,11 @@ try {
     await admin.getByPlaceholder('Enter problem title', { exact: true }).fill(slug)
     await admin.getByPlaceholder('two-sum', { exact: true }).fill(slug)
     await admin.getByPlaceholder('Enter problem content...', { exact: true }).fill('Return the supplied integer. Synthetic acceptance fixture.')
+    await admin.getByPlaceholder('Enter problem summary...', { exact: true }).fill('Synthetic summary')
+    await admin.getByPlaceholder('Add a hint...', { exact: true }).fill('Return n')
+    await admin.getByPlaceholder('Add a hint...', { exact: true }).press('Enter')
+    await admin.getByPlaceholder('Add language...', { exact: true }).fill('python')
+    await admin.getByPlaceholder('Add language...', { exact: true }).press('Enter')
     await admin.getByPlaceholder('Enter test input...', { exact: true }).fill('1')
     await admin.getByPlaceholder('Enter expected output...', { exact: true }).fill('1')
     const constraint = admin.getByPlaceholder('e.g., 1 <= nums.length <= 10^4', { exact: true })
@@ -56,6 +61,16 @@ try {
     report.fixtures.problemId = data.id
     await save()
     assert.equal((await api(admin, `/admin/problems/${data.id}`)).title, slug)
+    const description = await api(admin, `/admin/problems/${data.id}/description`)
+    assert.equal(description.difficulty.toLowerCase(), 'medium')
+    assert.equal(description.isPublished, false)
+    assert.equal(description.detail.summary, 'Synthetic summary')
+    assert.equal(description.detail.content, 'Return the supplied integer. Synthetic acceptance fixture.')
+    assert.deepEqual(description.detail.constraintsJson, ['1 <= n <= 10'])
+    assert.deepEqual(description.detail.hints, ['Return n'])
+    assert.equal(description.examples[0].input, '1')
+    assert.equal(description.examples[0].output, '1')
+    assert((await api(admin, `/admin/problems/${data.id}/code`)).languages.some(language => language.value === 'python'))
     await admin.goto(`${managementOrigin}/problems/${data.id}/edit/description`)
     await admin.getByPlaceholder('Enter problem title', { exact: true }).fill(`${slug}-edited`)
     const updated = admin.waitForResponse(r => r.request().method() === 'PATCH' && new URL(r.url()).pathname === `/api/admin/problems/${data.id}`)
@@ -64,6 +79,41 @@ try {
     const readback = await api(admin, `/admin/problems/${data.id}`)
     assert.equal(readback.title, `${slug}-edited`)
     assert.equal(readback.slug, slug)
+    // A real partial update must retain the title and persist every supplied owner section.
+    await api(admin, `/admin/problems/${data.id}`, 'PATCH', {
+      difficulty: 'Hard', isPublished: true, summary: 'Edited summary', content: 'Edited synthetic content.',
+      constraintsJson: '["2 <= n <= 20"]', hints: '["Edited hint"]',
+      examples: '[{"input":"2","output":"2","explanation":"identity"}]',
+      languages: [{ language: 'python', starterCode: 'class Solution:\n    pass\n' }], tags: [],
+    })
+    const edited = await api(admin, `/admin/problems/${data.id}/description`)
+    assert.equal(edited.title, `${slug}-edited`)
+    assert.equal(edited.difficulty.toLowerCase(), 'hard')
+    assert.equal(edited.isPublished, true)
+    assert.equal(edited.detail.summary, 'Edited summary')
+    assert.equal(edited.detail.content, 'Edited synthetic content.')
+    assert.deepEqual(edited.detail.constraintsJson, ['2 <= n <= 20'])
+    assert.deepEqual(edited.detail.hints, ['Edited hint'])
+    assert.equal(edited.examples[0].input, '2')
+    assert.equal(edited.examples[0].output, '2')
+    const code = await api(admin, `/admin/problems/${data.id}/code`)
+    assert.equal(code.languages.find(language => language.value === 'python').starterCode, 'class Solution:\n    pass\n')
+    const invalidSlug = `${slug}-invalid`;
+    await rejectedWrite(admin, '/admin/problems', 'POST', {
+      slug: invalidSlug, title: invalidSlug, difficulty: 'Easy', content: 'Must roll back', languages: ['unsupported-language'],
+    })
+    assert.equal((await api(admin, `/admin/problems?search=${invalidSlug}`)).total, 0)
+    await rejectedWrite(admin, `/admin/problems/${data.id}`, 'PATCH', {
+      title: 'Must not persist', content: 'Must roll back', languages: [{ language: 'unsupported-language', starterCode: 'invalid' }],
+    })
+    const afterRejected = await api(admin, `/admin/problems/${data.id}/description`)
+    assert.equal(afterRejected.title, `${slug}-edited`)
+    assert.equal(afterRejected.detail.content, 'Edited synthetic content.')
+    assert((await api(admin, `/admin/problems/${data.id}/code`)).languages.some(language => language.value === 'python'))
+    report.problemInvalidChildRollback = true
+    await participant.goto(`${consoleOrigin}/problems/${slug}/description`)
+    await participant.getByText('Edited synthetic content.', { exact: true }).waitFor()
+    report.problemPersistedReadback = { id: data.id, difficulty: edited.difficulty, published: edited.isPublished, sections: ['title', 'summary', 'content', 'constraints', 'hints', 'examples', 'languages', 'tags'], consoleVisible: true }
   })
 
   await check('management-rejudge-progression-terminal', async () => {
@@ -175,6 +225,13 @@ async function api(page, path, method = 'GET', data) {
   const value = await response.json()
   assert.equal(value.code, 0, `${method} ${path} rejected: ${value.message}`)
   return value.data
+}
+async function rejectedWrite(page, path, method, data) {
+  const csrf = (await page.context().cookies()).find(cookie => cookie.name === 'csrf_token')?.value
+  const response = await page.request.fetch(`${managementOrigin}/api${path}`, { method, data,
+    headers: { 'X-CSRF-Token': decodeURIComponent(csrf) }, timeout: 15000 })
+  assert.equal(response.status(), 400, 'Invalid child section must be rejected as bad input')
+  assert.notEqual((await response.json()).code, 0)
 }
 async function openEditor(page, url) {
   await page.goto(url)

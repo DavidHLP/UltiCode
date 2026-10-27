@@ -4,6 +4,7 @@ import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
+import com.ulticode.modules.problem.dto.LanguageConfigDTO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.port.ProblemDetailDomainPort;
@@ -78,6 +79,19 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
 
         writePort.insert(problem);
 
+        UpdateProblemDTO detail = new UpdateProblemDTO();
+        detail.setSummary(dto.getSummary());
+        detail.setContent(dto.getContent());
+        detail.setConstraintsJson(dto.getConstraints());
+        detail.setHints(dto.getHints());
+        detail.setExamples(dto.getExamples());
+        detail.setTags(dto.getTags());
+        detail.setLanguages(dto.getLanguages() == null ? null : dto.getLanguages().stream().map(value -> {
+            var language = new LanguageConfigDTO();
+            language.setLanguage(value);
+            return language;
+        }).toList());
+        detailPort.applyDetailUpdate(problem.getId(), problem, detail);
         versionPort.createInitialVersion(problem.getId(), actorId);
 
         log.info("Problem created: {} by user {}", problem.getId(), actorId);

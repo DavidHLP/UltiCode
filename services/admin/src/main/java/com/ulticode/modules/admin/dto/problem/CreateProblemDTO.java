@@ -44,5 +44,7 @@ public class CreateProblemDTO {
 
     private String hints;
 
+    private List<String> languages;
+
     private List<String> tags;
 }

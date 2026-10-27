@@ -79,6 +79,11 @@ class ProblemCutoverServiceTest {
             CreateProblemDTO dto = new CreateProblemDTO();
             dto.setSlug("two-sum");
             dto.setTitle("Two Sum");
+            dto.setDifficulty("Hard");
+            dto.setIsPublished(false);
+            dto.setContent("Complete content");
+            dto.setConstraints("[\"limit\"]");
+            dto.setLanguages(java.util.List.of("python"));
             when(dubboProvider.createProblem(any())).thenReturn(RpcResult.success(
                     new com.ulticode.app.api.dto.ProblemAdminViewDTO(
                             "42", "two-sum", "Two Sum", 1L, "todo"),
@@ -95,7 +100,12 @@ class ProblemCutoverServiceTest {
                     command.trace() != null
                             && command.trace().traceId() != null
                             && !command.trace().traceId().isBlank()
-                            && "admin-1".equals(command.actor().actorId())));
+                            && "admin-1".equals(command.actor().actorId())
+                            && "Hard".equals(command.fields().difficulty())
+                            && Boolean.FALSE.equals(command.fields().isPublished())
+                            && "Complete content".equals(command.fields().content())
+                            && "[\"limit\"]".equals(command.fields().constraintsJson())
+                            && "python".equals(command.fields().languages().get(0).language())));
             verify(problemReadPort).findBySlug("two-sum");
             assertThat(result.getTitle()).isEqualTo("Two Sum");
         }
@@ -122,6 +132,12 @@ class ProblemCutoverServiceTest {
         void updateForwardsVersion() {
             UpdateProblemDTO dto = new UpdateProblemDTO();
             dto.setTitle("Updated");
+            dto.setDifficulty("Easy");
+            dto.setHints("[\"hint\"]");
+            var language = new UpdateProblemDTO.LanguageConfig();
+            language.setLanguage("python");
+            language.setStarterCode("starter");
+            dto.setLanguages(java.util.List.of(language));
             ProblemAdminRowDTO row = row(42L, "two-sum", "Two Sum");
             when(problemReadPort.findProblem(42L)).thenReturn(row);
             when(dubboProvider.updateProblem(any())).thenReturn(RpcResult.success(
@@ -135,7 +151,10 @@ class ProblemCutoverServiceTest {
             ProblemAdminVO result = cutoverService.updateProblem(42L, dto);
 
             verify(dubboProvider).updateProblem(argThat(command ->
-                    command.expectedVersion().equals(1L)));
+                    command.expectedVersion().equals(1L)
+                            && "Easy".equals(command.fields().difficulty())
+                            && "[\"hint\"]".equals(command.fields().hints())
+                            && "starter".equals(command.fields().languages().get(0).starterCode())));
             assertThat(result.getTitle()).isEqualTo("Updated");
         }
 

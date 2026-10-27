@@ -5,6 +5,8 @@ import com.ulticode.app.api.command.DeleteProblemCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;
 import com.ulticode.app.api.command.UpdateProblemCommand;
 import com.ulticode.app.api.dto.ProblemAdminViewDTO;
+import com.ulticode.app.api.dto.ProblemWriteFields;
+import com.ulticode.modules.problem.dto.LanguageConfigDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ProblemAdministrationService;
 import com.ulticode.common.error.BaseErrorCode;
@@ -50,14 +52,30 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
             CreateProblemDTO dto = new CreateProblemDTO();
             dto.setSlug(command.slug());
             dto.setTitle(command.title());
+            if (command.fields() != null) {
+                var f = command.fields();
+                dto.setDifficulty(f.difficulty());
+                dto.setIsPremium(f.isPremium());
+                dto.setIsPublished(f.isPublished());
+                dto.setSummary(f.summary());
+                dto.setContent(f.content());
+                dto.setExamples(f.examples());
+                dto.setHints(f.hints());
+                dto.setTags(f.tags());
+                dto.setConstraints(f.constraintsJson());
+                dto.setLanguages(f.languages() == null ? null : f.languages().stream()
+                        .map(ProblemWriteFields.Language::language).toList());
+            }
             String actorId = command.actor() != null ? command.actor().actorId() : null;
             Problem entity = domainService.createProblem(dto, actorId);
             indexRefresher.publish(entity);
             return RpcResult.success(toAdminView(entity.getId(), entity.getSlug(), entity.getTitle(),
                     entity, entity.getStatus()), command.trace().traceId());
         } catch (BusinessException e) {
+            rollbackWrite();
             return toFailure(e, command.trace().traceId());
         } catch (Exception e) {
+            rollbackWrite();
             log.error("ProblemAdministrationProvider.createProblem unexpected error", e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
         }
@@ -81,16 +99,45 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
         try {
             UpdateProblemDTO dto = new UpdateProblemDTO();
             dto.setTitle(command.title());
+            if (command.fields() != null) {
+                var f = command.fields();
+                dto.setDifficulty(f.difficulty());
+                dto.setIsPremium(f.isPremium());
+                dto.setIsPublished(f.isPublished());
+                dto.setSummary(f.summary());
+                dto.setContent(f.content());
+                dto.setExamples(f.examples());
+                dto.setHints(f.hints());
+                dto.setTags(f.tags());
+                dto.setConstraintsJson(f.constraintsJson());
+                dto.setSlug(f.slug());
+                dto.setHasSolution(f.hasSolution());
+                dto.setLanguages(f.languages() == null ? null : f.languages().stream().map(value -> {
+                    var language = new LanguageConfigDTO();
+                    language.setLanguage(value.language());
+                    language.setStarterCode(value.starterCode());
+                    return language;
+                }).toList());
+            }
             String actorId = command.actor() != null ? command.actor().actorId() : null;
             Problem entity = domainService.updateProblem(id, dto, actorId, command.expectedVersion());
             indexRefresher.publish(entity);
             return RpcResult.success(toAdminView(entity.getId(), entity.getSlug(), entity.getTitle(),
                     entity, entity.getStatus()), command.trace().traceId());
         } catch (BusinessException e) {
+            rollbackWrite();
             return toFailure(e, command.trace().traceId());
         } catch (Exception e) {
+            rollbackWrite();
             log.error("ProblemAdministrationProvider.updateProblem unexpected error id={}", id, e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
+        }
+    }
+
+    // RPC failures are returned as values, so the transaction interceptor cannot infer rollback.
+    private static void rollbackWrite() {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.interceptor.TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
         }
     }
 
@@ -199,7 +246,9 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     private static <T> RpcResult<T> toFailure(BusinessException e, String traceId) {
         int code = e.getErrorCode() != null ? e.getErrorCode().code() : -1;
         AppErrorCode mapped;
-        if (code == BaseErrorCode.NOT_FOUND.code() || code == 30001) {
+        if (code == BaseErrorCode.BAD_REQUEST.code() || code == BaseErrorCode.VALIDATION_FAILED.code()) {
+            mapped = AppErrorCode.BAD_REQUEST;
+        } else if (code == BaseErrorCode.NOT_FOUND.code() || code == 30001) {
             mapped = AppErrorCode.CONTENT_NOT_FOUND;
         } else if (code == AppErrorCode.VERSION_CONFLICT.code()) {
             mapped = AppErrorCode.VERSION_CONFLICT;

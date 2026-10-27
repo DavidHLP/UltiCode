@@ -93,6 +93,9 @@ export SUBMISSION_CUTOVER_COMPLETE=true
 不能复用于生产。生成的 `.env`、PM2 state、ACL、日志和数据库都不能提交。
 中断时保留卷并检查日志及正在运行的进程；不要重跑首次安装检查或删除卷来掩盖失败。
 恢复迁移可显式传入上述 `MIGRATION_MYSQL_CONTAINER`，无需安装 host mysql CLI。
+若本地 Maven 编译进程触发已有 PM2 1 GiB memory restart，可在 disposable `.env`
+设置 `JAVA_TOOL_OPTIONS="-Xms128m -Xmx512m"` 后通过支持的 launcher 刷新进程；
+本次验收使用该本地 heap 上限，未提高或关闭 PM2 memory gate。
 
 health 通过只证明 readiness。发布前仍须用真实 Auth/App/Submission/Judge 验证浏览器
 登录、题目、提交和 terminal verdict，以及 Management/contest 权限与业务操作；
@@ -133,14 +136,17 @@ ACCEPTANCE_DISPOSABLE=true node scripts/test/browser-business-acceptance.mjs
 ```
 
 当前实测：真实 Python Wrong Answer、重判 Pending → Judging → Accepted，以及
-contest 从注册到 FINISHED 最终排名通过。
-Management 表单 difficulty 必须转换为后端接受的 Easy/Medium/Hard，不能直接发送
-UI 的 EASY/MEDIUM/HARD。修复此边界后，problem create 仍返回 500：App 的 Problem
-实体使用 AUTO ID，但已安装 owner schema 的 `problems.id` 没有自动值；此外
-CreateProblemCommand 当前只携带 title/slug/author，未传递完整创建表单。
-这属于发布阻塞，不能把已有题目读取或 Judge 验收当成 problem CRUD 验收。
-修复必须同时覆盖 owner ID、完整写入/readback 与数据库集成测试，不能修改已应用迁移、
-跳过必填字段或直接在测试库 ALTER 来制造通过。
+contest 从注册到 FINISHED 最终排名通过。Management 创建、编辑、完整字段持久化
+readback、发布后 Console 可见性，以及非法子项创建/更新的事务回滚均已通过。
+Management 表单 difficulty 在传输层转换为后端接受的 Easy/Medium/Hard。
+Problem create/update 通过完整的类型化 Owner payload 传递详情、例子、语言与标签；
+partial update 保留未提供字段，原有 optimistic version 与授权约束不变。
+新增 Owner migration `V20261027070000` 恢复 `problems.id` 的数据库生成策略，保留
+已有 ID 与引用，并重新验证相同的 test_cases 外键；不关闭 foreign_key_checks。
+新建详情在初始版本快照前保存，API 可选 summary 按存储契约初始化为空字符串。
+RPC 返回失败值前显式标记写事务回滚，避免子项拒绝后留下部分创建或覆盖已有内容。
+Admin description readback 映射 nested detail，不能把读取已存在题目或单独 Judge
+验收当成创建/编辑验收。fresh/upgrade ID 与外键保持检查属于真实 MySQL migration drill。
 
 ### 已准备环境启动
 

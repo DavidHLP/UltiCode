@@ -1,6 +1,7 @@
 package com.ulticode.app.api.command;
 
 import java.io.Serializable;
+import com.ulticode.app.api.dto.ProblemWriteFields;
 
 import com.ulticode.common.command.ActorDelegation;
 import com.ulticode.common.command.WriteCommand;
@@ -27,9 +28,15 @@ public record CreateProblemCommand(
         TraceMetadata trace,
         String slug,
         String title,
-        String authorAccountId) implements WriteCommand, Serializable {
+        String authorAccountId,
+        ProblemWriteFields fields) implements WriteCommand, Serializable {
     private static final long serialVersionUID = 1L;
 
+
+    /** Compatibility constructor for the original minimal contract. */
+    public CreateProblemCommand(String commandId, IdMetadata idempotency, ActorDelegation actor, TraceMetadata trace, String slug, String title, String authorAccountId) {
+        this(commandId, idempotency, actor, trace, slug, title, authorAccountId, null);
+    }
 
     public CreateProblemCommand {
         if (commandId == null || commandId.isBlank()) {

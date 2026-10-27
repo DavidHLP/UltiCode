@@ -133,6 +133,7 @@ class PackagingTests(unittest.TestCase):
             self.assertEqual(command.call_count, 18)
             self.assertTrue(all('--execute' not in call.args[0] for call in command.call_args_list))
             self.assertEqual(command.call_args.args[0][1:4], ['buildx', 'imagetools', 'inspect'])
+            self.assertEqual(command.call_args.args[0][-1], '{{printf "%s" .Manifest.Digest}}')
         run['head_sha'] = 'b' * 40
         with patch.object(module, 'command', return_value=json.dumps(run).encode()) as command:
             with self.assertRaises(ValueError): module.verify_published_set(self.source, self.evidence, self.sha, '123')

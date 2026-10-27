@@ -124,7 +124,7 @@ def verify_published_set(root, evidence, sha, run_id):
         image, digest = service["image_ref"].split("@", 1)
         for tag in service["tags"]:
             actual = command([os.environ.get("DOCKER_BIN", "docker"), "buildx", "imagetools", "inspect",
-                              f"{image}:{tag}", "--format", "{{.Manifest.Digest}}"]).decode().strip()
+                              f"{image}:{tag}", "--format", '{{printf "%s" .Manifest.Digest}}']).decode().strip()
             if actual != digest:
                 raise ValueError(f"Published tag readback mismatch: {service['name']}:{tag}")
 

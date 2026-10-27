@@ -1,0 +1,56 @@
+CHANGELOG.md
+  h_77173abe25c3ff 7-10
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 164-169
+scripts/dev/devstack-manifest-test.sh
+  h_77173abe25c3ff 103
+scripts/dev/devstack-manifest.sh
+  h_77173abe25c3ff 632
+scripts/dev/up.sh
+  h_77173abe25c3ff 828-835,895-896,900-901
+services/admin/pom.xml
+  h_77173abe25c3ff 16
+services/admin/src/main/java/com/ulticode/admin/adapter/in/web/AdminReadinessController.java
+  h_77173abe25c3ff 5-9,37,47-48,53,61-62
+services/admin/src/test/java/com/ulticode/admin/adapter/in/web/AdminReadinessControllerTest.java
+  h_77173abe25c3ff 63-92,99,113,132
+services/agent/data/repository_corpus_manifest.json
+  h_77173abe25c3ff 32-33
+services/app/app-web/src/main/java/com/ulticode/app/security/AppSecurityConfig.java
+  h_77173abe25c3ff 3,42-45
+services/app/app-web/src/test/java/com/ulticode/app/security/AppErrorDispatchSecurityTest.java
+  h_77173abe25c3ff 1-61
+services/app/pom.xml
+  h_77173abe25c3ff 16
+services/auth/pom.xml
+  h_77173abe25c3ff 16
+services/judge/pom.xml
+  h_77173abe25c3ff 18
+services/notification/pom.xml
+  h_77173abe25c3ff 17
+services/platform/rpc-resilience/pom.xml
+  h_77173abe25c3ff 17-21
+services/platform/rpc-resilience/src/main/java/com/ulticode/rpc/resilience/DubboDiscoveryReadiness.java
+  h_77173abe25c3ff 1-27
+services/pom.xml
+  h_77173abe25c3ff 55-61
+services/search/pom.xml
+  h_77173abe25c3ff 17
+services/submission/pom.xml
+  h_77173abe25c3ff 18
+services/submission/src/main/java/com/ulticode/submission/config/SubmissionDiscoveryStartupGate.java
+  h_77173abe25c3ff 1-45
+services/submission/src/test/java/com/ulticode/submission/config/SubmissionDiscoveryStartupGateTest.java
+  h_77173abe25c3ff 1-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8169584f3a738433fad13ec9675ccf4843a26300",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

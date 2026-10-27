@@ -119,6 +119,29 @@ Accepted、Management 数据读取与未发布 contest 的创建/readback，不�
 报告在 `.local/browser-acceptance/report.json`，不保存 cookies、凭据或源码。提交与
 未发布 contest fixture 保留用于诊断，不自动删除数据。此检查不是生产、性能或模型验收。
 
+### 扩展业务验收与当前阻塞
+
+基础报告通过后，`scripts/test/browser-business-acceptance.mjs` 使用同一组已有测试账号，
+验证真实 Wrong Answer、Management problem create/edit/readback、重判与 contest
+注册、提交、live ranking、结束和最终 ranking。额外需要 CREATE/UPDATE:PROBLEM 与
+UPDATE:CONTEST 权限；不得修改全局角色策略。它会发布并结束基础脚本创建的 disposable
+contest，因此完整重跑前应先运行基础脚本创建新 fixture。可用 `ACCEPTANCE_CHECKS`
+逗号分隔选择检查；报告只代表实际选中的检查，不代表整个验收通过。
+
+```bash
+ACCEPTANCE_DISPOSABLE=true node scripts/test/browser-business-acceptance.mjs
+```
+
+当前实测：真实 Python Wrong Answer、重判 Pending → Judging → Accepted，以及
+contest 从注册到 FINISHED 最终排名通过。
+Management 表单 difficulty 必须转换为后端接受的 Easy/Medium/Hard，不能直接发送
+UI 的 EASY/MEDIUM/HARD。修复此边界后，problem create 仍返回 500：App 的 Problem
+实体使用 AUTO ID，但已安装 owner schema 的 `problems.id` 没有自动值；此外
+CreateProblemCommand 当前只携带 title/slug/author，未传递完整创建表单。
+这属于发布阻塞，不能把已有题目读取或 Judge 验收当成 problem CRUD 验收。
+修复必须同时覆盖 owner ID、完整写入/readback 与数据库集成测试，不能修改已应用迁移、
+跳过必填字段或直接在测试库 ALTER 来制造通过。
+
 ### 已准备环境启动
 
 ```bash

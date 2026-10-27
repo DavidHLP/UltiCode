@@ -137,10 +137,12 @@ export interface ProblemQueryParams {
 
 // ========== API Transport DTOs (match backend Java DTOs exactly) ==========
 
+export type WireDifficulty = 'Easy' | 'Medium' | 'Hard'
+
 export interface CreateProblemDto {
   slug: string
   title: string
-  difficulty: Difficulty
+  difficulty: WireDifficulty
   status?: ProblemStatus
   isPremium?: boolean
   isPublished?: boolean
@@ -162,7 +164,7 @@ export interface LanguageConfig {
 export interface UpdateProblemDto {
   slug?: string
   title?: string
-  difficulty?: Difficulty
+  difficulty?: WireDifficulty
   status?: ProblemStatus
   isPremium?: boolean
   hasSolution?: boolean
@@ -221,9 +223,19 @@ export interface ProblemUpdateInput {
 
 // ========== Serialization Helpers ==========
 
+function wireDifficulty(value: string): WireDifficulty {
+  switch (value.toUpperCase()) {
+    case 'EASY': return 'Easy'
+    case 'MEDIUM': return 'Medium'
+    case 'HARD': return 'Hard'
+    default: throw new Error('Unsupported problem difficulty')
+  }
+}
+
 export function serializeCreateInput(input: ProblemCreateInput): CreateProblemDto {
   return {
     ...input,
+    difficulty: wireDifficulty(input.difficulty),
     examples: input.examples
       ? JSON.stringify(input.examples.map((ex, idx) => ({ ...ex, order: ex.order ?? idx })))
       : undefined,
@@ -235,6 +247,7 @@ export function serializeCreateInput(input: ProblemCreateInput): CreateProblemDt
 export function serializeUpdateInput(input: ProblemUpdateInput): UpdateProblemDto {
   return {
     ...input,
+    difficulty: input.difficulty === undefined ? undefined : wireDifficulty(input.difficulty),
     examples: input.examples
       ? JSON.stringify(input.examples.map((ex, idx) => ({ ...ex, order: ex.order ?? idx })))
       : undefined,

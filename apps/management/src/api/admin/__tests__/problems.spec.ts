@@ -1,3 +1,4 @@
+import { Difficulty } from '@/api/admin/problems'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   problemsApi,
@@ -106,6 +107,15 @@ describe('problemsApi', () => {
   })
 
   describe('serializeCreateInput', () => {
+    it.each([['EASY', 'Easy'], ['MEDIUM', 'Medium'], ['HARD', 'Hard']])(
+      'uses the Java DTO difficulty spelling for %s on create and update',
+      (input, expected) => {
+        expect(serializeCreateInput({ slug: 'test', title: 'Test', difficulty: input as Difficulty }).difficulty).toBe(expected)
+        expect(serializeUpdateInput({ difficulty: input as Difficulty }).difficulty).toBe(expected)
+      },
+    )
+
+
     it('should serialize examples, constraints, hints to JSON strings', () => {
       const input: ProblemCreateInput = {
         slug: 'test',

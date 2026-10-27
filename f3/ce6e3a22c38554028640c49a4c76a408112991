@@ -1,0 +1,52 @@
+CHANGELOG.md
+  h_77173abe25c3ff 9-13
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 96-98,139-149
+init-db/migrations/app/V20261027070000__Restore_Server_Generated_Problem_Ids.sql
+  h_77173abe25c3ff 1-7
+scripts/dev/owner-migration-safety-integration-test.sh
+  h_77173abe25c3ff 150-171
+scripts/test/browser-business-acceptance.mjs
+  h_77173abe25c3ff 44-48,64-73,82-116,229-235
+services/admin/src/main/java/com/ulticode/modules/admin/dto/problem/AdminProblemMapper.java
+  h_77173abe25c3ff 42,46-47
+services/admin/src/main/java/com/ulticode/modules/admin/dto/problem/CreateProblemDTO.java
+  h_77173abe25c3ff 47-48
+services/admin/src/main/java/com/ulticode/modules/admin/service/ProblemCutoverService.java
+  h_77173abe25c3ff 3,66-73,93-100
+services/admin/src/test/java/com/ulticode/modules/admin/dto/problem/AdminProblemMapperTest.java
+  h_77173abe25c3ff 1-34
+services/admin/src/test/java/com/ulticode/modules/admin/service/ProblemCutoverServiceTest.java
+  h_77173abe25c3ff 82-86,103-108,135-140,154-157
+services/agent/data/repository_corpus_manifest.json
+  h_77173abe25c3ff 32-33
+services/api/app-api/src/main/java/com/ulticode/app/api/command/CreateProblemCommand.java
+  h_77173abe25c3ff 4,31-32,36-40
+services/api/app-api/src/main/java/com/ulticode/app/api/command/UpdateProblemCommand.java
+  h_77173abe25c3ff 4,32-33,37-41,55
+services/api/app-api/src/main/java/com/ulticode/app/api/dto/ProblemWriteFields.java
+  h_77173abe25c3ff 1-16
+services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProvider.java
+  h_77173abe25c3ff 8-9,55-68,75,78,102-121,128,131,137-143,249-251
+services/app/app-web/src/main/java/com/ulticode/modules/problem/port/DefaultProblemDetailPort.java
+  h_77173abe25c3ff 103-104
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/provider/ProblemAdministrationProviderTest.java
+  h_77173abe25c3ff 92-139
+services/app/app-web/src/test/java/com/ulticode/modules/problem/port/DefaultProblemDetailPortTest.java
+  h_77173abe25c3ff 136-145
+services/app/modules/problem/src/main/java/com/ulticode/modules/problem/service/impl/ProblemAdministrationDomainServiceImpl.java
+  h_77173abe25c3ff 7,82-94
+services/app/modules/problem/src/test/java/com/ulticode/modules/problem/service/ProblemAdministrationDomainServiceTest.java
+  h_77173abe25c3ff 156-158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f3ce6e3a22c38554028640c49a4c76a408112991",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

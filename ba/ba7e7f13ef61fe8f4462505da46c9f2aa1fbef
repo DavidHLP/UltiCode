@@ -1,0 +1,18 @@
+scripts/ci/business-acceptance.sh
+  h_77173abe25c3ff 33-34,37,39-42,46
+scripts/dev/devstack-manifest-test.sh
+  h_77173abe25c3ff 11-12,217-220
+scripts/dev/docs-contract-test.sh
+  h_77173abe25c3ff 21-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "baba7e7f13ef61fe8f4462505da46c9f2aa1fbef",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

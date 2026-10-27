@@ -1,0 +1,26 @@
+CHANGELOG.md
+  h_77173abe25c3ff 5-15,41-44
+README.md
+  h_77173abe25c3ff 53,57,59-60,62-64,66,68
+README.zh-CN.md
+  h_77173abe25c3ff 53,57,59-60,62-64,66,68
+SECURITY.md
+  h_77173abe25c3ff 3-8
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 151-176
+docs/OPERATIONS.md
+  h_77173abe25c3ff 11-58,73-99,149-157
+services/agent/data/repository_corpus_manifest.json
+  h_77173abe25c3ff 32-33,46-47,53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d0b6953c16ef4f1917e2c92e418a370fd84cbc32",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

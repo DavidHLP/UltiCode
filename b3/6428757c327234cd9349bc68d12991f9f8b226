@@ -1,0 +1,44 @@
+.gitignore
+  h_77173abe25c3ff 31-34
+CHANGELOG.md
+  h_77173abe25c3ff 1-30
+CODE_OF_CONDUCT.md
+  h_77173abe25c3ff 1-17
+CONTRIBUTING.md
+  h_77173abe25c3ff 1-27
+SECURITY.md
+  h_77173abe25c3ff 1-24
+apps/management/src/stores/admin/system-settings.ts
+  h_77173abe25c3ff 133
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 102-121,193,302
+docs/OPERATIONS.md
+  h_77173abe25c3ff 27-37
+docs/PRODUCT.md
+  h_77173abe25c3ff 46
+scripts/runbooks/prepare-release-bundle.py
+  h_77173abe25c3ff 1-64
+scripts/test/browser-acceptance.mjs
+  h_77173abe25c3ff 1-146
+services/admin/src/main/java/com/ulticode/modules/admin/dto/settings/AllSettingsVO.java
+  h_77173abe25c3ff 53
+services/admin/src/main/java/com/ulticode/modules/admin/dto/settings/FeatureTogglesVO.java
+  h_77173abe25c3ff 11
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/SystemSettingsServiceImpl.java
+  h_77173abe25c3ff 201
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/SystemSettingsServiceImplTest.java
+  h_77173abe25c3ff 87,91,106-107,109-114,117
+services/agent/data/repository_corpus_manifest.json
+  h_77173abe25c3ff 4-5,14,32-33,46-47,53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b36428757c327234cd9349bc68d12991f9f8b226",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

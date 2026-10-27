@@ -24,6 +24,15 @@ try {
   const context = await browser.newContext({ locale: 'en-US' })
   const page = await context.newPage()
   page.on('response', response => {
+    const path = new URL(response.url()).pathname
+    if (response.request().method() === 'POST' && /\/problems\/\d+\/submissions$/.test(path)) {
+      report.submissionAttemptStatuses ||= []
+      report.submissionAttemptStatuses.push(response.status())
+    }
+    if (path === '/api/auth/refresh') {
+      report.authRefreshStatuses ||= []
+      report.authRefreshStatuses.push(response.status())
+    }
     if (response.status() !== 401 || authObservations.length >= 20) return
     authObservations.push((async () => {
       const request = response.request()
@@ -43,6 +52,16 @@ try {
   await login(page, consoleOrigin)
   await page.waitForURL(`${consoleOrigin}/problemset`)
   report.checks.push({ name: 'console-browser-login', passed: true })
+  report.protectedSessionPreflight = []
+  for (const path of ['/api/auth/me', '/api/submissions']) {
+    const response = await page.request.get(`${consoleOrigin}${path}`)
+    const envelope = await response.json().catch(() => ({}))
+    report.protectedSessionPreflight.push({ path, status: response.status(),
+      code: typeof envelope.code === 'number' ? envelope.code : null,
+      accessCookiePresent: (await context.cookies(consoleOrigin)).some(cookie => cookie.name === 'access_token') })
+    assert(response.ok(), `Protected session preflight ${path} HTTP ${response.status()}`)
+  }
+  report.checks.push({ name: 'auth-and-app-protected-session', passed: true })
 
   await page.goto(`${consoleOrigin}/problems/two-sum/description`)
   await page.getByRole('button', { name: 'Select programming language' }).click()
@@ -56,11 +75,15 @@ try {
   report.checks.push({ name: 'problem-browser-editor', passed: true })
 
   const submitted = page.waitForResponse(response => response.request().method() === 'POST'
-    && /\/problems\/\d+\/submissions$/.test(new URL(response.url()).pathname))
+    && /\/problems\/\d+\/submissions$/.test(new URL(response.url()).pathname)
+    && response.status() !== 401)
   await page.getByRole('button', { name: 'Submit Solution', exact: true }).click()
   const response = await submitted
   assert.equal(response.request().postDataJSON().code, code, 'Editor must submit the exact fixture')
   assert(response.ok(), `Submission HTTP ${response.status()}`)
+  if (report.submissionAttemptStatuses?.includes(401)) {
+    assert(report.authRefreshStatuses?.includes(200), 'A 401 retry requires the real successful Auth refresh flow')
+  }
   const envelope = await response.json()
   assert(envelope.data?.id, 'Real submission response must contain its ID')
   const id = envelope.data.id

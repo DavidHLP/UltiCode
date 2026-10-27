@@ -105,6 +105,28 @@ phase=launch
 # Follow the documented second startup: migrations are idempotent, and the
 # supported DEV-LOCAL App seed adapter runs only when migrations are enabled.
 ./scripts/dev/up.sh --scope full-stack --skip-infra --skip-install --rebuild > .local/acceptance/private-launch.log 2>&1
+phase=auth-environment
+node --input-type=module <<'JS'
+import { execFileSync } from 'node:child_process'
+try {
+  const records = JSON.parse(execFileSync('pm2', ['jlist'], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }))
+  const auth = records.find(record => record.name === 'ulticode-auth')?.pm2_env
+  const app = records.find(record => record.name === 'ulticode-app')?.pm2_env
+  if (!auth || !app) throw new Error('Missing disposable owners')
+  const checks = {
+    secretPresentAndEqual: typeof auth.JWT_SECRET === 'string' && auth.JWT_SECRET.length >= 32 && auth.JWT_SECRET === app.JWT_SECRET,
+    issuerEqual: (auth.JWT_ISSUER || 'ulticode-auth') === (app.JWT_EXPECTED_ISSUER || 'ulticode-auth'),
+    audienceEqual: (auth.JWT_AUDIENCE || 'ulticode-api') === (app.JWT_EXPECTED_AUDIENCE || 'ulticode-api'),
+    signingAlgorithmAllowed: (app.JWT_ALLOWED_ALGORITHMS || 'HS256,RS256').split(',').map(value => value.trim())
+      .includes(auth.JWT_RSA_ENABLED === 'true' ? 'RS256' : 'HS256'),
+  }
+  console.log(JSON.stringify({ jwtEnvironmentConsistency: checks }))
+  if (!Object.values(checks).every(Boolean)) process.exitCode = 1
+} catch {
+  console.error('Cannot inspect disposable Auth/App environment consistency')
+  process.exitCode = 1
+}
+JS
 phase=fixtures
 node scripts/test/acceptance-fixtures.mjs
 phase=browser-base

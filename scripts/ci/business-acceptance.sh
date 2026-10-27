@@ -30,14 +30,20 @@ prepared=false
 finish() {
   status=$?
   trap - EXIT
+  # Report generation must never prevent cleanup of our disposable processes.
+  set +e
   export ACCEPTANCE_PHASE="$phase" ACCEPTANCE_EXIT="$status"
   python3 - <<'PY'
-import json,os
+import json,os,re
 from pathlib import Path
+kinds=set()
+for path in Path('.local/acceptance').glob('private-*.log'):
+    text=path.read_text(errors='replace')[-1000000:]
+    kinds.update(re.findall(r'\b(?:org|com|java|javax|jakarta|io)\.(?:[A-Za-z_$][\w$]*\.)*[A-Za-z_$][\w$]*(?:Exception|Error)\b',text))
 Path('.local/acceptance/installation.json').write_text(json.dumps({
  'evidence':'disposable-real-services', 'phase':os.environ['ACCEPTANCE_PHASE'],
  'passed':os.environ['ACCEPTANCE_EXIT']=='0', 'project':os.environ['COMPOSE_PROJECT_NAME'],
- 'raw_logs_published':False,
+ 'raw_logs_published':False, 'exception_classes':sorted(kinds)[:20],
 },indent=2)+'\n')
 PY
   if [[ "$prepared" == true ]]; then

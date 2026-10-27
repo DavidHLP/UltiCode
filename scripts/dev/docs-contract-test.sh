@@ -18,8 +18,10 @@ source "$ROOT_DIR/scripts/test/lib/assertions.sh"
 
 not_contains README.md 'pm2 start ecosystem.config.cjs'
 not_contains README.md 'pm2 restart ulticode-auth ulticode-admin'
-contains README.md './scripts/dev/up.sh --mode dev-lite'
-contains README.md './scripts/dev/up.sh --mode dev-full'
+contains README.md 'docs/DEVELOPMENT.md#干净卷首次安装仅本机-disposable-开发环境'
+contains README.md 'docs/OPERATIONS.md#升级与回滚入口'
+contains docs/DEVELOPMENT.md './scripts/dev/up.sh --mode dev-lite'
+contains docs/DEVELOPMENT.md './scripts/dev/up.sh --mode dev-full'
 contains README.md 'This version no longer supports `legacy-rollback`'
 not_contains README.md './scripts/dev/up.sh --mode legacy-rollback'
 not_contains docs/DEVELOPMENT.md './scripts/dev/up.sh --mode legacy-rollback'

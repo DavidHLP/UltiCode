@@ -1,0 +1,45 @@
+apps/landing/package.json
+  s_0c602f7d95bd71::t_c74f1987849dc1 26
+  s_0c602f7d95bd71::t_c7aac79cd24499 18-19
+apps/management/package.json
+  s_0c602f7d95bd71::t_efe44869a34652 83
+  s_0c602f7d95bd71::t_2e4830ba654085 64,70-72,74,77
+apps/console/package.json
+  s_0c602f7d95bd71::t_de27b877c123ce 48,51,65,71-73,77,87
+package.json
+  s_0c602f7d95bd71::t_9cf4297df53b81 4-5
+packages/badge-config/package.json
+  s_0c602f7d95bd71::t_0e901fa991359e 39
+packages/app-bootstrap/package.json
+  s_0c602f7d95bd71::t_753b997f9c8e1f 20,25
+packages/auth-core/package.json
+  s_0c602f7d95bd71::t_d8315bbec9e958 37,48
+packages/auth-ui/package.json
+  s_0c602f7d95bd71::t_bf0417701b02ac 28,30,36,42,49-50
+packages/design-system/package.json
+  s_0c602f7d95bd71::t_96b71a99100a98 38,42,60,65
+packages/locale-preference/package.json
+  s_0c602f7d95bd71::t_be41bbc01b707d 20,26
+packages/request-state/package.json
+  s_0c602f7d95bd71::t_c24ff93372f5e3 20,26
+packages/sidebar-menu/package.json
+  s_0c602f7d95bd71::t_cb990f7b785330 31,39,42,49
+packages/theme/package.json
+  s_0c602f7d95bd71::t_d9375282d015ac 24,31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "301a934ff6d0233bb73001d76d114bd11b1b0682",
+  "prompts": {},
+  "sessions": {
+    "s_0c602f7d95bd71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "238654f5-5c7e-40d5-82dd-0e3a1fcc2edc",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

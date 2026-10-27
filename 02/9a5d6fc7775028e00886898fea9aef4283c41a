@@ -1,0 +1,24 @@
+services/judge-runtime/src/test/java/com/ulticode/modules/queue/pipeline/source/ConfiguredJudgingCaseSourceTest.java
+  s_7fda136455a0e8::t_70dbbcc92f5dd0 9-12,14-21,24-27,31-36,41-46,51-55,61-65
+  s_7fda136455a0e8::t_6edf18a843939f 3-6,22,28,30,37-40,47-50,56-60,66
+services/judge-runtime/src/test/java/com/ulticode/modules/submission/contract/DFormEnvelopeContractTest.java
+  s_7fda136455a0e8::t_6edf18a843939f 29,34-35,237,265
+services/judge-runtime/pom.xml
+  s_7fda136455a0e8::t_6edf18a843939f 84-98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "029a5d6fc7775028e00886898fea9aef4283c41a",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

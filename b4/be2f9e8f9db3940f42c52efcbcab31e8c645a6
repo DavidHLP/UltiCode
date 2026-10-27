@@ -1,0 +1,28 @@
+.github/actions/host-deploy/action.yml
+  h_77173abe25c3ff 491
+scripts/dev/owner-migration-safety-integration-test.sh
+  h_77173abe25c3ff 222-250
+scripts/runbooks/reconcile-legacy-backups.sh
+  h_77173abe25c3ff 101-106,138-139
+scripts/test/owner-migration-manifest-contract.sh
+  h_77173abe25c3ff 46-47
+services/admin/src/main/java/com/ulticode/modules/backup/service/BackupExecutionService.java
+  h_77173abe25c3ff 3-4,48,50
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
+  h_77173abe25c3ff 30,50,54,107
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupServiceImpl.java
+  h_77173abe25c3ff 37-38,75-87,91-114
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupServiceTest.java
+  h_77173abe25c3ff 38,204-230
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b4be2f9e8f9db3940f42c52efcbcab31e8c645a6",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

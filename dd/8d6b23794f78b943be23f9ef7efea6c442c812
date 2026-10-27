@@ -1,0 +1,16 @@
+scripts/dev/devstack-manifest-test.sh
+  h_77173abe25c3ff 199
+scripts/dev/rustfs-smoke-test.sh
+  h_77173abe25c3ff 99-103,207,211,213,217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dd8d6b23794f78b943be23f9ef7efea6c442c812",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

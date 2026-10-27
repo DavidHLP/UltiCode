@@ -1,0 +1,16 @@
+services/agent/src/sourced_analysis.py
+  h_77173abe25c3ff 6,10,73,83-88,103,107-109
+services/agent/tests/test_sourced_analysis.py
+  h_77173abe25c3ff 2,122-124,150-155,158,180,230,247,286,309-351
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eeffb61a33ca37f725ca1ad69b3da7ff64337123",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

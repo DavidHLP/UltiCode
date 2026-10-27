@@ -1,0 +1,16 @@
+services/agent/src/ulticode_client.py
+  h_77173abe25c3ff 86
+services/agent/tests/test_e2e_sourced_analysis.py
+  h_77173abe25c3ff 174-185,187-188,190-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1dd17c6fb511af68a163319d53448f4dd43bc489",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

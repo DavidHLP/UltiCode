@@ -1,0 +1,18 @@
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java
+  h_77173abe25c3ff 28,126-131,243-252
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapterTest.java
+  h_77173abe25c3ff 17,107-122
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderIT.java
+  h_77173abe25c3ff 6-7,18-19,45,48-51,70-71,131-139,151-160,369-393
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d8c9df0307de7c3fa486fff366cfe85249d7b120",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

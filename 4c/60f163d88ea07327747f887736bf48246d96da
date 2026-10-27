@@ -1,0 +1,23 @@
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java
+  s_aa33514364f4e1::t_6cd16b7203db46 16,155-157,159-164,166
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  s_aa33514364f4e1::t_ba59045153075e 8,245,254-260
+services/platform/storage/src/main/java/com/ulticode/common/storage/ImageContent.java
+  s_aa33514364f4e1::t_8052a57fa06830 1-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4c60f163d88ea07327747f887736bf48246d96da",
+  "prompts": {},
+  "sessions": {
+    "s_aa33514364f4e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b397a92-58ca-4252-8232-f281ba8d72e8",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

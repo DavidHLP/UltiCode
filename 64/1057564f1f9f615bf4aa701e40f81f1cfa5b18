@@ -1,0 +1,21 @@
+docker/docker-compose.yml
+  s_c1c1bb99787bb6::t_63d062b626a5ba 74
+docs/OPERATIONS.md
+  s_c1c1bb99787bb6::t_63d062b626a5ba 17-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "641057564f1f9f615bf4aa701e40f81f1cfa5b18",
+  "prompts": {},
+  "sessions": {
+    "s_c1c1bb99787bb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1198a-cf4e-7f23-81dd-601d007adaf7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

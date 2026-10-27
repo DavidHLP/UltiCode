@@ -1,0 +1,533 @@
+packages/auth-core/src/axiosCsrfInterceptor.ts
+  s_a1bff620af9581::t_4d193d212f5fd2 28-30,62-67,80-82,89-91,126-127,148-150,156-158
+  s_a1bff620af9581::t_46b1a548816428 40,120,142,145,151-152
+apps/management/src/views/contests/wizard/ContestWizard.test.ts
+  s_7bfd96fae8778a::t_647257e5589878 1,4-6,8
+  s_7bfd96fae8778a::t_622b99b7463552 11-52
+apps/console/src/views/problems/submissions/components/AgentReviewPanel.vue
+  s_a1bff620af9581::t_f2ce7d70f88fff 54
+apps/console/src/i18n/locales/zh-CN/auth.ts
+  s_a1bff620af9581::t_f0fddd7d80fc76 2-7
+  s_a1bff620af9581::t_3d4cb9159a463b 8-11
+packages/auth-core/src/__tests__/csrf.spec.ts
+  s_a1bff620af9581::t_42e21cd3bc3fe0 26-36
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/SystemSettingsServiceImplTest.java
+  s_a1bff620af9581::t_26d48adc96ff82 85,106-115
+  s_a1bff620af9581::t_e7aec533d73256 86-105
+apps/console/src/views/personal/AgentConversationWorkspace.vue
+  s_a1bff620af9581::t_f2ce7d70f88fff 34
+  s_a1bff620af9581::t_bebd18c40db2b7 166-169
+  s_e499758404cc02::t_9a50c405e144ec 392-393,420,422
+  s_e499758404cc02::t_348b6ced092e5d 183-184,195-197,199-201,301,389-391,395-413,417-418,424-447,578-581,584-615,618-624,626-634,636-638,641-643,799-802,806-809,883
+  s_a1bff620af9581::t_c071620351649e 57,110
+  s_e499758404cc02::t_fe6da75891e04a 9-13,33,43-46,174-182,186-194,198,202-217,299,306,310-311,314,321,387,554,565,582,616-617,625,635,639-640,644,803,810-811,880-881,887
+  s_a1bff620af9581::t_fdbd112130ba4f 5,108
+  s_e499758404cc02::t_74157fee6a4d4b 415-416
+  s_a1bff620af9581::t_06490accd48687 150-165,170-172
+  s_e499758404cc02::t_efb7e9838315c9 173,448,583
+apps/landing/src/style.css
+  s_87484e6abf0ca9::t_9679dba568305b 1-146
+apps/console/src/i18n/locales/zh-CN/problem.ts
+  s_f183aa7801ef6b::t_71426bd3ff025e 269-271
+apps/console/src/i18n/locales/en-US/problem.ts
+  s_f183aa7801ef6b::t_71426bd3ff025e 274-276
+apps/console/src/i18n/locales/en-US/auth.ts
+  s_a1bff620af9581::t_475720b0dbe09f 2-7
+  s_a1bff620af9581::t_c821b6adfc1b21 8-12
+apps/management/src/i18n/locales/en-US/modules/auth.ts
+  s_a1bff620af9581::t_d44030ee7cf0dc 2-7
+  s_a1bff620af9581::t_f34104bd991515 8-11
+services/admin/src/main/java/com/ulticode/admin/security/AdminSecurityConfig.java
+  s_a1bff620af9581::t_f2ce7d70f88fff 44
+docs/ARCHITECTURE.md
+  s_87484e6abf0ca9::t_3bdb3cf3b5f1c6 83
+  s_a1bff620af9581::t_829f4cf286298e 359-360
+packages/auth-ui/src/components/LoginForm.vue
+  s_a1bff620af9581::t_9935253082de22 45,58,116
+  s_a1bff620af9581::t_3337cdb147368d 44,57,102
+packages/auth-core/src/index.ts
+  s_a1bff620af9581::t_415920c69affc2 15,18,21-24,29,39,42,44,50-52,56,59,62,72,78,91,97-98,106
+  s_a1bff620af9581::t_3337cdb147368d 14
+  s_a1bff620af9581::t_37d47625249e5d 6
+apps/console/src/features/sider/__tests__/AppSidebar.spec.ts
+  s_a1bff620af9581::t_8fb5c1203577ef 55-57,73-74,216-223,230-233
+  s_a1bff620af9581::t_84ee78e3ffa7ac 212-215,224-228,234
+  s_c93d5e9397f28f::t_80bf0ed5eaaa73 61-66
+  s_a1bff620af9581::t_7cd887ece5f561 351
+  s_3b098b44b55c51::t_d14f6fbb411239 25
+  s_a1bff620af9581::t_761813d31d2974 78-79,170-172,324-335
+  s_3b098b44b55c51::t_e284d4c90401e7 10-11
+  s_c93d5e9397f28f::t_8bee073ea96ff6 46-47
+  s_a1bff620af9581::t_e8e75efc381a9e 266-270
+  s_a1bff620af9581::t_57d10345611feb 13,97,180,197-200,202-206
+  s_3b098b44b55c51::t_eeade9debdd503 94-95
+  s_a1bff620af9581::t_ba093a541cf831 132,140-169,173-179,241,272-274,276
+  s_3b098b44b55c51::t_d57341724d9d9b 207-210,336-339,361-386
+  s_a1bff620af9581::t_27e23e9f30a0d6 31-36,321-323
+  s_a1bff620af9581::t_d12a910104dd96 54,69-72,75
+  s_3b098b44b55c51::t_067de720308622 50-53,58
+  s_f183aa7801ef6b::t_ec3b63ac1e4a40 211,340
+apps/management/src/views/settings/components/FeatureToggleSettings.vue
+  s_a1bff620af9581::t_937f3c940581bb 42-45
+  s_a1bff620af9581::t_592a0f2b36246c 46
+apps/management/src/components/layout/NavMain.vue
+  s_a1bff620af9581::t_49c8288b6422e5 44,56
+  s_a1bff620af9581::t_2c64e17fb775c5 5-6,25,40,46,54-55,57-58,62-67,73-80,86-89
+  s_a1bff620af9581::t_8fb5c1203577ef 11,29,32,35,41-43,45,47-53,59-60,68-71,81-84
+packages/design-system/src/components/ui/sidebar/SidebarMenuSubButton.vue
+  s_a1bff620af9581::t_c0643c0deb7cb1 32
+services/admin/src/main/java/com/ulticode/modules/admin/service/SystemSettingsService.java
+  s_a1bff620af9581::t_e7aec533d73256 44-45
+apps/management/src/main.ts
+  s_a1bff620af9581::t_d0e884bd5b2a6e 8-13,23,27,29
+apps/console/src/components/common/data-table/__tests__/DataTableToolbar.spec.ts
+  s_f183aa7801ef6b::t_4a398d108fbfcd 6,13-15
+apps/console/src/components/common/data-table/DataTableToolbar.vue
+  s_f183aa7801ef6b::t_4a398d108fbfcd 29,31,52
+  s_4c3d2ec90adbe7::t_612df5eb26b0bc 39
+  s_4c3d2ec90adbe7::t_530273642296cc 54
+  s_4c3d2ec90adbe7::t_23894a64d43e1e 46-51
+apps/console/src/components/problem/ProblemExplorer.vue
+  s_4c3d2ec90adbe7::t_530273642296cc 11-12,17-24,68
+  s_f183aa7801ef6b::t_9d5ae6f1211f5b 64
+apps/console/src/views/problem-set/ProblemSetView.vue
+  s_f183aa7801ef6b::t_6cdd5880b2cba3 24,27,30,36
+services/auth/src/main/java/com/ulticode/auth/refreshtoken/service/RefreshTokenService.java
+  s_a1bff620af9581::t_c97525fc2c06ab 167,175-183
+  s_a1bff620af9581::t_37d47625249e5d 99
+  s_a1bff620af9581::t_6bc02415b236d5 164-166,168-174,184-185
+apps/landing/src/views/landing/components/HeroSection.vue
+  s_87484e6abf0ca9::t_9679dba568305b 2,5-7,9-46,48,52-53,56-115,117-141,143-148,150-188,190-203,205-218,220-239,242-950
+packages/auth-core/src/createSessionAuthStore.ts
+  s_a1bff620af9581::t_415920c69affc2 75-77,160-161,178-181,189-191
+  s_a1bff620af9581::t_37d47625249e5d 2,199
+services/auth/src/test/java/com/ulticode/auth/account/AuthAccountPersistenceIT.java
+  s_a1bff620af9581::t_d94b149bbac6d2 33-42,46-54,81-128
+  s_a1bff620af9581::t_550a7b6f131bb3 129
+services/agent/tests/test_agent_service.py
+  s_a1bff620af9581::t_0d4b5a45c94487 20,28-43
+  s_a1bff620af9581::t_dc3b49a43fde23 68-80
+  s_a1bff620af9581::t_566ad1b2c02ca8 46-67
+  s_a1bff620af9581::t_26d48adc96ff82 1599-1601
+  s_a1bff620af9581::t_f50f87cd0abc0e 44-45
+apps/console/src/stores/auth.ts
+  s_a1bff620af9581::t_48f0bbda0525af 40,46,69-77,79-86,113-114
+  s_a1bff620af9581::t_7801b1c6323992 78
+apps/console/public/theme-bootstrap.js
+  s_a1bff620af9581::t_d0e884bd5b2a6e 36
+packages/theme/src/appearance.ts
+  s_3b098b44b55c51::t_b700b6fe705d3b 1
+  s_3b098b44b55c51::t_a32f41e243c21d 195
+  s_3b098b44b55c51::t_610a1c5d4b9e7f 22
+  s_3b098b44b55c51::t_f12331f867bb12 180
+apps/landing/vite.config.ts
+  s_87484e6abf0ca9::t_9679dba568305b 7
+apps/landing/src/views/landing/__tests__/LandingView.spec.ts
+  s_87484e6abf0ca9::t_9679dba568305b 147,149-171,173-188,192,194-198,201-243,247,249-252,255,257-260,263,265-267,270,272-274,277,279-281
+services/auth/src/main/java/com/ulticode/auth/adapter/in/web/AccountSessionsController.java
+  s_a1bff620af9581::t_3a9b29b592832a 28-33,43,45,54
+  s_a1bff620af9581::t_6bc02415b236d5 1-27,34-42,44,46-53,55-66
+apps/management/src/components/problem/MarkdownEditor.vue
+  s_3b098b44b55c51::t_393af8e846af1c 390-397
+apps/landing/src/views/landing/components/LandingFooter.vue
+  s_87484e6abf0ca9::t_9679dba568305b 4,7,9-14,16-18,20-90,95-202
+apps/management/src/stores/admin/__tests__/system-settings.spec.ts
+  s_a1bff620af9581::t_26d48adc96ff82 88
+  s_a1bff620af9581::t_937f3c940581bb 56
+  s_a1bff620af9581::t_dc3b49a43fde23 186,190
+apps/management/src/api/accountSessions.ts
+  s_a1bff620af9581::t_eec1a6db7cadf5 1,3-5,8-9,11,14-15,17-19
+  s_a1bff620af9581::t_432b23e8a8c6e1 2,6-7,10,12-13,16
+  s_a1bff620af9581::t_8b9153f528147f 20-31
+services/auth/src/test/java/com/ulticode/auth/security/AuthSecurityConfigContractTest.java
+  s_a1bff620af9581::t_46b1a548816428 37-46,54-55
+  s_a1bff620af9581::t_860165d8af4913 18-19
+apps/console/src/features/sider/AppLayout.vue
+  s_f183aa7801ef6b::t_6cdd5880b2cba3 19,64,68,73-75,77-80,82-85,87-108,116-119,121
+  s_a1bff620af9581::t_61995adb1b4f75 67,69-72,76,120
+apps/management/src/components/LanguageSwitcher.vue
+  s_a1bff620af9581::t_61995adb1b4f75 20
+apps/management/src/components/layout/MainLayout.vue
+  s_a1bff620af9581::t_61995adb1b4f75 9
+apps/landing/package.json
+  s_87484e6abf0ca9::t_9679dba568305b 19,34
+apps/landing/src/views/landing/LandingView.vue
+  s_87484e6abf0ca9::t_9679dba568305b 2,13-14,39,127-179,181-184,242-361,364-368,373-458
+apps/landing/tsconfig.json
+  s_87484e6abf0ca9::t_9679dba568305b 6,19-20,26
+apps/console/src/features/sider/AppSidebar.vue
+  s_c93d5e9397f28f::t_86aff09450d8f8 194-196
+  s_c93d5e9397f28f::t_0ee255f4d16aa3 158-159,164-165
+  s_a1bff620af9581::t_5878bc8cfb4ca5 187
+  s_c93d5e9397f28f::t_f29043d4c459cb 33-34
+  s_a1bff620af9581::t_1a6dbec09cad2b 14-15
+  s_3b098b44b55c51::t_61d5227492ac0c 45-46
+  s_3b098b44b55c51::t_d6827fba58b025 49-61
+  s_a1bff620af9581::t_61995adb1b4f75 160-163
+docs/DEVELOPMENT.md
+  s_a1bff620af9581::t_ba093a541cf831 236
+  s_a1bff620af9581::t_d0e884bd5b2a6e 244-245
+  s_a1bff620af9581::t_26d48adc96ff82 102,203
+  s_f183aa7801ef6b::t_6cdd5880b2cba3 234
+  s_a1bff620af9581::t_27e23e9f30a0d6 238
+  s_a1bff620af9581::t_61995adb1b4f75 242-243
+  s_a1bff620af9581::t_829f4cf286298e 237,239
+  s_e499758404cc02::t_e5ebcbe088f688 98-99
+  s_a1bff620af9581::t_aa1649932415f2 240-241
+  s_4c3d2ec90adbe7::t_530273642296cc 235
+  s_87484e6abf0ca9::t_f033506f59f2e3 184,246,356,358
+apps/management/src/views/settings/components/SettingsSwitches.test.ts
+  s_a1bff620af9581::t_937f3c940581bb 76
+services/platform/web-security/src/test/java/com/ulticode/websecurity/csrf/CookieCsrfFilterTest.java
+  s_a1bff620af9581::t_fbd3a785474907 60-84
+apps/console/src/views/problems/composables/__tests__/useProblemLayout.behavior.spec.ts
+  s_3b098b44b55c51::t_b62bf1cfff3b80 8-9
+  s_3b098b44b55c51::t_52141c14a0d2a6 13
+  s_3b098b44b55c51::t_4ab25786a0cfb2 126-154
+  s_3b098b44b55c51::t_a3d342f08311c6 112-125
+packages/auth-ui/package.json
+  s_a1bff620af9581::t_3337cdb147368d 33
+apps/management/src/stores/__tests__/auth.spec.ts
+  s_a1bff620af9581::t_1816e1fac30536 6-8,34,62-90
+  s_a1bff620af9581::t_6325635136ea76 91,93-125
+  s_a1bff620af9581::t_375f46b42bab59 92
+apps/console/src/stores/__tests__/auth.spec.ts
+  s_a1bff620af9581::t_6325635136ea76 53-70
+  s_a1bff620af9581::t_7801b1c6323992 42
+  s_a1bff620af9581::t_86a8b7dfe94bff 46-47,71-73
+packages/auth-ui/src/__tests__/AccountSwitcher.spec.ts
+  s_a1bff620af9581::t_261345ef262798 2
+  s_a1bff620af9581::t_357045eeb2f809 3-6,26-27,33-35,37-39,41-44,48,50-51,54-55,61,65,67,70,76,96-98,101,106-107,113,115-117,119-120,124-126,131-132
+  s_a1bff620af9581::t_dc5298d353abba 1,36,40,52,56-57,68,71-72,99,105,108-109,118,127
+  s_a1bff620af9581::t_27e23e9f30a0d6 8-10,12-25,28-32,45-47,58-60,62-63,73-74,78-81,83,87-92,94,102-104,110-111,121-123,128-129
+  s_a1bff620af9581::t_761813d31d2974 84-86
+apps/landing/src/views/landing/components/FinalStorySection.vue
+  s_87484e6abf0ca9::t_9679dba568305b 4,7,9-30,34-149
+services/admin/src/main/java/com/ulticode/modules/admin/dto/settings/AllSettingsVO.java
+  s_a1bff620af9581::t_f2ce7d70f88fff 53
+services/agent/src/agent_service/app.py
+  s_a1bff620af9581::t_566ad1b2c02ca8 604-618,715
+  s_a1bff620af9581::t_9e5be8433c1e0e 716,725-726,1112-1119
+apps/console/src/features/sider/Calendars.vue
+  s_a1bff620af9581::t_97feb04f68c22d 5,76
+  s_a1bff620af9581::t_0613801aad250b 9-13,51-75
+  s_c93d5e9397f28f::t_93d8a3b80a067b 50,77
+services/admin/src/main/java/com/ulticode/modules/admin/controller/PublicAgentFeatureController.java
+  s_a1bff620af9581::t_f2ce7d70f88fff 1-2,4-17,19-20
+  s_a1bff620af9581::t_9e5be8433c1e0e 3
+  s_a1bff620af9581::t_e7aec533d73256 18
+packages/auth-core/src/__tests__/refreshCoordinator.spec.ts
+  s_a1bff620af9581::t_d6382b0b7950ad 18,40-48
+  s_a1bff620af9581::t_693d6321425a34 49-75,85,99-101,105-107,130,147-149,184-188,213-215
+apps/console/src/components/problem/composables/useProblemExplorer.ts
+  s_4c3d2ec90adbe7::t_530273642296cc 299-305
+apps/management/public/theme-bootstrap.js
+  s_a1bff620af9581::t_d0e884bd5b2a6e 36
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/SystemSettingsServiceImpl.java
+  s_a1bff620af9581::t_f2ce7d70f88fff 160
+  s_a1bff620af9581::t_e7aec533d73256 199-209,302-303
+  s_a1bff620af9581::t_952e5ee4859b52 198
+packages/sidebar-menu/src/components/SidebarBranch.vue
+  s_a1bff620af9581::t_49c8288b6422e5 22,25,33-35,60
+  s_a1bff620af9581::t_8fb5c1203577ef 5-16,18-21,23-24,26,29-32,36-41,46-51,54-59,61,63-66
+  s_a1bff620af9581::t_54d0604b01b8d4 53
+  s_a1bff620af9581::t_d24f02ce4dc66b 1-4,17,27-28,42-45,52,62,67-76
+packages/sidebar-menu/src/index.ts
+  s_a1bff620af9581::t_415920c69affc2 24
+apps/management/src/api/admin/settings.ts
+  s_a1bff620af9581::t_26d48adc96ff82 5
+  s_a1bff620af9581::t_f2ce7d70f88fff 80,149,213
+services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java
+  s_a1bff620af9581::t_e54a1e3f3f8c81 46-47
+apps/console/src/api/agent.ts
+  s_a1bff620af9581::t_f2ce7d70f88fff 34
+packages/auth-ui/src/components/AccountSwitcher.vue
+  s_a1bff620af9581::t_3337cdb147368d 1-3,11,29-37,39-47,56-60,68-75,81-93,190-193,208-210
+  s_a1bff620af9581::t_d5bb7826e4b700 13-28,48-55,61-67,76-80,119-124,136,139,171,182,194-207
+  s_a1bff620af9581::t_61995adb1b4f75 4-10,12,38,94-118
+  s_a1bff620af9581::t_761813d31d2974 125-135,137-138,140-170,172-181,183-189
+apps/management/src/components/layout/NavUser.vue
+  s_a1bff620af9581::t_87da586300174f 3,84,89
+  s_a1bff620af9581::t_fc8a56dc887407 45,85,97,100
+  s_a1bff620af9581::t_833e9fa99c8226 9-10,33,39,47-50,77,105
+  s_a1bff620af9581::t_61995adb1b4f75 71-76,78-80,82,93,103-104,106-108,110-112,115,120
+apps/console/src/components/problem/composables/__tests__/useProblemExplorer.spec.ts
+  s_4c3d2ec90adbe7::t_746aaadb3d691c 17-18,23,33,45-48,147-148,310-316
+  s_4c3d2ec90adbe7::t_3544a4cc3cacb1 595-599,717-719,730-732
+  s_4c3d2ec90adbe7::t_164cc2e5f0b6cb 614,684-716,720-729,733-735
+  s_f183aa7801ef6b::t_00e61e8708e711 736
+apps/console/src/views/problems/composables/useProblemLayout.ts
+  s_3b098b44b55c51::t_0e6639c9774297 466-470
+  s_3b098b44b55c51::t_add7027688f128 440-448
+apps/console/src/i18n/locales/en-US/agent.ts
+  s_a1bff620af9581::t_8efdabe0e4b3cb 118
+  s_e499758404cc02::t_fe6da75891e04a 94-97
+apps/console/src/features/sider/sidebar.data.ts
+  s_a1bff620af9581::t_3e948cb733934c 191
+apps/management/src/components/shared/AppearanceSettings.test.ts
+  s_3b098b44b55c51::t_ed79c6991de613 9
+  s_3b098b44b55c51::t_b3ba40f2900267 2
+  s_3b098b44b55c51::t_d85b695931b344 47
+  s_3b098b44b55c51::t_1962fe40a473ab 70-113
+apps/console/src/views/problems/submissions/__tests__/AgentReviewPanel.spec.ts
+  s_a1bff620af9581::t_96190b41f13abb 87,91
+apps/console/src/composables/useAvatar.ts
+  s_a1bff620af9581::t_833e9fa99c8226 1
+apps/console/src/components/common/data-table/CategoryFilter.vue
+  s_4c3d2ec90adbe7::t_530273642296cc 3-11,19,27-30,34-43,48-52,56-73
+  s_4c3d2ec90adbe7::t_23894a64d43e1e 44-47
+  s_4c3d2ec90adbe7::t_89e2566bb19d12 53-55
+services/auth/src/test/java/com/ulticode/auth/refreshtoken/service/RefreshTokenServiceTest.java
+  s_a1bff620af9581::t_fbd3a785474907 65-92
+apps/console/src/main.ts
+  s_a1bff620af9581::t_d0e884bd5b2a6e 13,26,31
+apps/console/src/features/sider/SidebarNav.vue
+  s_a1bff620af9581::t_138f914bd4457b 75-76,82,108-110,116,123-126
+  s_a1bff620af9581::t_0613801aad250b 5-6,77-79,81,83-88,90,114,120-121
+  s_a1bff620af9581::t_61995adb1b4f75 14,91-94,96-106
+  s_a1bff620af9581::t_49c8288b6422e5 59,63-64,80,89
+  s_a1bff620af9581::t_7ca89b0077074e 65
+packages/auth-ui/src/useAvatar.ts
+  s_a1bff620af9581::t_833e9fa99c8226 1-41
+packages/http-client/src/__tests__/createHttpClient.test.ts
+  s_a1bff620af9581::t_dd13ee81185fbb 68
+  s_a1bff620af9581::t_415920c69affc2 18-22,32-36,38-42,53-58,61-67,157-161,236-239,259-262,321-326,432-435,444-446,491-494,500-502,579-581,650-655,680-682,765-767,781-784,808-810,823-827,836-838,857-866,894-900,915-925,936-940,951-954,1020-1022,1027-1030,1038-1042,1046-1048,1064-1066,1080-1082
+  s_a1bff620af9581::t_357045eeb2f809 8-17,23-31,37,43-52,59-60,69-72
+AGENTS.md
+  s_87484e6abf0ca9::t_1ac11667768e6c 29,40
+apps/management/src/views/contests/wizard/StepReview.vue
+  s_7bfd96fae8778a::t_d66ab0fae9a136 106-107
+apps/console/src/components/problem/components/ProblemFilterPanel.vue
+  s_f183aa7801ef6b::t_6cdd5880b2cba3 163,165,167
+  s_4c3d2ec90adbe7::t_530273642296cc 20,47,49,61-68,151
+  s_4c3d2ec90adbe7::t_4a1ce8db917d48 164,166
+apps/console/src/components/common/data-table/TagFilter.vue
+  s_4c3d2ec90adbe7::t_530273642296cc 40-42,47-48,70-72,77-78
+  s_4c3d2ec90adbe7::t_23894a64d43e1e 55-59
+  s_4c3d2ec90adbe7::t_4a1ce8db917d48 54
+  s_4c3d2ec90adbe7::t_0014820226e1ba 44,74
+apps/console/src/components/problem/FeaturedBanners.vue
+  s_f183aa7801ef6b::t_6cdd5880b2cba3 6-13,49-50,52,54,157,159,234-270,274-277,283,287,291,295-296,299,309,312,314,316,324,340,354,356,359-360,364-366,369-375,377,384,395,397-406
+apps/landing/src/views/landing/components/ProductProofSection.vue
+  s_87484e6abf0ca9::t_9679dba568305b 3-4,7,9-12,14,16,18-79,83-283
+packages/auth-core/src/__tests__/axiosCsrfInterceptor.spec.ts
+  s_a1bff620af9581::t_46b1a548816428 171,210,319
+packages/theme/__tests__/appearance.spec.ts
+  s_a1bff620af9581::t_2a4e04c641e925 23,27,35-36,57,61,65,67,71,73,86
+packages/auth-core/src/csrf.ts
+  s_a1bff620af9581::t_37d47625249e5d 49,53-57,67,72,93
+  s_a1bff620af9581::t_4d193d212f5fd2 84-91,117-119
+packages/theme/scripts/sync-theme-bootstrap.mjs
+  s_87484e6abf0ca9::t_1ac11667768e6c 45
+apps/management/src/i18n/locales/zh-CN/modules/auth.ts
+  s_a1bff620af9581::t_fd44911f6937ac 2-7
+  s_a1bff620af9581::t_1a3d174f3d6977 8-11
+apps/console/src/views/personal/__tests__/AgentConversationWorkspace.spec.ts
+  s_a1bff620af9581::t_c8d8f60b709fe6 316-322
+  s_e499758404cc02::t_0499d74358b05d 111-113,151,155-157,183-185,208-211
+  s_e499758404cc02::t_690a6956e7fba9 2,4,8-10,20,22-25,43-57,96-98,109-110,114-121,125-126,130-140,144-150,152-154,158-178,182,186-203,206,213-229
+  s_a1bff620af9581::t_06490accd48687 19,21,306-308
+  s_e499758404cc02::t_229ecc6d090643 122-124,127-129,141-143,179-181,204-205,207,212
+  s_a1bff620af9581::t_fdbd112130ba4f 230
+  s_a1bff620af9581::t_96190b41f13abb 315,327
+  s_e499758404cc02::t_9a50c405e144ec 40-42
+services/admin/src/main/java/com/ulticode/modules/admin/dto/settings/FeatureTogglesVO.java
+  s_a1bff620af9581::t_e7aec533d73256 4,12-18
+  s_a1bff620af9581::t_f2ce7d70f88fff 11
+services/auth/src/main/java/com/ulticode/auth/adapter/in/web/CsrfController.java
+  s_a1bff620af9581::t_c97525fc2c06ab 1-30
+apps/console/src/components/problem/ProblemSetSidebar.vue
+  s_f183aa7801ef6b::t_6cdd5880b2cba3 95,97
+services/platform/web-security/src/main/java/com/ulticode/websecurity/csrf/CookieCsrfFilter.java
+  s_a1bff620af9581::t_e54a1e3f3f8c81 27,71-78
+  s_a1bff620af9581::t_3a9b29b592832a 16,36-42
+apps/console/src/features/sider/NavUser.vue
+  s_a1bff620af9581::t_fc8a56dc887407 128,194
+  s_a1bff620af9581::t_87da586300174f 15
+  s_a1bff620af9581::t_61995adb1b4f75 111-112,116,124,137-138,142,178,180,184,186-188,190,201,203,207,209-211
+  s_a1bff620af9581::t_9c1fcba707c900 62
+apps/management/src/stores/auth.ts
+  s_a1bff620af9581::t_7801b1c6323992 70
+  s_a1bff620af9581::t_1816e1fac30536 12-23,32-36
+  s_a1bff620af9581::t_48f0bbda0525af 71-75
+services/auth/src/test/java/com/ulticode/auth/session/DefaultAuthSessionAdapterTest.java
+  s_a1bff620af9581::t_46b1a548816428 49-62
+  s_a1bff620af9581::t_f1baed0c505404 71,137,151
+  s_a1bff620af9581::t_3bd8ae86258bf6 48
+apps/console/src/i18n/locales/zh-CN/agent.ts
+  s_e499758404cc02::t_fe6da75891e04a 94-97
+  s_a1bff620af9581::t_bebd18c40db2b7 118
+apps/management/src/i18n/locales/en-US/modules/settings.ts
+  s_a1bff620af9581::t_f2ce7d70f88fff 93
+  s_a1bff620af9581::t_1a076b194cba30 94-95
+apps/landing/src/views/landing/components/UseCasesSection.vue
+  s_87484e6abf0ca9::t_9679dba568305b 4,7,11,14-22,24-118,122-356
+apps/management/src/stores/admin/system-settings.ts
+  s_a1bff620af9581::t_f2ce7d70f88fff 133,187
+  s_a1bff620af9581::t_1a076b194cba30 373-376
+services/auth/src/main/java/com/ulticode/auth/session/AuthSessionPort.java
+  s_a1bff620af9581::t_c97525fc2c06ab 18
+packages/auth-core/src/browserSessionLock.ts
+  s_a1bff620af9581::t_37d47625249e5d 1-8
+  s_a1bff620af9581::t_60a459b1bee09f 9-10
+packages/design-system/src/components/appearance/AppearanceSettings.vue
+  s_3b098b44b55c51::t_3724d3f354b49e 192,196-199
+  s_3b098b44b55c51::t_d0164638717b88 186-190,193-194
+  s_3b098b44b55c51::t_27ef0bc3ad37a8 56
+  s_3b098b44b55c51::t_5f30e6ce297434 226
+apps/management/src/i18n/locales/zh-CN/modules/settings.ts
+  s_a1bff620af9581::t_f2ce7d70f88fff 92
+  s_a1bff620af9581::t_1a076b194cba30 93-94
+packages/http-client/src/index.ts
+  s_a1bff620af9581::t_415920c69affc2 33-35,97-99,133-135,207-210,229-232,250-254,256-260,262-266,277-281,293-296,301-305,399-404,479-483,490-497,508-511,522-525,558-559,594-596,598-600,622-624,631-635
+  s_a1bff620af9581::t_8d769b673592a7 37,297-300,306-309,351-352,379,398,405-410,413
+packages/design-system/style.css
+  s_a1bff620af9581::t_61995adb1b4f75 192-198,208-210
+  s_a1bff620af9581::t_b7550f07e8f40f 211
+packages/auth-core/src/__tests__/axiosCsrfInterceptor.401.spec.ts
+  s_a1bff620af9581::t_d6382b0b7950ad 90-99
+  s_a1bff620af9581::t_2bdf84cb82debb 100-105
+docs/REFERENCE.md
+  s_a1bff620af9581::t_829f4cf286298e 213-225
+services/agent/tests/test_agent_security.py
+  s_a1bff620af9581::t_4174de754445b8 12
+apps/management/src/components/layout/NavSecondary.vue
+  s_a1bff620af9581::t_49c8288b6422e5 29
+  s_a1bff620af9581::t_d7ba117a3af888 4-6,18,20-21,25,31-32,42-44
+  s_a1bff620af9581::t_8fb5c1203577ef 9-10,26-28,30,33-40
+apps/console/src/api/accountSessions.ts
+  s_a1bff620af9581::t_a0f34c1eb04a89 2,6-7,10,12-13,16
+  s_a1bff620af9581::t_eec1a6db7cadf5 1,3-5,8-9,11,14-15,17-18
+  s_a1bff620af9581::t_9d610543ee8b67 19-32
+apps/console/src/features/sider/components/SidebarListSections.vue
+  s_a1bff620af9581::t_0cdad03d9a2d51 156,164
+  s_a1bff620af9581::t_49c8288b6422e5 127,149-153
+  s_a1bff620af9581::t_0613801aad250b 7-11,16,28-31,40,50-105,112-113,118-119,124-126,128,131-134,137-138,140-142,157-158,162-163,165-168,171-174,177-178,180-183,186-191,194-200,202-206
+  s_a1bff620af9581::t_3e3cce1241b0dc 2-5,37,106,115-117,123,129,135-136,144,147-148,154-155,159-161,169-170,176,185,192-193,201,207-212
+  s_a1bff620af9581::t_5a65141f75a24f 130
+  s_a1bff620af9581::t_ed5fe251a283cd 213
+packages/auth-ui/src/__tests__/LoginForm.spec.ts
+  s_a1bff620af9581::t_357045eeb2f809 16-24
+  s_a1bff620af9581::t_ce1a1bf19be50b 25-26
+services/auth/src/test/java/com/ulticode/auth/service/AccountSessionServiceTest.java
+  s_a1bff620af9581::t_c97525fc2c06ab 50,64,88
+  s_a1bff620af9581::t_46b1a548816428 71-80
+  s_a1bff620af9581::t_fbd3a785474907 1-49,51-63,65-70,81-87,89-141
+packages/sidebar-menu/src/components/__tests__/SidebarParentItem.spec.ts
+  s_a1bff620af9581::t_ba093a541cf831 34,38
+services/auth/src/main/java/com/ulticode/auth/service/AccountSessionService.java
+  s_a1bff620af9581::t_6bc02415b236d5 1-52,54-58,60-62,64,66-67,70-71,78-119
+  s_a1bff620af9581::t_c97525fc2c06ab 65
+  s_a1bff620af9581::t_3a9b29b592832a 53,59,63,68-69,72-77
+packages/auth-core/src/refreshCoordinator.ts
+  s_a1bff620af9581::t_4d193d212f5fd2 41-44,47-58,60
+  s_a1bff620af9581::t_d6382b0b7950ad 59
+  s_a1bff620af9581::t_37d47625249e5d 12,40,61
+apps/landing/AGENTS.md
+  s_87484e6abf0ca9::t_1ac11667768e6c 1-8
+packages/auth-ui/src/index.ts
+  s_a1bff620af9581::t_833e9fa99c8226 37
+  s_a1bff620af9581::t_3337cdb147368d 27,36
+apps/console/src/components/search/SearchBar.vue
+  s_a1bff620af9581::t_61995adb1b4f75 32
+packages/theme/bootstrap.js
+  s_a1bff620af9581::t_d0e884bd5b2a6e 36
+apps/management/src/components/layout/SiteHeader.vue
+  s_a1bff620af9581::t_61995adb1b4f75 8,55,134-137,140,142-144,147,151-153,155-212
+  s_a1bff620af9581::t_06f115cfc93bfd 138-139,141,146,148-149
+packages/theme/src/appearance-model.ts
+  s_a1bff620af9581::t_d0e884bd5b2a6e 23-24
+apps/landing/src/views/landing/components/LandingHeader.vue
+  s_87484e6abf0ca9::t_9679dba568305b 2,5-53,55,57-65,67-77,79-107,109-139,141-142,147-422
+apps/management/src/components/layout/AppSidebar.vue
+  s_a1bff620af9581::t_833e9fa99c8226 68,70
+  s_a1bff620af9581::t_61995adb1b4f75 50,266-267,270,274,283
+  s_a1bff620af9581::t_d5bb7826e4b700 2-3
+services/agent/data/repository_corpus_manifest.json
+  s_e499758404cc02::t_4af7b67cd415ad 32-33
+apps/console/src/components/problem/components/ProblemResultList.vue
+  s_f183aa7801ef6b::t_6cdd5880b2cba3 40,59
+  s_f183aa7801ef6b::t_9d5ae6f1211f5b 5,52-58,60-69,85,94,101
+apps/landing/src/views/landing/components/HumanControlSection.vue
+  s_87484e6abf0ca9::t_9679dba568305b 3-4,7,11,14-45,50-190
+services/auth/src/main/java/com/ulticode/auth/session/DefaultAuthSessionAdapter.java
+  s_a1bff620af9581::t_3a9b29b592832a 42-43,58-59,71-72,84-87
+  s_a1bff620af9581::t_c97525fc2c06ab 77-83,88
+  s_a1bff620af9581::t_195b8a566cef4d 89
+packages/auth-core/src/types.ts
+  s_a1bff620af9581::t_08ba90926d096b 17-18,96-102
+pnpm-lock.yaml
+  s_a1bff620af9581::t_1566080b03e66e 596-598
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f46684b07c07e2a4f8c7bbe72390a64ee34cad07",
+  "prompts": {},
+  "sessions": {
+    "s_3b098b44b55c51": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "16131f61-a97d-4283-92b6-4759fe2d0ce1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_4c3d2ec90adbe7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1645d-3670-7ab3-929a-a17e79605dca",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_7bfd96fae8778a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1f780b40-94bc-4f1d-ab45-19cd3e8e2783",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_87484e6abf0ca9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-86c235c9231d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_a1bff620af9581": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-8dcf1e3213ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_c93d5e9397f28f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ff713fa-7f40-4028-9271-9fdde51b49c9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_e499758404cc02": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16489-07e7-7082-be14-f27e375f1da5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_f183aa7801ef6b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16486-c97b-74e3-af8f-248a9bd7675c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+services/agent/src/vector_search.py
+  h_77173abe25c3ff 30,32-35,45-49
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 255-257,268,290-296
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "52dd4c5f8c743a14faa8384f8ccc04a538278514",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

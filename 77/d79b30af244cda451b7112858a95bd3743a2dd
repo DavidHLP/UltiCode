@@ -1,0 +1,50 @@
+services/agent/README.md
+  s_6d6301651c0f0a::t_3ac2458b456eed 21-36,42-48,52-54
+  s_6d6301651c0f0a::t_078256431e496f 37-41
+  s_6d6301651c0f0a::t_5f3e34007b8190 49-51
+docs/DEVELOPMENT.md
+  s_6d6301651c0f0a::t_f227756af1212d 321-330
+services/agent/src/ulticode_tools.py
+  s_6d6301651c0f0a::t_06db71741af881 147-187,247,249
+services/agent/src/agent_service/app.py
+  s_6d6301651c0f0a::t_3ac2458b456eed 415-418
+  s_6d6301651c0f0a::t_240228a04747b6 752-753,804-806,808-810,905-906
+  s_6d6301651c0f0a::t_a7cecd254cc6da 807
+services/agent/src/agent_mcp_server.py
+  s_6d6301651c0f0a::t_240228a04747b6 1-80
+services/agent/src/agent_mcp_client.py
+  s_6d6301651c0f0a::t_713b7ad74c89fc 103-106,108-109
+  s_6d6301651c0f0a::t_240228a04747b6 1-21,23-56,58-101,107,110-113,115-119
+  s_6d6301651c0f0a::t_7a219ea8600fe0 22,57,102,114
+services/agent/data/repository_corpus_manifest.json
+  s_6d6301651c0f0a::t_6728914a20d2e9 32-33
+services/agent/tests/test_ulticode_tools.py
+  s_6d6301651c0f0a::t_7a219ea8600fe0 121,125-126
+  s_6d6301651c0f0a::t_5927c56b022499 2-6,10-11,13-15,64-120,122-124,127-210,214-261,263
+  s_6d6301651c0f0a::t_3ac2458b456eed 211-213
+  s_6d6301651c0f0a::t_ca8387d4893745 262
+  s_6d6301651c0f0a::t_95dab13219b7d6 264-265
+services/agent/tests/test_agent_service.py
+  s_6d6301651c0f0a::t_acfac8dfd06348 212,216,233
+  s_6d6301651c0f0a::t_1c320005536763 173-211,213-215,217-232,234-257
+services/agent/pyproject.toml
+  s_6d6301651c0f0a::t_fd76c675906bd5 12
+services/agent/uv.lock
+  s_6d6301651c0f0a::t_0d71b8508cb860 2,51-59,69-166,332-400,731-757,902-939,1578-1586,1713-1726,1743-1751,1848-1861,1889-2023,2045-2057,2158,2177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "77d79b30af244cda451b7112858a95bd3743a2dd",
+  "prompts": {},
+  "sessions": {
+    "s_6d6301651c0f0a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ba9-5111-7521-8e62-23c365e3933a",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

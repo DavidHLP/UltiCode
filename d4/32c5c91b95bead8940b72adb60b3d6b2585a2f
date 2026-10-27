@@ -1,0 +1,25 @@
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminDubboReferenceRegistry.java
+  s_1280a4fd6238f2::t_1df03746bea469 40,202-203,216-217
+services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java
+  s_1280a4fd6238f2::t_1502e497631a3a 361
+services/core/src/test/java/com/ulticode/core/CoreLocalAdapterWiringTest.java
+  s_1280a4fd6238f2::t_06fe9fd0959112 3,117-118,123
+services/core/src/test/java/com/ulticode/core/CoreLocalContractAssemblyTest.java
+  s_1280a4fd6238f2::t_886228c1ac1ebf 3-5,42-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d432c5c91b95bead8940b72adb60b3d6b2585a2f",
+  "prompts": {},
+  "sessions": {
+    "s_1280a4fd6238f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b46d-19bb-7fb0-8924-eea021ca40d1",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

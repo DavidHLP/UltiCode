@@ -1,0 +1,19 @@
+packages/http-client/src/__tests__/createHttpClient.test.ts
+  s_bd65b162c8d71a::t_01c60abd71a3c7 602-644
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "77addcb34e5577e1ab114c2afbbc3a4015dee969",
+  "prompts": {},
+  "sessions": {
+    "s_bd65b162c8d71a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b919-0e98-7801-8f82-246c69699654",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

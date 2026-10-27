@@ -1,0 +1,55 @@
+docs/REFERENCE.md
+  s_18f32a07e8cf3f::t_85cb030163e0bd 20
+  s_18f32a07e8cf3f::t_67272309adc2f8 21
+services/agent/data/repository_corpus_manifest.json
+  s_18f32a07e8cf3f::t_5df943ba6598a2 67
+  s_18f32a07e8cf3f::t_3598d1fb3fc2ae 32-33,46-47,56,60-61
+scripts/test/fetch-buildkit-provenance-contract.py
+  s_18f32a07e8cf3f::t_5687b776069671 21,23-39,41-50,53,73-74,81,94,100-104
+  s_18f32a07e8cf3f::t_429b997c363b12 2,22
+  s_18f32a07e8cf3f::t_a9e63bc851e790 10,40
+.github/workflows/docker-publish.yml
+  s_18f32a07e8cf3f::t_acccece434fff3 106,108
+services/agent/tests/test_manual_budget_rebinding.py
+  s_18f32a07e8cf3f::t_5e73a1267784c5 16
+scripts/runbooks/promote-release.py
+  s_18f32a07e8cf3f::t_dd36436e0886d4 132,173,261
+  s_18f32a07e8cf3f::t_acccece434fff3 93,104,112,244,247
+scripts/deploy/service-selection.sh
+  s_18f32a07e8cf3f::t_3598d1fb3fc2ae 7,60
+  s_18f32a07e8cf3f::t_acccece434fff3 16-19
+services/app/app-web/src/test/java/com/ulticode/app/security/AppRouteAuthorizationContractTest.java
+  s_18f32a07e8cf3f::t_e4cdd27ac2a4a6 48,60,85
+apps/console/src/views/personal/AgentConversationWorkspace.vue
+  s_18f32a07e8cf3f::t_3f30082da3c49f 170,191,281,365
+docs/DEVELOPMENT.md
+  s_18f32a07e8cf3f::t_e4cdd27ac2a4a6 117,244
+  s_18f32a07e8cf3f::t_24b9825a8220ba 245
+docs/OPERATIONS.md
+  s_18f32a07e8cf3f::t_85cb030163e0bd 50
+  s_18f32a07e8cf3f::t_71fb01427bb4dc 23
+scripts/runbooks/fetch-buildkit-provenance.py
+  s_18f32a07e8cf3f::t_acccece434fff3 33,76-77,80,126
+  s_18f32a07e8cf3f::t_a9e63bc851e790 46,55,78
+scripts/test/host-deploy-contract.sh
+  s_18f32a07e8cf3f::t_3598d1fb3fc2ae 16-19
+  s_18f32a07e8cf3f::t_da2ffef7cb945b 25-29
+scripts/test/promote-release-contract.py
+  s_18f32a07e8cf3f::t_da2ffef7cb945b 50,236-240
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9d7b5200fb1927263a6767ffccb0329c083ffd3",
+  "prompts": {},
+  "sessions": {
+    "s_18f32a07e8cf3f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a664e5cb-665b-4234-8d9d-35570252ee35",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

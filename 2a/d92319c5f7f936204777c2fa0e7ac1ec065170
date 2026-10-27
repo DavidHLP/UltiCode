@@ -1,0 +1,16 @@
+apps/management/src/components/audit/AuditLogViewer.test.ts
+  h_77173abe25c3ff 9
+apps/management/src/views/audit/AuditLogsView.test.ts
+  h_77173abe25c3ff 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2ad92319c5f7f936204777c2fa0e7ac1ec065170",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+packages/markdown-utils/src/index.ts
+  s_77cf8d3466fd0b::t_9832a83d81eae4 110,114
+  s_77cf8d3466fd0b::t_477553062b8b6a 108-109,111-113
+  s_77cf8d3466fd0b::t_a0f20acdd5cdab 94-95,97-98,103
+  s_77cf8d3466fd0b::t_2986113695d7c6 139-144,147-195
+  s_77cf8d3466fd0b::t_85d6bf8e511bd2 145-146
+  s_77cf8d3466fd0b::t_c73409150025be 96,99-102
+packages/markdown-utils/src/__tests__/renderMarkdown.test.ts
+  s_77cf8d3466fd0b::t_89988b7a03d493 410-419,432-433
+  s_77cf8d3466fd0b::t_4f32b72faccd7f 385-389,393
+  s_77cf8d3466fd0b::t_a46f74a59ee0f8 269-338
+  s_77cf8d3466fd0b::t_9f1a72d9c6ae97 420-424,428,430
+  s_77cf8d3466fd0b::t_26cef22e5763c8 425-427,429,431
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6e16f4c7083e2126e7fba5345f535496d2eea33",
+  "prompts": {},
+  "sessions": {
+    "s_77cf8d3466fd0b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7f8f65c0-b900-437b-bb19-db5140dfe58e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

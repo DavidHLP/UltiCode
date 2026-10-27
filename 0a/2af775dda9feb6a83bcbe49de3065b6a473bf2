@@ -1,0 +1,18 @@
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  h_77173abe25c3ff 97,266-273,279-280,286-288,305-312,320-322,329-331,334-336,350-352
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageReadiness.java
+  h_77173abe25c3ff 30,38,45,52,76-85,97-109,111,114,116
+services/platform/storage/src/test/java/com/ulticode/common/storage/StorageReadinessTest.java
+  h_77173abe25c3ff 6,38-39,45-46,70,75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0a2af775dda9feb6a83bcbe49de3065b6a473bf2",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

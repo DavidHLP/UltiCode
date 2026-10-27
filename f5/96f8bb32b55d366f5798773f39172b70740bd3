@@ -1,0 +1,28 @@
+services/app/app-web/src/main/java/com/ulticode/app/userprofile/provider/ProfileWriteProvider.java
+  h_77173abe25c3ff 14-15,22-23,56,202,215,284-309
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/AvatarUrls.java
+  h_77173abe25c3ff 20
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  h_77173abe25c3ff 17-18,155,157,159-162,169-172,178-197
+services/app/app-web/src/test/java/com/ulticode/app/userprofile/ProfileWriteProviderTest.java
+  h_77173abe25c3ff 19,31,40-42
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/AvatarUrlsTest.java
+  h_77173abe25c3ff 1-13
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/DefaultAppUserWritePortTest.java
+  h_77173abe25c3ff 23-24,34,201,225,258-304
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  h_77173abe25c3ff 115,118-121
+services/platform/storage/src/test/java/com/ulticode/common/storage/S3StorageTest.java
+  h_77173abe25c3ff 17,38,53-54,146-159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f596f8bb32b55d366f5798773f39172b70740bd3",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

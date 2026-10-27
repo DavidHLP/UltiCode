@@ -1,0 +1,24 @@
+services/agent/e2e_readonly.py
+  h_77173abe25c3ff 47-48
+services/agent/e2e_sourced_analysis.py
+  h_77173abe25c3ff 17,32-33,36
+services/agent/e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 19,85-86,89
+services/agent/src/sourced_analysis.py
+  h_77173abe25c3ff 66-81
+services/agent/tests/test_e2e_readonly.py
+  h_77173abe25c3ff 39-53,63,65-79
+services/agent/tests/test_e2e_sourced_analysis.py
+  h_77173abe25c3ff 110-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "da9b3b2cb0a77d34403450583b5dd85cff58be68",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

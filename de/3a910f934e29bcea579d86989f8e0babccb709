@@ -1,0 +1,31 @@
+services/agent/data/repository_corpus_manifest.json
+  s_7fda136455a0e8::t_d03ebeee681baf 32-33
+docs/DEVELOPMENT.md
+  s_7fda136455a0e8::t_b2ebc84a93fa16 259-260,495,514-521
+services/agent/e2e_account_isolation.py
+  s_7fda136455a0e8::t_b919e84c2a4ee6 95,1804,1869-1870,1939
+services/agent/src/authorized_budget_period.py
+  s_7fda136455a0e8::t_c031d6ea0758f3 75,206-217,246-247
+services/agent/src/revalidation_history.py
+  s_7fda136455a0e8::t_6dfa9806d2c3b9 44-45,49-57,60,78,97,101,104-114,116-117,120,124,126,246-258,343,347-348
+services/agent/tests/test_e2e_account_isolation.py
+  s_7fda136455a0e8::t_cc128db6c1b933 3982-4000
+services/agent/tests/test_v13_unknown_history.py
+  s_7fda136455a0e8::t_ce7eba0b1456a2 1-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "de3a910f934e29bcea579d86989f8e0babccb709",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

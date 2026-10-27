@@ -1,0 +1,23 @@
+services/agent/tests/test_deepseek_model.py
+  s_7fda136455a0e8::t_75509453659950 2,11-27
+  s_7fda136455a0e8::t_27fe3f0ca221aa 28-29
+services/agent/tests/test_dav58_live_guard.py
+  s_7fda136455a0e8::t_ec512a9ca43f68 174-176,187-197
+  s_7fda136455a0e8::t_4161f38a7c00c7 198-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a5e06a17d7b7ac9ea64735665ed30befe206a463",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

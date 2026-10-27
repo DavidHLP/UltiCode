@@ -1,0 +1,20 @@
+services/agent/data/repository_corpus_manifest.json
+  s_ad8ce62d10ac30::t_187a6464f92d33 32-33,60-61
+  s_ad8ce62d10ac30::t_7bfe4f50fcf1b8 67,70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "10475c8715489babbdec980b36583f9ccce5f3cd",
+  "prompts": {},
+  "sessions": {
+    "s_ad8ce62d10ac30": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12e26-00f3-7532-8b1b-74164dc72861",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

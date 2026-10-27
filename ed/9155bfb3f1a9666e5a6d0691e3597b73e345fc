@@ -1,0 +1,22 @@
+services/admin/src/test/java/com/ulticode/modules/admin/query/AdminUserDetailQueryTest.java
+  s_d7d89ac5ed97cf::t_731ac0e5fc29db 81-101
+  s_d7d89ac5ed97cf::t_008837d1ae4119 80
+services/admin/src/main/java/com/ulticode/modules/admin/query/DefaultAdminUserDetailQuery.java
+  s_d7d89ac5ed97cf::t_731ac0e5fc29db 26,93-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed9155bfb3f1a9666e5a6d0691e3597b73e345fc",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

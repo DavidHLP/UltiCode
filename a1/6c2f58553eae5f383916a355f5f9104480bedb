@@ -1,0 +1,19 @@
+scripts/test/zero-infra-validation-contract.sh
+  s_e31048aafac494::t_258bd6c4ef8d54 283-289,291
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a16c2f58553eae5f383916a355f5f9104480bedb",
+  "prompts": {},
+  "sessions": {
+    "s_e31048aafac494": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ceaaf436-77f9-4a8f-ac18-9bddf9cd19ae",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

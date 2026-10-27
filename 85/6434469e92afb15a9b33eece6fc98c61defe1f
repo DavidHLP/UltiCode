@@ -1,0 +1,22 @@
+services/submission/src/main/java/com/ulticode/modules/queue/outbox/dispatcher/JudgeJobEnvelopeTranslator.java
+  h_77173abe25c3ff 5,13-15,35,38-53
+services/submission/src/main/java/com/ulticode/modules/submission/outbox/JudgeOutboxPayload.java
+  h_77173abe25c3ff 1-150
+services/submission/src/main/java/com/ulticode/modules/submission/outbox/entity/JudgeOutboxRecord.java
+  h_77173abe25c3ff 11,60-62,143-144,151
+services/submission/src/test/java/com/ulticode/modules/queue/outbox/dispatcher/JudgeJobEnvelopeTranslatorTest.java
+  h_77173abe25c3ff 48-77
+services/submission/src/test/java/com/ulticode/modules/submission/outbox/JudgeOutboxPayloadTest.java
+  h_77173abe25c3ff 1-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "856434469e92afb15a9b33eece6fc98c61defe1f",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+services/agent/tests/test_v16_confirmation_history.py
+  s_7fda136455a0e8::t_c1e2f58f19b1e5 19-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ec1c5b7e683a8f6cbf161eb68943587fcedc216d",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

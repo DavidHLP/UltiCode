@@ -1,0 +1,23 @@
+apps/console/src/components/__tests__/shadcnConsumerContract.spec.ts
+  s_a817d6a0710b87::t_b960ebba5e1112 69
+apps/console/src/views/contest/components/__tests__/PastContests.spec.ts
+  s_a817d6a0710b87::t_b960ebba5e1112 89-94,98-99
+pnpm-lock.yaml
+  s_a817d6a0710b87::t_c287dfff5ac759 8-10,142-143,429-430,807,809-810,815-816,1850,1859,1868,3185-3186,3790-3791,3870-3873,4109-4110,4903-4904,7595,7597,7599,7601-7602,7605,7607,7609,7611,8229,8989,9051,9621,9692-9693,10024,10768,10770-10771,10839
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4507bf445cbd0f68d1ebb4f10f7ffee1837df5d3",
+  "prompts": {},
+  "sessions": {
+    "s_a817d6a0710b87": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a166cd-159e-73b0-a5ca-846dd55e155c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

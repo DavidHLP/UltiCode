@@ -1,0 +1,21 @@
+services/agent/tests/test_delivery_gates.py
+  s_6d6301651c0f0a::t_8a63b51f17d1b8 20-67,77-79,85
+services/agent/e2e_u03_workflow.py
+  s_6d6301651c0f0a::t_8a63b51f17d1b8 1267-1268,1273-1277,1279-1280,1293-1294
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "185afcfc3cf8cc0872859d2fa363d77a8222eb72",
+  "prompts": {},
+  "sessions": {
+    "s_6d6301651c0f0a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ba9-5111-7521-8e62-23c365e3933a",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

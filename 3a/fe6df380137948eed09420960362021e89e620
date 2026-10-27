@@ -1,0 +1,22 @@
+services/app/app-web/src/main/resources/application.yml
+  h_77173abe25c3ff 97
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  h_77173abe25c3ff 20-22,35-42
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageProperties.java
+  h_77173abe25c3ff 77,131,148-149
+services/platform/storage/src/main/java/com/ulticode/common/storage/StorageTlsSupport.java
+  h_77173abe25c3ff 1-156
+services/platform/storage/src/test/java/com/ulticode/common/storage/StorageTlsSupportTest.java
+  h_77173abe25c3ff 1-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3afe6df380137948eed09420960362021e89e620",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

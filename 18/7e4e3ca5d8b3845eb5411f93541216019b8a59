@@ -1,0 +1,35 @@
+docker/sandbox/harness/contract/CONTRACT.md
+  s_dae1d819fc6072::t_2ab2a83005045f 260,264-265,272,307
+README.zh-CN.md
+  s_dae1d819fc6072::t_2ab2a83005045f 59
+packages/design-system/README.md
+  s_dae1d819fc6072::t_44ff2b7382c2b8 1,3-18,22-57,60,62-73,75-79,82-91
+docs/DEVELOPMENT.md
+  s_dae1d819fc6072::t_c261393f9d1db5 370
+  s_dae1d819fc6072::t_2ab2a83005045f 10,19,199-200
+packages/design-system/docs/GARDEN_DESIGN_SPEC.md
+  s_dae1d819fc6072::t_87a3ab16bf292d 1-42
+services/agent/data/repository_corpus_manifest.json
+  s_dae1d819fc6072::t_b2d5caffb3258b 18-19,25,32-33,42
+README.md
+  s_dae1d819fc6072::t_2ab2a83005045f 59
+docs/ARCHITECTURE.md
+  s_dae1d819fc6072::t_6356ca90df9f54 159
+  s_dae1d819fc6072::t_2ab2a83005045f 74-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "187e4e3ca5d8b3845eb5411f93541216019b8a59",
+  "prompts": {},
+  "sessions": {
+    "s_dae1d819fc6072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16ce2-68b3-7971-866b-f5aadaa03a06",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

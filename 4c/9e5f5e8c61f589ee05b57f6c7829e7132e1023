@@ -1,0 +1,51 @@
+apps/console/src/components/common/data-table/DataTableToolbar.vue
+  s_aa61f3829fe5f5::t_6f6119a63c484f 74-78
+apps/landing/index.html
+  s_3234a3f42404ff::t_b5eb414d962769 30
+apps/console/src/components/comments/__tests__/CommentLayout.spec.ts
+  s_f6be48bb45b4fd::t_a025eb7910bac9 59-60
+  s_f6be48bb45b4fd::t_1b7ac78f43b9a5 114-115
+apps/console/src/components/comments/CommentForm.vue
+  s_f6be48bb45b4fd::t_270244c5ba30e1 79-83
+  s_f6be48bb45b4fd::t_4099a020931166 56
+  s_f6be48bb45b4fd::t_17f30776510fb4 2
+apps/management/src/views/problems/ProblemDetailView.vue
+  s_f6be48bb45b4fd::t_806c5f68f99159 199,202,205,208
+apps/console/src/views/problems/solutions/components/SolutionCard.vue
+  s_f6be48bb45b4fd::t_855e767365e596 74
+  s_f6be48bb45b4fd::t_f1b6a303ad836a 76
+apps/console/src/views/problems/solutions/components/SolutionDetail.vue
+  s_f6be48bb45b4fd::t_b05fabc0e475e5 365
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4c9e5f5e8c61f589ee05b57f6c7829e7132e1023",
+  "prompts": {},
+  "sessions": {
+    "s_3234a3f42404ff": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "85d23749-40bd-44b6-b715-0907dfd72650",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_aa61f3829fe5f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "df90cc62-4827-4eae-8836-ebabd90da110",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    },
+    "s_f6be48bb45b4fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0bd869ce-415a-42c0-a409-af548ffac910",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

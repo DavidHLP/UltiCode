@@ -1,0 +1,26 @@
+services/agent/e2e_sourced_analysis.py
+  h_77173abe25c3ff 40-42,44-48
+services/agent/e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 101-105,109-116,142-143,149
+services/agent/src/deepseek_model.py
+  h_77173abe25c3ff 94-96,218-225,228-232,234,236-238
+services/agent/src/project_authored_corpus.py
+  h_77173abe25c3ff 75,77-80,84
+services/agent/src/sourced_analysis.py
+  h_77173abe25c3ff 46-47,49-50,58-68
+services/agent/tests/test_deepseek_budget.py
+  h_77173abe25c3ff 123,132,138,150
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 348-407
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "530b2e75876b647a9cb51367ffef723f163ba5b1",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

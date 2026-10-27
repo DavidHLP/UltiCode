@@ -1,0 +1,18 @@
+.github/actions/host-deploy/action.yml
+  h_77173abe25c3ff 437-440
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
+  h_77173abe25c3ff 135-138,199-205,207-210
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupExecutionServiceTest.java
+  h_77173abe25c3ff 7,71-73,246-247,269-270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "514338ff72848c7f2bf5afb8775c35a8a86ec8d7",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

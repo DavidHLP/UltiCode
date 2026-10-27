@@ -1,0 +1,82 @@
+.github/workflows/_backend.yml
+  h_77173abe25c3ff 34-52
+docs/ARCHITECTURE.md
+  h_77173abe25c3ff 20-22,25-29
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 62-71,106
+scripts/dev/test.sh
+  h_77173abe25c3ff 19,31-33,47,68,283-288,506-508
+services/AGENTS.md
+  h_77173abe25c3ff 11
+services/agent/.gitignore
+  h_77173abe25c3ff 1-4
+services/agent/README.md
+  h_77173abe25c3ff 1-71
+services/agent/corpus/accepted-submission-review.md
+  h_77173abe25c3ff 1-4
+services/agent/corpus/citation-record.md
+  h_77173abe25c3ff 1-4
+services/agent/corpus/status-only-learning.md
+  h_77173abe25c3ff 1-4
+services/agent/data/keyword_cases.json
+  h_77173abe25c3ff 1-32
+services/agent/e2e_model_qa.py
+  h_77173abe25c3ff 1-63
+services/agent/e2e_readonly.py
+  h_77173abe25c3ff 1-59
+services/agent/e2e_sourced_analysis.py
+  h_77173abe25c3ff 1-55
+services/agent/e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 1-79
+services/agent/pyproject.toml
+  h_77173abe25c3ff 1-17
+services/agent/src/agent_loop.py
+  h_77173abe25c3ff 1-109
+services/agent/src/deepseek_model.py
+  h_77173abe25c3ff 1-149
+services/agent/src/keyword_evaluation.py
+  h_77173abe25c3ff 1-97
+services/agent/src/retrieval.py
+  h_77173abe25c3ff 1-119
+services/agent/src/sourced_analysis.py
+  h_77173abe25c3ff 1-62
+services/agent/src/ulticode_client.py
+  h_77173abe25c3ff 1-154
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 1-106
+services/agent/tests/test_agent_loop.py
+  h_77173abe25c3ff 1-137
+services/agent/tests/test_deepseek_model.py
+  h_77173abe25c3ff 1-72
+services/agent/tests/test_e2e_readonly.py
+  h_77173abe25c3ff 1-45
+services/agent/tests/test_e2e_sourced_analysis.py
+  h_77173abe25c3ff 1-91
+services/agent/tests/test_e2e_sourced_analysis_model.py
+  h_77173abe25c3ff 1-79
+services/agent/tests/test_keyword_evaluation.py
+  h_77173abe25c3ff 1-31
+services/agent/tests/test_retrieval.py
+  h_77173abe25c3ff 1-38
+services/agent/tests/test_sourced_analysis.py
+  h_77173abe25c3ff 1-70
+services/agent/tests/test_ulticode_client.py
+  h_77173abe25c3ff 1-227
+services/agent/tests/test_ulticode_tools.py
+  h_77173abe25c3ff 1-82
+services/agent/tests/test_ulticode_tools_security.py
+  h_77173abe25c3ff 1-283
+services/agent/uv.lock
+  h_77173abe25c3ff 1-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "85f35c7eacbcd9296daf6951337f0820b6f97f79",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

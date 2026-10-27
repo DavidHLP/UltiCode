@@ -1,0 +1,36 @@
+services/agent/src/answer_evaluation.py
+  s_c1c1bb99787bb6::t_370bc2508aacc0 58-59
+docs/DEVELOPMENT.md
+  s_c1c1bb99787bb6::t_370bc2508aacc0 130-131
+  s_c1c1bb99787bb6::t_ac69ee65c36f1d 418-423
+services/agent/tests/test_answer_evaluation.py
+  s_c1c1bb99787bb6::t_370bc2508aacc0 155
+services/agent/src/authorized_budget_period.py
+  s_c1c1bb99787bb6::t_7e91929e7818fd 67-68,116-127,139-140
+services/agent/src/revalidation_history.py
+  s_c1c1bb99787bb6::t_7e91929e7818fd 125-139,143-157,195,202-204
+services/agent/tests/test_e2e_answer_evaluation.py
+  s_c1c1bb99787bb6::t_ac69ee65c36f1d 307
+services/agent/e2e_answer_evaluation.py
+  s_c1c1bb99787bb6::t_7e91929e7818fd 177,179
+services/agent/tests/test_revalidation_gate.py
+  s_c1c1bb99787bb6::t_ac69ee65c36f1d 80
+services/agent/tests/test_unknown_rollover_history.py
+  s_c1c1bb99787bb6::t_ac69ee65c36f1d 7,77-92,94,103-105,112,114-120,125-126,142,144,146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7994f1df4b7e1aa642efdaf7879d642d2b4b79b",
+  "prompts": {},
+  "sessions": {
+    "s_c1c1bb99787bb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1198a-cf4e-7f23-81dd-601d007adaf7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

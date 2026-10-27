@@ -1,0 +1,20 @@
+services/admin/src/main/java/com/ulticode/modules/admin/outbox/AuditOutboxDispatcher.java
+  h_77173abe25c3ff 27,32-33
+services/admin/src/main/java/com/ulticode/modules/admin/outbox/mapper/AuditOutboxMapper.java
+  h_77173abe25c3ff 21-23,30,37,44-46,56-57,63,66,70,89
+services/admin/src/test/java/com/ulticode/modules/admin/outbox/AuditOutboxDispatcherTest.java
+  h_77173abe25c3ff 43,68,88,112
+services/admin/src/test/java/com/ulticode/modules/admin/outbox/AuditOutboxProcessorTest.java
+  h_77173abe25c3ff 124,126,138,147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7c000eb372856a5c40d893d6040a71c7605ffd1c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

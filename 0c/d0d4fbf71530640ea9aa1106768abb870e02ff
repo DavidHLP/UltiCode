@@ -1,0 +1,50 @@
+apps/management/src/stores/admin/users.ts
+  h_77173abe25c3ff 30,35-37
+apps/management/src/views/users/UserDetailDrawer.test.ts
+  h_77173abe25c3ff 16,67-80,164-197
+apps/management/src/views/users/UserDetailDrawer.vue
+  h_77173abe25c3ff 48,89,95-103,107-109
+docs/OPERATIONS.md
+  h_77173abe25c3ff 160-162
+init-db/README.md
+  h_77173abe25c3ff 93-94
+init-db/migrations/post-owner/V20260921120000__Copy_Legacy_Backups_To_Admin.sql
+  h_77173abe25c3ff 1-49
+scripts/dev/migrate-object-storage-test.sh
+  h_77173abe25c3ff 113-117,231-242
+scripts/dev/migrate-object-storage.sh
+  h_77173abe25c3ff 353,355-360,370-371,381-382,385,394-395,398-404,453,516,554
+scripts/dev/rustfs-smoke-test.sh
+  h_77173abe25c3ff 24-39
+scripts/test/owner-migration-manifest-contract.sh
+  h_77173abe25c3ff 28-33
+services/admin/src/test/java/com/ulticode/modules/backup/BackupRepositoryIT.java
+  h_77173abe25c3ff 80
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/AvatarProfileMutationService.java
+  h_77173abe25c3ff 1-100
+services/app/app-web/src/main/java/com/ulticode/modules/user/port/DefaultAppUserWritePort.java
+  h_77173abe25c3ff 42,146
+services/app/app-web/src/test/java/com/ulticode/modules/user/port/DefaultAppUserWritePortTest.java
+  h_77173abe25c3ff 39,66,70-71,73,294,350-377
+services/platform/storage/pom.xml
+  h_77173abe25c3ff 21-25
+services/platform/storage/src/main/java/com/ulticode/common/storage/ImageContent.java
+  h_77173abe25c3ff 54,243
+services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java
+  h_77173abe25c3ff 20-25,36-40,184-187,360-422
+services/platform/storage/src/test/java/com/ulticode/common/storage/ImageContentTest.java
+  h_77173abe25c3ff 26-29,173,175,193-201,206
+services/platform/storage/src/test/java/com/ulticode/common/storage/S3StorageTest.java
+  h_77173abe25c3ff 31,250-295
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0cd0d4fbf71530640ea9aa1106768abb870e02ff",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

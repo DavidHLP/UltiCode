@@ -1,0 +1,75 @@
+services/agent/data/repository_corpus_manifest.json
+  s_ad8ce62d10ac30::t_5f906699662108 32-33,60-61,67
+docs/DEVELOPMENT.md
+  s_ad8ce62d10ac30::t_313a6876eb0849 72-73,100,414-429,511-517,544-587,1100-1103
+docs/REFERENCE.md
+  s_ad8ce62d10ac30::t_fe5aa48fe4ad80 42-45
+scripts/test/promote-release-contract.py
+  s_ad8ce62d10ac30::t_b2cc28c0c61222 25-31,53-54,173-175
+scripts/test/supply-chain-contract.sh
+  s_ad8ce62d10ac30::t_bd764af594fe20 151-152
+services/agent/e2e_u03_workflow.py
+  s_ad8ce62d10ac30::t_a1bf1514b1e412 34,165,188-189,366,370,390-397,416,433-435,807-811,900,920-924,954-955,963,965,1267-1268,1273-1277,1279-1280,1293-1294,1356-1363,1365,1376,1385,1414,1426,1430,1479,1488,1495-1496,1760-1762,1791
+services/agent/src/agent_service/app.py
+  s_ad8ce62d10ac30::t_fbac40e23beba8 718,721-722,973-974,1132-1137
+services/agent/src/agent_service/gate.py
+  s_ad8ce62d10ac30::t_265204a0762956 991-992,1686-1706,1728-1729,1811-1814,1832,1834-1836,1947-1956
+services/agent/src/authorized_budget_period.py
+  s_ad8ce62d10ac30::t_80a4fac0da2f4d 76-81,224-301,332-345
+services/agent/src/boundary_evaluation.py
+  s_ad8ce62d10ac30::t_dcc024fa347268 587,1008
+services/agent/src/dav58_live_guard.py
+  s_ad8ce62d10ac30::t_0ed32cf3cdcffe 207-208,249-260
+services/agent/src/deepseek_model.py
+  s_ad8ce62d10ac30::t_8f7d89461173c5 263
+services/agent/src/revalidation_history.py
+  s_ad8ce62d10ac30::t_e4e3a32b42a4f9 259-347,349-350,355-383,453-459,468-469,473-486
+services/agent/src/u03_database_readback.py
+  s_ad8ce62d10ac30::t_8538d0eb46d328 1-70
+services/agent/tests/test_agent_security.py
+  s_ad8ce62d10ac30::t_dbef302cc96401 240-241
+services/agent/tests/test_agent_service.py
+  s_ad8ce62d10ac30::t_e3d3f071487c7a 901-945,994-1034
+services/agent/tests/test_boundary_evaluation.py
+  s_ad8ce62d10ac30::t_be9addca818b94 1004-1005,1022-1024
+services/agent/tests/test_dav58_live_guard.py
+  s_ad8ce62d10ac30::t_458a1b8f21faa9 89-131,217-219,230-242
+services/agent/tests/test_deepseek_model.py
+  s_ad8ce62d10ac30::t_356c474c6b3e96 2,11-29
+services/agent/tests/test_delivery_drivers.py
+  s_ad8ce62d10ac30::t_64b5f2aaef421a 30-79,482-483,530-535,544-554,1169,1172,1205
+services/agent/tests/test_delivery_gates.py
+  s_ad8ce62d10ac30::t_4de4a5ecd96fb9 20-88,728,747-760,811-821,862-938
+services/agent/tests/test_v14_settled_history.py
+  s_ad8ce62d10ac30::t_ebd0164451df3e 1-18
+services/agent/tests/test_v15_json_history.py
+  s_ad8ce62d10ac30::t_c0f5bbecbf287f 1-18
+services/agent/tests/test_v16_confirmation_history.py
+  s_ad8ce62d10ac30::t_f261e5e62ee379 1-153
+services/app/app-web/pom.xml
+  s_ad8ce62d10ac30::t_e3037ec92801e8 107-110
+services/app/pom.xml
+  s_ad8ce62d10ac30::t_d01815f846db13 16
+services/auth/pom.xml
+  s_ad8ce62d10ac30::t_bb47e1c19c4322 16,56-59
+services/mvnw.cmd
+  s_ad8ce62d10ac30::t_e47ab9d9a9ba04 1-189
+services/pom.xml
+  s_ad8ce62d10ac30::t_202753f88d95fe 55,57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8d27a315377f60d87c85972fdbba20041e2d7eaa",
+  "prompts": {},
+  "sessions": {
+    "s_ad8ce62d10ac30": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12e26-00f3-7532-8b1b-74164dc72861",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

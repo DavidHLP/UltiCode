@@ -1,0 +1,36 @@
+.github/actions/host-deploy/action.yml
+  h_77173abe25c3ff 69-75,426,439-447
+.github/workflows/cd-rollback.yml
+  h_77173abe25c3ff 105
+docs/OPERATIONS.md
+  h_77173abe25c3ff 201-204,241-242
+init-db/baseline/baseline.sql
+  h_77173abe25c3ff 2664-2665
+init-db/migrations/admin/V20260928120000__Add_Admin_Storage_Cleanup_Owner_Check.sql
+  h_77173abe25c3ff 1-10
+scripts/test/owner-migration-manifest-contract.sh
+  h_77173abe25c3ff 95-105
+services/admin/src/main/java/com/ulticode/BackendAdminApplication.java
+  h_77173abe25c3ff 48
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java
+  h_77173abe25c3ff 132-137,182-189
+services/admin/src/main/java/com/ulticode/modules/admin/storage/AdminStorageCleanup.java
+  h_77173abe25c3ff 3-5,7,10,19-24,36,38,43-47,70-128,133-138,141,152-165
+services/admin/src/main/java/com/ulticode/modules/admin/storage/AdminStorageCleanupOutboxMapper.java
+  h_77173abe25c3ff 18-19,23-31,34,38-46,51,55-62,66
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapterTest.java
+  h_77173abe25c3ff 129-131
+services/admin/src/test/java/com/ulticode/modules/admin/storage/AdminStorageCleanupTest.java
+  h_77173abe25c3ff 3-5,7,15-17,34,37,40,48-53,57-61,88,103,122-180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "62ea15328e641d8d6f921b1afa538da14b8e8ef9",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

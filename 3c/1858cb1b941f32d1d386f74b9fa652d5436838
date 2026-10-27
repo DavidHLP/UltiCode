@@ -1,0 +1,46 @@
+init-db/migrations/V20260920120000__Backup_Object_Storage.sql
+  h_77173abe25c3ff 1-5
+services/admin/pom.xml
+  h_77173abe25c3ff 29-32
+services/admin/src/main/java/com/ulticode/modules/admin/controller/AdminUserController.java
+  h_77173abe25c3ff 20,28,31,46,80-89
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapter.java
+  h_77173abe25c3ff 11,15-16,29,31,34-36,46-48,62,89,93,95-99,101-105,108-110,112-114,119-190
+services/admin/src/main/java/com/ulticode/modules/backup/controller/BackupController.java
+  h_77173abe25c3ff 17,77-78,80-89,91-99
+services/admin/src/main/java/com/ulticode/modules/backup/entity/Backup.java
+  h_77173abe25c3ff 24-25,28-29
+services/admin/src/main/java/com/ulticode/modules/backup/service/BackupService.java
+  h_77173abe25c3ff 7,28,31,33-36
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
+  h_77173abe25c3ff 3-4,16-17,21-23,25,28,32-33,44,46-47,57,62-65,67-73,75-87,90-93,100,104-126,129-148
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupServiceImpl.java
+  h_77173abe25c3ff 5-6,20,22,26,34-36,48-51,74-75,79-87,92,94-95,97-98,100-110,112-115,120,122-129,135-137,147-150,152,156-157,160-161,164-166,169-210
+services/admin/src/main/resources/application.yml
+  h_77173abe25c3ff 46-61
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminUserControllerAvatarTest.java
+  h_77173abe25c3ff 1-60
+services/admin/src/test/java/com/ulticode/modules/admin/port/adapter/AdminUserProfileAdapterTest.java
+  h_77173abe25c3ff 1-89
+services/admin/src/test/java/com/ulticode/modules/backup/BackupRepositoryIT.java
+  h_77173abe25c3ff 54-57,77-89,113-114,133-134,140
+services/admin/src/test/java/com/ulticode/modules/backup/controller/BackupControllerTest.java
+  h_77173abe25c3ff 12,31,164-171,176-177
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupExecutionServiceTest.java
+  h_77173abe25c3ff 4,24,74-76,85,106,110-112,122-128,130-153
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupServiceTest.java
+  h_77173abe25c3ff 4,29,35,62-64,82,221-222,226,230-234,236,239-241,261-262,266,270,281-282,286,293-295,374-375,379,383,387-414
+services/admin/src/test/resources/application.yml
+  h_77173abe25c3ff 6-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3c1858cb1b941f32d1d386f74b9fa652d5436838",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+services/search/src/test/java/com/ulticode/search/SearchWorkerEndToEndIT.java
+  s_2b1071e68b5936::t_787a764b4a3ed4 104-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5465b6d5c8457baae5fbc6b073e0fc702dff4e58",
+  "prompts": {},
+  "sessions": {
+    "s_2b1071e68b5936": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16824-84f4-77e3-a52c-16f378a5b455",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+packages/markdown-utils/src/__tests__/renderMarkdown.test.ts
+  s_77cf8d3466fd0b::t_462d2fe252f137 445-461,467-468
+  s_77cf8d3466fd0b::t_9082ac60e44933 462-466
+  s_77cf8d3466fd0b::t_03bbca0cecc14a 318-328
+packages/markdown-utils/src/index.ts
+  s_77cf8d3466fd0b::t_6648fbce83e7e8 231-240
+  s_77cf8d3466fd0b::t_be595694765f4d 169-177,187-190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "46ac275c3c925250c1c1b80ecd2c9dbe907fd128",
+  "prompts": {},
+  "sessions": {
+    "s_77cf8d3466fd0b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7f8f65c0-b900-437b-bb19-db5140dfe58e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

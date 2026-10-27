@@ -1,0 +1,24 @@
+services/agent/tests/test_dav58_live_guard.py
+  s_6d6301651c0f0a::t_9955f686ff02a8 89-129
+  s_6d6301651c0f0a::t_02b706a706518b 130-131
+services/agent/src/dav58_live_guard.py
+  s_6d6301651c0f0a::t_687fe95eed00a3 249-260
+docs/DEVELOPMENT.md
+  s_6d6301651c0f0a::t_522c03d261fbd4 100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cd67b89a0ce60cbf909b93b6a9cb4006d1ffc0bb",
+  "prompts": {},
+  "sessions": {
+    "s_6d6301651c0f0a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ba9-5111-7521-8e62-23c365e3933a",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,80 @@
+packages/design-system/test/calendar-contract.test.mjs
+  s_e31048aafac494::t_008bcfbf422bb7 1-13
+apps/console/src/views/forum/ForumFeedView.vue
+  s_e31048aafac494::t_5cef59394d893f 235
+apps/console/src/views/contest/components/__tests__/GlobalRanking.spec.ts
+  s_e31048aafac494::t_b243f11b593f81 90
+apps/console/src/i18n/locales/zh-CN/forum.ts
+  s_e31048aafac494::t_47480639ecf35c 12
+packages/auth-ui/src/components/AuthInput.vue
+  s_e31048aafac494::t_cc73bc6fcaaa1e 44
+apps/console/src/stores/problemLists.ts
+  s_e31048aafac494::t_d1a1488522c844 40-43
+  s_e31048aafac494::t_3ec1d4901192c8 21,27,31-33,37-39,48,51-73,76,80,84-87
+  s_e31048aafac494::t_597b0a49df1ada 92-93,97-98
+  s_e31048aafac494::t_c0253912b24373 3-6
+apps/console/src/stores/__tests__/problemLists.spec.ts
+  s_e31048aafac494::t_0117a10fcd1321 1-103,126
+  s_e31048aafac494::t_188d1ac3214b9f 104-125
+apps/console/src/views/contest/components/GlobalRanking.vue
+  s_e31048aafac494::t_265c3742c6d13c 59
+apps/console/src/views/problems/solutions/__tests__/ProblemSolutionsView.spec.ts
+  s_e31048aafac494::t_fb522f6679b6ed 26-32
+  s_e31048aafac494::t_e8617d07a5fa8e 1-25,33-177
+apps/console/src/i18n/locales/en-US/forum.ts
+  s_e31048aafac494::t_ebba96cea28a74 174
+  s_e31048aafac494::t_b6477af82dd30a 12
+apps/console/src/views/contest/components/ContestCard.vue
+  s_e31048aafac494::t_e684f5d4450fcd 76-92,95-108,110-114,116-125,127,130-133,135-153,155
+  s_e31048aafac494::t_8b6ae6ee74c7ad 156-157
+  s_e31048aafac494::t_24fbb51971035b 67-75
+apps/console/src/views/problems/solutions/ProblemSolutionsView.vue
+  s_e31048aafac494::t_f1e1f4a09b3176 29,33-41,43,52,54-56,60,63,77
+  s_e31048aafac494::t_e38817722b1617 122,126,130,139,144,146,156
+packages/markdown-utils/src/index.ts
+  s_e31048aafac494::t_2522a4a472bb8b 336
+  s_e31048aafac494::t_0ba85d162373ae 557
+packages/design-system/src/components/ui/calendar/Calendar.vue
+  s_e31048aafac494::t_cc965e8e54df0b 230-238
+  s_e31048aafac494::t_a580edbe78ae88 45-51
+  s_e31048aafac494::t_b63d592de88404 33
+apps/console/src/views/contest/components/__tests__/ContestCard.spec.ts
+  s_e31048aafac494::t_96d0a1a5217def 16
+  s_e31048aafac494::t_ad26d38e72830f 1
+  s_e31048aafac494::t_e684f5d4450fcd 43-47
+  s_e31048aafac494::t_dcccb609832e81 54-55,59-60
+  s_e31048aafac494::t_c92bc162effbef 42,48
+packages/markdown-utils/src/__tests__/renderMarkdown.test.ts
+  s_e31048aafac494::t_181cff65d6550a 9-13,15,17-25,27,29-31
+  s_e31048aafac494::t_abeaa935c41ae0 16
+  s_e31048aafac494::t_2cb3c127fbb1be 26
+  s_e31048aafac494::t_2faa8ff042141b 28
+  s_e31048aafac494::t_95f4c23ea0a1df 14
+apps/console/src/views/contest/components/__tests__/PastContests.spec.ts
+  s_e31048aafac494::t_4deb1d1bbabed7 38
+  s_e31048aafac494::t_c27cef464003b9 1
+  s_e31048aafac494::t_a83c7923160022 69,72-78
+  s_e31048aafac494::t_115407314be1e6 21-37
+apps/console/src/views/contest/components/PastContests.vue
+  s_e31048aafac494::t_b1163e646181b4 3
+  s_e31048aafac494::t_c7d3bc1a9a6237 179,182
+  s_e31048aafac494::t_efbb8f75ecef1f 188
+  s_e31048aafac494::t_809f494041857f 114,117-122
+  s_e31048aafac494::t_49e55e3ed8dbff 70,72,74,76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6b5cd717a5ad61b6e821131c2ceb7d48a0716d8c",
+  "prompts": {},
+  "sessions": {
+    "s_e31048aafac494": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ceaaf436-77f9-4a8f-ac18-9bddf9cd19ae",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+services/admin/src/main/java/com/ulticode/modules/backup/service/impl/BackupObjectCleanup.java
+  s_c986a1dff527ef::t_2a43ac9390f9c0 7,32-38,68
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupObjectCleanupTest.java
+  s_c986a1dff527ef::t_733f5d1fad992d 69,84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bc93a4c707447c33a9680c2fc015c2e5b3454749",
+  "prompts": {},
+  "sessions": {
+    "s_c986a1dff527ef": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0c4ab-b5d9-72a0-b024-122345071987",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+apps/management/src/composables/useRemoteTable.ts
+  h_77173abe25c3ff 148,151-154,202,259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "68136d47c46108af70eee89ba17a04f3c9fe8673",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

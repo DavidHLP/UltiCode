@@ -1,0 +1,19 @@
+services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java
+  s_400b86deb542d4::t_ed43e3a28fffed 350-351,355
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4c402035070b3431dfc6d1c5b830c2017fec2307",
+  "prompts": {},
+  "sessions": {
+    "s_400b86deb542d4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b467-7097-7e83-8c5b-d615fd4f0189",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

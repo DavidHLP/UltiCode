@@ -1,0 +1,53 @@
+apps/landing/AGENTS.md
+  s_87484e6abf0ca9::t_c11b52076f4e6f 1-8
+AGENTS.md
+  s_87484e6abf0ca9::t_ba2d7e5dbdac45 29,40
+apps/landing/package.json
+  s_87484e6abf0ca9::t_c5c38a80050155 19,34
+apps/landing/src/style.css
+  s_87484e6abf0ca9::t_3859a7fdbdb51e 1-146
+apps/landing/src/views/landing/LandingView.vue
+  s_87484e6abf0ca9::t_f389a27752b04a 2,13-14,39,127-179,181-184,242-361,364-368,373-458
+apps/landing/src/views/landing/__tests__/LandingView.spec.ts
+  s_87484e6abf0ca9::t_6b50b98841ab14 147,149-171,173-188,192,194-198,201-243,247,249-252,255,257-260,263,265-267,270,272-274,277,279-281
+apps/landing/src/views/landing/components/FinalStorySection.vue
+  s_87484e6abf0ca9::t_0f0d2ab99294ea 4,7,9-30,34-149
+apps/landing/src/views/landing/components/HeroSection.vue
+  s_87484e6abf0ca9::t_e7563cfb96c39f 2,5-7,9-46,48,52-53,56-115,117-141,143-148,150-188,190-203,205-218,220-239,242-950
+apps/landing/src/views/landing/components/HumanControlSection.vue
+  s_87484e6abf0ca9::t_35f40ef112aa00 3-4,7,11,14-45,50-190
+apps/landing/src/views/landing/components/LandingFooter.vue
+  s_87484e6abf0ca9::t_debd72eb4cff82 4,7,9-14,16-18,20-90,95-202
+apps/landing/src/views/landing/components/LandingHeader.vue
+  s_87484e6abf0ca9::t_ff249e965205f6 2,5-53,55,57-65,67-77,79-107,109-139,141-142,147-422
+apps/landing/src/views/landing/components/ProductProofSection.vue
+  s_87484e6abf0ca9::t_3c10d4cc0b1657 3-4,7,9-12,14,16,18-79,83-283
+apps/landing/src/views/landing/components/UseCasesSection.vue
+  s_87484e6abf0ca9::t_90b64266f72abb 4,7,11,14-22,24-118,122-356
+apps/landing/tsconfig.json
+  s_87484e6abf0ca9::t_f3cdde5680d7af 6,19-20,26
+apps/landing/vite.config.ts
+  s_87484e6abf0ca9::t_8417cdcec043f0 7
+docs/ARCHITECTURE.md
+  s_87484e6abf0ca9::t_0c314d5a7ed545 83
+docs/DEVELOPMENT.md
+  s_87484e6abf0ca9::t_148f003ddface4 182,232,342,344
+packages/theme/scripts/sync-theme-bootstrap.mjs
+  s_87484e6abf0ca9::t_04808951c43b54 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cc9133abf56af7e938363238ba06a63f18de8a35",
+  "prompts": {},
+  "sessions": {
+    "s_87484e6abf0ca9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-86c235c9231d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

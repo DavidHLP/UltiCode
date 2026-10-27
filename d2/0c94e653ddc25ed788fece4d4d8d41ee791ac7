@@ -1,0 +1,19 @@
+docs/DEVELOPMENT.md
+  s_77cf8d3466fd0b::t_e1e37e31d04c20 125-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d20c94e653ddc25ed788fece4d4d8d41ee791ac7",
+  "prompts": {},
+  "sessions": {
+    "s_77cf8d3466fd0b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7f8f65c0-b900-437b-bb19-db5140dfe58e",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

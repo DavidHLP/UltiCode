@@ -1,0 +1,16 @@
+services/agent/e2e_readonly.py
+  h_77173abe25c3ff 40-41,44-47
+services/agent/tests/test_e2e_readonly.py
+  h_77173abe25c3ff 108-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed51664142db5a3be058bff88f4957c1953adf43",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

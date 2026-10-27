@@ -1,0 +1,20 @@
+services/agent/e2e_readonly.py
+  h_77173abe25c3ff 38-57
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 22-23,82-85
+services/agent/tests/test_e2e_readonly.py
+  h_77173abe25c3ff 22,94-116
+services/agent/tests/test_ulticode_tools_security.py
+  h_77173abe25c3ff 315-349
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ba4a4a49ab109428d45db154b7a33848124f9ac1",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

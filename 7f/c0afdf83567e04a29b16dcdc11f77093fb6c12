@@ -1,0 +1,14 @@
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 3-17,21,24,36,38-45,48,51,53-55,59-63,67-72,80-81,84-100,102-115,117-122,124,127-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7fc0afdf83567e04a29b16dcdc11f77093fb6c12",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

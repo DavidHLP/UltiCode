@@ -1,0 +1,16 @@
+services/platform/storage/src/main/java/com/ulticode/common/storage/ImageContent.java
+  h_77173abe25c3ff 142-144,150-152,160-162,177-183
+services/platform/storage/src/test/java/com/ulticode/common/storage/ImageContentTest.java
+  h_77173abe25c3ff 257-258,264,269-297
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "767c27245d2ada0ce35e58383c8c2e0dd324a3b7",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

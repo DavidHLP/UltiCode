@@ -1,0 +1,20 @@
+services/app/app-web/src/main/java/com/ulticode/app/dubbo/provider/ProblemListAdministrationProvider.java
+  h_77173abe25c3ff 53
+services/app/app-web/src/main/java/com/ulticode/app/idempotency/CommandReceiptExecutor.java
+  h_77173abe25c3ff 7-17,25,27,32-34,36,42-54,73,76-77,80-81,96-100,103-106,108-111,114-165,169-192
+services/app/app-web/src/main/java/com/ulticode/app/idempotency/mapper/AppCommandReceiptMapper.java
+  h_77173abe25c3ff 37,40
+services/app/app-web/src/test/java/com/ulticode/app/dubbo/provider/ProblemListAdministrationProviderTest.java
+  h_77173abe25c3ff 73,100,110,138,164,188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d5c72cd228941738702056b3e393a6d727fa444c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

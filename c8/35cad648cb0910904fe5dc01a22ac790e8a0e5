@@ -1,0 +1,16 @@
+scripts/test/core-enabled-owner-journey.sh
+  h_77173abe25c3ff 46
+services/core/src/test/java/com/ulticode/core/CoreEnabledOwnerJourneyIT.java
+  h_77173abe25c3ff 10,146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c835cad648cb0910904fe5dc01a22ac790e8a0e5",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

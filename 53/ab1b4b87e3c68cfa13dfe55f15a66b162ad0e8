@@ -1,0 +1,26 @@
+docs/ARCHITECTURE.md
+  h_77173abe25c3ff 20,26
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 70
+services/agent/README.md
+  h_77173abe25c3ff 16-17,60-61
+services/agent/e2e_model_qa.py
+  h_77173abe25c3ff 56,60,69,71,96,100
+services/agent/src/ulticode_tools.py
+  h_77173abe25c3ff 50,52
+services/agent/tests/test_agent_loop.py
+  h_77173abe25c3ff 116-117
+services/agent/tests/test_e2e_model_qa.py
+  h_77173abe25c3ff 103-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53ab1b4b87e3c68cfa13dfe55f15a66b162ad0e8",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

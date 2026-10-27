@@ -1,0 +1,34 @@
+scripts/test/owner-architecture-source-contract.rules
+  h_77173abe25c3ff 98-102
+services/admin/src/main/java/com/ulticode/modules/admin/controller/AdminNotificationController.java
+  h_77173abe25c3ff 44,55,69
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverGate.java
+  h_77173abe25c3ff 1-34
+services/admin/src/main/java/com/ulticode/modules/admin/port/adapter/OwnerCutoverRegistry.java
+  h_77173abe25c3ff 1-52
+services/admin/src/main/java/com/ulticode/modules/admin/service/ContentModerationCutoverService.java
+  h_77173abe25c3ff 11,14,30-33,42-53,74
+services/admin/src/main/java/com/ulticode/modules/admin/service/ContestCutoverService.java
+  h_77173abe25c3ff 25,27,40,42-49,184
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImpl.java
+  h_77173abe25c3ff 12-13,77,83,123,129,158,164
+services/admin/src/main/resources/application.yml
+  h_77173abe25c3ff 49
+services/admin/src/test/java/com/ulticode/modules/admin/controller/AdminNotificationControllerTest.java
+  h_77173abe25c3ff 29,37,42,45,49,54
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/AdminNotificationServiceImplTest.java
+  h_77173abe25c3ff 10-11,76-101
+services/platform/common/src/main/java/com/ulticode/common/audit/AuditPolicy.java
+  h_77173abe25c3ff 136,138,140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f179f847b86c7f24c1dbac77151094259f64e81",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

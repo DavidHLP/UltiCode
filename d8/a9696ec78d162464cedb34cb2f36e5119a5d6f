@@ -1,0 +1,16 @@
+services/agent/src/budget_binding_migration.py
+  h_77173abe25c3ff 580-581,615-616,735-736
+services/agent/tests/test_budget_binding_migration.py
+  h_77173abe25c3ff 481,519-529
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d8a9696ec78d162464cedb34cb2f36e5119a5d6f",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

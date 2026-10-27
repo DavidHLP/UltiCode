@@ -1,0 +1,42 @@
+apps/console/src/components/LanguageSwitcher.vue
+  s_87da9fe57ea814::t_377d29f9816cb3 21,25,28,31
+apps/console/src/views/forum/ForumFeedView.vue
+  s_87da9fe57ea814::t_58c13c764f286f 235,237,323
+  s_87da9fe57ea814::t_dd6df59d897be5 318
+apps/console/src/views/contest/components/GlobalRanking.vue
+  s_87da9fe57ea814::t_7b94e5227c2617 11,21,52,274,293,295,301
+  s_87da9fe57ea814::t_a2f32e1176c43b 12,22,54,91,135,197,254,273,278
+  s_87da9fe57ea814::t_a059b8f6795822 284,319,323
+  s_87da9fe57ea814::t_a3354080f21cca 141,203,260
+apps/console/src/views/contest/components/PastContests.vue
+  s_87da9fe57ea814::t_7b94e5227c2617 60,62,83,156,190
+apps/console/src/views/forum/ForumThreadView.vue
+  s_87da9fe57ea814::t_77197ca2b161c6 437,440,444,446,450-451,454-455,457
+apps/console/src/views/contest/ContestHomeView.vue
+  s_87da9fe57ea814::t_1ff3426c431082 93
+  s_87da9fe57ea814::t_dd6df59d897be5 119,121
+  s_87da9fe57ea814::t_249ce9144ac4ac 113-114,133
+  s_87da9fe57ea814::t_66891cfd205c06 115-117
+  s_87da9fe57ea814::t_7b94e5227c2617 123,132,134,136
+apps/console/src/views/contest/ContestRankingsView.vue
+  s_87da9fe57ea814::t_483decbe4f17f1 4
+  s_87da9fe57ea814::t_a2f32e1176c43b 148,166,182-183,185
+apps/management/src/components/LanguageSwitcher.vue
+  s_87da9fe57ea814::t_377d29f9816cb3 25,30,33,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1b5bb7832f5b1a94f73341dca97cff7a0decb325",
+  "prompts": {},
+  "sessions": {
+    "s_87da9fe57ea814": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16677-079b-7372-b6d9-b9056a71e709",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+docs/OPERATIONS.md
+  s_7fda136455a0e8::t_c76c64d9aa61e6 23
+scripts/test/promote-release-contract.py
+  s_7fda136455a0e8::t_59adc58e13107c 46,166
+scripts/test/supply-chain-contract.sh
+  s_7fda136455a0e8::t_c3eec3d6f64d10 151
+services/admin/pom.xml
+  s_7fda136455a0e8::t_f318250b5d9586 16
+services/app/pom.xml
+  s_7fda136455a0e8::t_ad8243e5552cdd 16
+services/auth/pom.xml
+  s_7fda136455a0e8::t_1b9e64f081d61e 16
+services/judge/pom.xml
+  s_7fda136455a0e8::t_4561d445fd6ff5 18
+services/notification/pom.xml
+  s_7fda136455a0e8::t_c982f13e29a6ad 17
+services/pom.xml
+  s_7fda136455a0e8::t_681fa48d21bff4 55-61
+services/search/pom.xml
+  s_7fda136455a0e8::t_c677be6d11e5b6 17
+services/submission/pom.xml
+  s_7fda136455a0e8::t_ebbddcfd363003 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d1a77e4f9bb14d6463431ed4e490991881b637c6",
+  "prompts": {},
+  "sessions": {
+    "s_7fda136455a0e8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a128b6-4eb1-74f3-9f24-ff2c5aaca720",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

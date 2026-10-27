@@ -1,0 +1,94 @@
+apps/console/src/views/contest/components/__tests__/PastContests.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 1,21-38,69,72-78
+apps/console/src/api/__tests__/problem-list.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 24,31-33
+apps/console/src/views/forum/ForumFeedView.vue
+  s_22582b5ac2ba8a::t_fbf5396c0df460 235
+.codex/rules/README.md
+  s_22582b5ac2ba8a::t_fbf5396c0df460 6,8-9,12-13,15-16,33-34,39
+apps/console/src/views/contest/components/GlobalRanking.vue
+  s_22582b5ac2ba8a::t_fbf5396c0df460 59
+docker/docker-compose.ci.yml
+  s_22582b5ac2ba8a::t_fbf5396c0df460 55-56
+packages/auth-ui/src/__tests__/RegisterForm.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 66-67
+.codex/rules/infrastructure-safety.rules
+  s_22582b5ac2ba8a::t_fbf5396c0df460 1,19,21-23
+.github/workflows/docker-publish.yml
+  s_22582b5ac2ba8a::t_fbf5396c0df460 98
+apps/console/Dockerfile
+  s_22582b5ac2ba8a::t_fbf5396c0df460 27,29
+apps/console/src/i18n/locales/zh-CN/forum.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 12
+.codex/rules/git-safety.rules
+  s_22582b5ac2ba8a::t_fbf5396c0df460 1
+apps/console/src/composables/useAgentWorkflow.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 125
+apps/console/src/stores/problemLists.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 3-6,21,27,31-33,37-43,48,51-73,76,80,84-87,92-93,97-98
+apps/console/src/composables/useAgentConversations.ts
+  s_22582b5ac2ba8a::t_20ad4dbcdca43e 217
+apps/console/src/views/contest/components/__tests__/GlobalRanking.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 90
+apps/console/src/stores/__tests__/problemLists.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 1-126
+apps/console/src/api/problem-list.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 218
+apps/console/src/composables/__tests__/useAgentWorkflow.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 252-268
+apps/console/src/views/contest/components/PastContests.vue
+  s_22582b5ac2ba8a::t_fbf5396c0df460 3,70,72,74,76,114,117-122,179,182,188
+apps/console/src/views/contest/components/__tests__/ContestCard.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 1,16,42-48,54-55,59-60
+apps/management/src/main.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 8,24
+apps/management/src/views/audit/useAuditReadWorkspace.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 129-155,158-159,165-167
+docs/DEVELOPMENT.md
+  s_22582b5ac2ba8a::t_fbf5396c0df460 163,580
+packages/auth-ui/src/components/AuthInput.vue
+  s_22582b5ac2ba8a::t_fbf5396c0df460 44
+packages/markdown-utils/src/index.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 336,557
+.codex/rules/external-publish.rules
+  s_22582b5ac2ba8a::t_fbf5396c0df460 1,5,7-9,12,14-16
+apps/console/src/views/problems/solutions/__tests__/ProblemSolutionsView.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 1-177
+services/agent/data/repository_corpus_manifest.json
+  s_22582b5ac2ba8a::t_a0b434dcd356dd 32-33
+apps/console/src/i18n/locales/en-US/forum.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 12,174
+apps/console/src/views/problems/solutions/ProblemSolutionsView.vue
+  s_22582b5ac2ba8a::t_fbf5396c0df460 29,33-41,43,52,54-56,60,63,77,122,126,130,139,144,146,156
+packages/design-system/test/calendar-contract.test.mjs
+  s_22582b5ac2ba8a::t_fbf5396c0df460 1-13
+apps/console/src/views/contest/components/ContestCard.vue
+  s_22582b5ac2ba8a::t_fbf5396c0df460 67-92,95-108,110-114,116-125,127,130-133,135-153,155-157
+apps/console/vite.config.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 55
+apps/console/src/composables/__tests__/useAgentConversations.spec.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 62-65,547-565
+  s_22582b5ac2ba8a::t_ebeadc1b5d1a08 566-568
+packages/design-system/package.json
+  s_22582b5ac2ba8a::t_fbf5396c0df460 62
+packages/design-system/src/components/ui/calendar/Calendar.vue
+  s_22582b5ac2ba8a::t_fbf5396c0df460 235
+packages/markdown-utils/src/__tests__/renderMarkdown.test.ts
+  s_22582b5ac2ba8a::t_fbf5396c0df460 9-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5617608a9caf9a6d1b4a342f401e45814a4420d2",
+  "prompts": {},
+  "sessions": {
+    "s_22582b5ac2ba8a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a159ad-3ee6-7a52-b5ef-8f9c4295ed81",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

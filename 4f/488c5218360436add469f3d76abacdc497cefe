@@ -1,0 +1,27 @@
+services/agent/src/revalidation_history.py
+  s_d7d89ac5ed97cf::t_d4895d51229e59 151-163,165,169-173,229,241-242
+services/agent/src/authorized_budget_period.py
+  s_d7d89ac5ed97cf::t_d4895d51229e59 69-70,140-149,166-167
+services/agent/tests/test_revalidation_gate.py
+  s_d7d89ac5ed97cf::t_f9361bd7a50b21 80
+services/agent/tests/test_e2e_answer_evaluation.py
+  s_d7d89ac5ed97cf::t_f9361bd7a50b21 307
+services/agent/tests/test_unknown_rollover_history.py
+  s_d7d89ac5ed97cf::t_f9361bd7a50b21 142-143,151,153,156,168-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4f488c5218360436add469f3d76abacdc497cefe",
+  "prompts": {},
+  "sessions": {
+    "s_d7d89ac5ed97cf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12170-8d3d-7ec1-a9e0-ff3da265f589",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

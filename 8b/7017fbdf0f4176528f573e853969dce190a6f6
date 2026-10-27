@@ -1,0 +1,24 @@
+services/agent/data/holdout-v2.json
+  h_77173abe25c3ff 1-12
+services/agent/data/keyword_cases.json
+  h_77173abe25c3ff 31
+services/agent/e2e_vector_comparison.py
+  h_77173abe25c3ff 40-45,93-94,155
+services/agent/src/keyword_evaluation.py
+  h_77173abe25c3ff 24-27
+services/agent/tests/test_keyword_evaluation.py
+  h_77173abe25c3ff 19,22-24,30-32,48,51,59,107-108,193-205
+services/agent/tests/test_vector_search.py
+  h_77173abe25c3ff 118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8b7017fbdf0f4176528f573e853969dce190a6f6",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+services/agent/tests/test_deepseek_model.py
+  h_77173abe25c3ff 72-91,93-94
+services/agent/tests/test_e2e_model_qa.py
+  h_77173abe25c3ff 128-140
+services/agent/tests/test_ulticode_client.py
+  h_77173abe25c3ff 266-293
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cb3fb057e01b29414fa7de9994168429596ea3fe",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+docs/OPERATIONS.md
+  h_77173abe25c3ff 142-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6f94a92035262db79740568f6d5a28787ed59e2",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

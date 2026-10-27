@@ -1,0 +1,183 @@
+apps/console/src/features/sider/SidebarNav.vue
+  s_a1bff620af9581::t_4083d0f2623abf 79-83
+  s_a1bff620af9581::t_7a1f2f8a316cc3 4-5,14,16,84-99,101-110,114,116,120-121,123-126
+apps/management/src/i18n/locales/en-US/modules/auth.ts
+  s_a1bff620af9581::t_87f53482ce3404 2-7
+  s_a1bff620af9581::t_f00b09aa54c2c0 8-11
+apps/console/src/api/accountSessions.ts
+  s_a1bff620af9581::t_34e4742baafa7a 1,3-5,8-9,11,14-15,17-18
+  s_a1bff620af9581::t_570d98650d55e0 2,6-7,10,12-13,16
+  s_a1bff620af9581::t_e0079c47249c43 19-32
+packages/auth-ui/src/index.ts
+  s_a1bff620af9581::t_607c383d0f1228 27,36
+packages/auth-ui/src/__tests__/LoginForm.spec.ts
+  s_a1bff620af9581::t_9ae9914aaa8f48 16-24
+  s_a1bff620af9581::t_9197e122fb848d 25-26
+apps/console/src/features/sider/NavUser.vue
+  s_a1bff620af9581::t_9556ea2e9d46fe 124
+  s_a1bff620af9581::t_7cb35274745783 15-17,105-106,123,159-162,166-167,181-183,196-258
+  s_a1bff620af9581::t_d99422153caa2d 125,143-158,259-267
+packages/auth-core/src/csrf.ts
+  s_a1bff620af9581::t_00c454db1b2502 49,53-57,67,72,84-91,93
+  s_a1bff620af9581::t_1e938fbf9d5d32 117-119
+docs/ARCHITECTURE.md
+  s_a1bff620af9581::t_70807e141a8eca 359-360
+packages/http-client/src/__tests__/createHttpClient.test.ts
+  s_a1bff620af9581::t_9ae9914aaa8f48 8-45,47-50,326,765,783,838,922,952
+  s_a1bff620af9581::t_920a83e6ffb3d5 46
+  s_a1bff620af9581::t_598c227e76fccf 51-72,157-161,236-239,259-262,321-325,432-435,444-446,491-494,500-502,579-581,650-655,680-682,766-767,781-782,784,808-810,823-827,836-837,857-866,894-900,915-921,923-925,936-940,951,953-954,1020-1022,1027-1030,1038-1042,1046-1048,1064-1066,1080-1082
+packages/auth-core/src/__tests__/axiosCsrfInterceptor.401.spec.ts
+  s_a1bff620af9581::t_571c13f3df2133 90-99
+  s_a1bff620af9581::t_c66b0af9b2cc2b 100-105
+services/auth/src/main/java/com/ulticode/auth/adapter/in/web/AccountSessionsController.java
+  s_a1bff620af9581::t_540827b3ec7366 1-27,34-42,44,46-53,55-66
+  s_a1bff620af9581::t_c48241b9c24741 28-33,43,45,54
+packages/auth-ui/src/__tests__/AccountSwitcher.spec.ts
+  s_a1bff620af9581::t_7b8705b19eeeb1 1,18,22,27,32,36-38,44,47-48,55,58-59,62-63,70,73,77
+  s_a1bff620af9581::t_7f135760a7fd0b 2
+  s_a1bff620af9581::t_9ae9914aaa8f48 3-17,19-21,23-26,28-31,33-35,39-43,45-46,49-54,56-57,60-61,64-69,71-72,74-76,78-80
+  s_a1bff620af9581::t_dba17bc5bd6957 81-114
+services/auth/src/test/java/com/ulticode/auth/security/AuthSecurityConfigContractTest.java
+  s_a1bff620af9581::t_514c0118f241b5 18-19
+  s_a1bff620af9581::t_e33858102eb53f 37-46,54-55
+services/auth/src/main/java/com/ulticode/auth/refreshtoken/service/RefreshTokenService.java
+  s_a1bff620af9581::t_b6fb012590ba9c 167,175-183
+  s_a1bff620af9581::t_00c454db1b2502 99
+  s_a1bff620af9581::t_540827b3ec7366 164-166,168-174,184-185
+apps/console/src/i18n/locales/zh-CN/auth.ts
+  s_a1bff620af9581::t_437b72857d3405 2-7
+  s_a1bff620af9581::t_1fc95c0822ee38 8-11
+services/auth/src/main/java/com/ulticode/auth/adapter/in/web/CsrfController.java
+  s_a1bff620af9581::t_b6fb012590ba9c 1-30
+packages/auth-ui/package.json
+  s_a1bff620af9581::t_607c383d0f1228 33
+packages/auth-core/src/index.ts
+  s_a1bff620af9581::t_00c454db1b2502 6
+  s_a1bff620af9581::t_607c383d0f1228 14
+  s_a1bff620af9581::t_446a532a3a61b0 15,18,21-24,29,39,42,44,50-52,56,59,62,72,78,91,97-98,106
+apps/management/src/api/accountSessions.ts
+  s_a1bff620af9581::t_6ff5bf1b8fdc1b 2,6-7,10,12-13,16
+  s_a1bff620af9581::t_34e4742baafa7a 1,3-5,8-9,11,14-15,17-19
+  s_a1bff620af9581::t_87ec8834f62551 20-31
+apps/management/src/i18n/locales/zh-CN/modules/auth.ts
+  s_a1bff620af9581::t_b8833bb1af3dfd 2-7
+  s_a1bff620af9581::t_c99e512d8686d8 8-11
+packages/sidebar-menu/src/index.ts
+  s_a1bff620af9581::t_ab952891f79092 24
+apps/console/src/features/sider/Calendars.vue
+  s_a1bff620af9581::t_208049fd84e3a0 5,9
+  s_a1bff620af9581::t_d07d8f8d7a7559 10-13,50-77
+services/platform/web-security/src/main/java/com/ulticode/websecurity/csrf/CookieCsrfFilter.java
+  s_a1bff620af9581::t_c48241b9c24741 16,36-42
+  s_a1bff620af9581::t_8c672222d14b43 27,71-78
+packages/auth-core/src/createSessionAuthStore.ts
+  s_a1bff620af9581::t_00c454db1b2502 2,75-77,160
+  s_a1bff620af9581::t_f2fc63ae655eb2 161,178-181,189-191,199
+apps/console/src/features/sider/__tests__/AppSidebar.spec.ts
+  s_a1bff620af9581::t_d12a910104dd96 38-39,42-49,52-57
+  s_a1bff620af9581::t_ed8245e02f5e65 11,146-147
+  s_a1bff620af9581::t_4fa4798ae20254 86,151-170
+  s_a1bff620af9581::t_7c881e45f57b53 60-66,129,148-149,171-177,179-183
+packages/auth-core/src/__tests__/axiosCsrfInterceptor.spec.ts
+  s_a1bff620af9581::t_e33858102eb53f 171,210,319
+packages/auth-core/src/__tests__/refreshCoordinator.spec.ts
+  s_a1bff620af9581::t_571c13f3df2133 18,40-48
+  s_a1bff620af9581::t_19cd1aeb1b08c5 49-75,85,99-101,105-107,130,147-149,184-188,213-215
+docs/REFERENCE.md
+  s_a1bff620af9581::t_70807e141a8eca 213-225
+packages/auth-core/src/refreshCoordinator.ts
+  s_a1bff620af9581::t_571c13f3df2133 44,55
+  s_a1bff620af9581::t_00c454db1b2502 12,40,57
+  s_a1bff620af9581::t_a020a0d70214cb 41-43,47-54,56,58-61
+packages/auth-core/src/axiosCsrfInterceptor.ts
+  s_a1bff620af9581::t_e33858102eb53f 40
+  s_a1bff620af9581::t_00c454db1b2502 89
+  s_a1bff620af9581::t_99bb91f69d8794 28-30,62-67,80-82,90-91,120,126-127,142,145,148-152,156-158
+docs/DEVELOPMENT.md
+  s_a1bff620af9581::t_70807e141a8eca 232-235
+packages/sidebar-menu/src/components/SidebarBranch.vue
+  s_a1bff620af9581::t_ab952891f79092 1-12,14-17,19,23,25-34
+  s_a1bff620af9581::t_4ed77dd758c528 13,18,20-21,24
+  s_a1bff620af9581::t_ed8245e02f5e65 22
+  s_a1bff620af9581::t_004b1ab3b639a6 35-77
+apps/console/src/features/sider/components/SidebarListSections.vue
+  s_a1bff620af9581::t_1225fc36232221 7-11,16,28-31,40,50-105,112-113,118-119,124-128,131-134,137-138,140-142,149,152-154,158-164,167-171,173-174,176-178,180,182-183,185-187,190-196,198-202
+  s_a1bff620af9581::t_945a30c7cadf67 2-5,37,106,115-117,123,129,135-136,144,147-148,150-151,155-157,165-166,172,181,188-189,197,203-209
+  s_a1bff620af9581::t_e4f8d014261b67 130,210-213
+apps/management/src/components/layout/NavMain.vue
+  s_a1bff620af9581::t_805bb07451b087 5-6,11,25,29,32,35,40
+  s_a1bff620af9581::t_1b8bd302d68081 41-60,62-71,73-84,86-89
+apps/management/src/components/layout/NavSecondary.vue
+  s_a1bff620af9581::t_3675bc6b36f93f 4-6,9-10,18,20-21
+  s_a1bff620af9581::t_17de5b13d5b4cf 25-40,42-44
+apps/console/src/features/sider/AppSidebar.vue
+  s_a1bff620af9581::t_f9627ec173e709 166
+packages/http-client/src/index.ts
+  s_a1bff620af9581::t_19ad0fa765602b 37,97-99,133-135,207-210,229-232,250-254,256-260,262-266,277-281,293-309,351-352,379,398-400
+  s_a1bff620af9581::t_03e8075bce533c 33-35,401-410,413,479-483,490-497,508-511,522-525,558-559,594-596,598-600,622-624,631-635
+packages/auth-ui/src/components/LoginForm.vue
+  s_a1bff620af9581::t_9556ea2e9d46fe 45,58,116
+  s_a1bff620af9581::t_607c383d0f1228 44,57,102
+services/auth/src/test/java/com/ulticode/auth/session/DefaultAuthSessionAdapterTest.java
+  s_a1bff620af9581::t_efe9fea06ba20a 71,137,151
+  s_a1bff620af9581::t_e33858102eb53f 49-62
+  s_a1bff620af9581::t_642e4af4bc96b9 48
+services/auth/src/test/java/com/ulticode/auth/service/AccountSessionServiceTest.java
+  s_a1bff620af9581::t_8815c251052052 1-49,51-63,65-70,81-87,89-141
+  s_a1bff620af9581::t_e33858102eb53f 71-80
+  s_a1bff620af9581::t_b6fb012590ba9c 50,64,88
+packages/auth-ui/src/components/AccountSwitcher.vue
+  s_a1bff620af9581::t_9556ea2e9d46fe 62-64,80,87
+  s_a1bff620af9581::t_607c383d0f1228 1-61,65-79,81-86,88-90
+  s_a1bff620af9581::t_7ebdd10114ca29 91-173
+services/auth/src/main/java/com/ulticode/auth/session/AuthSessionPort.java
+  s_a1bff620af9581::t_b6fb012590ba9c 18
+services/auth/src/main/java/com/ulticode/auth/security/AuthSecurityConfig.java
+  s_a1bff620af9581::t_8c672222d14b43 46-47
+packages/auth-core/src/__tests__/csrf.spec.ts
+  s_a1bff620af9581::t_9c105b30886fd9 26-36
+services/auth/src/test/java/com/ulticode/auth/account/AuthAccountPersistenceIT.java
+  s_a1bff620af9581::t_e8275dceac06dd 33-42,46-54,81-128
+  s_a1bff620af9581::t_c944cc83958489 129
+services/auth/src/main/java/com/ulticode/auth/service/AccountSessionService.java
+  s_a1bff620af9581::t_c48241b9c24741 53,59,63,68-69,72-77
+  s_a1bff620af9581::t_540827b3ec7366 1-52,54-58,60-62,64,66-67,70-71,78-119
+  s_a1bff620af9581::t_b6fb012590ba9c 65
+apps/management/src/components/layout/NavUser.vue
+  s_a1bff620af9581::t_7cb35274745783 3,12-13,21,55-58,60,62,64-65,69,77-79,81,105
+  s_a1bff620af9581::t_8f1d27a9f53512 83,100-104,106-109,111-117
+services/platform/web-security/src/test/java/com/ulticode/websecurity/csrf/CookieCsrfFilterTest.java
+  s_a1bff620af9581::t_8815c251052052 60-84
+packages/auth-core/src/browserSessionLock.ts
+  s_a1bff620af9581::t_00c454db1b2502 1-8
+  s_a1bff620af9581::t_91e8f1503d8466 9-10
+services/auth/src/test/java/com/ulticode/auth/refreshtoken/service/RefreshTokenServiceTest.java
+  s_a1bff620af9581::t_8815c251052052 65-92
+apps/console/src/i18n/locales/en-US/auth.ts
+  s_a1bff620af9581::t_08a8b318e49568 2-7
+  s_a1bff620af9581::t_2db97735da0012 8-12
+services/auth/src/main/java/com/ulticode/auth/session/DefaultAuthSessionAdapter.java
+  s_a1bff620af9581::t_b6fb012590ba9c 77-83,88
+  s_a1bff620af9581::t_c48241b9c24741 42-43,58-59,71-72,84-87
+  s_a1bff620af9581::t_0ae54923932b29 89
+packages/auth-core/src/types.ts
+  s_a1bff620af9581::t_90e4701aa73375 17-18,96-102
+pnpm-lock.yaml
+  s_a1bff620af9581::t_a3cd8da6447ab1 599-601
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a61718e51ebde57a13c86e6237eadbb262c061c7",
+  "prompts": {},
+  "sessions": {
+    "s_a1bff620af9581": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16582-42aa-7881-b150-8dcf1e3213ac",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

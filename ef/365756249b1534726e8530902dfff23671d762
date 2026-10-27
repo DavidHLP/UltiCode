@@ -1,0 +1,50 @@
+docker/redis/generate-users-acl.sh
+  h_77173abe25c3ff 50
+docs/architecture/decisions/0010-core-judge-convergence-blockers.md
+  h_77173abe25c3ff 53-59,73,86-89
+docs/architecture/evidence/P1-CORE-002-core-adapter-parity-matrix.md
+  h_77173abe25c3ff 8,10-11,13,18-19,67-70,76-79
+docs/architecture/evidence/P1-CORE-003-disposable-enabled-owner-journey.md
+  h_77173abe25c3ff 5-11,16-21,37-39,50-52,54-55
+docs/architecture/evidence/P2-TOPOLOGY-001-distributed-default-core-conditional.md
+  h_77173abe25c3ff 4,114-118,120-123,131-135
+docs/architecture/evidence/P2-TOPOLOGY-002-distr-core-difference-matrix.md
+  h_77173abe25c3ff 51,59,64-67
+docs/development/local-setup.md
+  h_77173abe25c3ff 77-79,82-83
+docs/development/testing.md
+  h_77173abe25c3ff 38-42
+docs/project/current-status.md
+  h_77173abe25c3ff 62-64,66-67
+scripts/test/core-enabled-owner-journey.sh
+  h_77173abe25c3ff 46-47,49,54
+scripts/test/redis-acl-contract.sh
+  h_77173abe25c3ff 39
+services/admin/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java
+  h_77173abe25c3ff 129-132
+services/admin/src/test/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImplTest.java
+  h_77173abe25c3ff 167-178
+services/core/src/main/java/com/ulticode/core/CoreOwnerContextManager.java
+  h_77173abe25c3ff 165,174-190,344-347,352-355,362-365,393-396
+services/core/src/test/java/com/ulticode/core/CoreEnabledOwnerJourneyIT.java
+  h_77173abe25c3ff 18-19,26,29-30,47,77-80,82,94-96,105-110,115-116,126,133-136,206-210,221-224,227-232,236-240,249,251-254,272-376,398-405,453-454,489
+services/core/src/test/java/com/ulticode/core/CoreLocalAdapterWiringTest.java
+  h_77173abe25c3ff 5,117-118
+services/core/src/test/java/com/ulticode/core/CoreLocalContractAssemblyTest.java
+  h_77173abe25c3ff 47-48
+services/core/src/test/java/com/ulticode/core/CoreOwnerContextManagerLifecycleTest.java
+  h_77173abe25c3ff 310-338
+services/docs/SERVICES_ISSUES.md
+  h_77173abe25c3ff 36,47-53,57-58,61-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ef365756249b1534726e8530902dfff23671d762",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

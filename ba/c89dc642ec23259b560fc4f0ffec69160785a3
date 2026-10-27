@@ -1,0 +1,53 @@
+apps/console/src/views/personal/__tests__/AgentConversationWorkspace.spec.ts
+  s_d2243210ef2900::t_a809dcaaccb632 105,150-156
+apps/console/src/composables/__tests__/useAgentWorkflow.spec.ts
+  s_d2243210ef2900::t_96f048e30154ea 72-94
+services/agent/data/repository_corpus_manifest.json
+  s_d2243210ef2900::t_990095e437bd2a 32-33
+.github/workflows/ci.yml
+  s_d2243210ef2900::t_797118015ea04c 83-84
+apps/console/src/components/problem/__tests__/Calendar.spec.ts
+  s_d2243210ef2900::t_c0df1b20b5a8fb 1-24
+apps/console/src/composables/__tests__/useAgentConversations.spec.ts
+  s_d2243210ef2900::t_55093436b2d3dd 68-131
+apps/console/src/composables/useAgentConversations.ts
+  s_d2243210ef2900::t_65747f67bd80a5 231-244,453-461,464-466,468,470,472
+apps/console/src/composables/useAgentWorkflow.ts
+  s_d2243210ef2900::t_9e063419e396d2 79-80,125
+apps/console/src/views/personal/AgentConversationWorkspace.vue
+  s_d2243210ef2900::t_19d14b5b385e0c 565-572
+apps/console/vite.config.ts
+  s_d2243210ef2900::t_fb170e678324da 52
+apps/landing/index.html
+  s_d2243210ef2900::t_468947fd499e56 15-29
+apps/landing/src/views/landing/__tests__/LandingView.spec.ts
+  s_d2243210ef2900::t_866151139272e1 2-3,33-69
+docs/DEVELOPMENT.md
+  s_d2243210ef2900::t_6a41bc3c82750c 110-111,114-115,165-166,173
+infrastructure/nginx/includes/security-headers.conf
+  s_d2243210ef2900::t_cf8d050f5a0363 15
+packages/auth-ui/src/__tests__/RegisterForm.spec.ts
+  s_d2243210ef2900::t_a389a9d216e74e 88,93,96-98,102
+packages/design-system/src/components/ui/calendar/Calendar.vue
+  s_d2243210ef2900::t_031c5bfbd97265 35,45-51,230-238
+services/agent/src/agent_service/app.py
+  s_d2243210ef2900::t_d240c694de17e8 221,255,263-284,1022-1023,1025,1029,1263
+services/agent/tests/test_agent_service.py
+  s_d2243210ef2900::t_10e8f258d57cb7 1699-1700,1710-1712,1714,1717-1719,1722-1723,1725-1729,1731-1732,1735-1743,2113-2154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bac89dc642ec23259b560fc4f0ffec69160785a3",
+  "prompts": {},
+  "sessions": {
+    "s_d2243210ef2900": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15826-f753-7950-b0ea-cd98fee94ea7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

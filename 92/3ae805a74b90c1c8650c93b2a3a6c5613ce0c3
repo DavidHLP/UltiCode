@@ -1,0 +1,19 @@
+services/admin/src/test/java/com/ulticode/modules/backup/service/BackupObjectCleanupTest.java
+  s_4a64b03d7392c3::t_da4d09ee7c1d6f 1-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "923ae805a74b90c1c8650c93b2a3a6c5613ce0c3",
+  "prompts": {},
+  "sessions": {
+    "s_4a64b03d7392c3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "980d9dab-84b6-438f-945e-8c199ac97acf",
+        "model": "unknown"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

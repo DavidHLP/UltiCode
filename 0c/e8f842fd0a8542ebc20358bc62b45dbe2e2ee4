@@ -1,0 +1,14 @@
+docs/architecture/evidence/P3-ADMIN-001-admin-budget-manifest.md
+  h_77173abe25c3ff 309
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0ce8f842fd0a8542ebc20358bc62b45dbe2e2ee4",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

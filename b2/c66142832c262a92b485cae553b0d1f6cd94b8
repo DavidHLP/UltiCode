@@ -1,0 +1,19 @@
+.gitignore
+  s_90fb45fdc150f7::t_24c8408e05174d 302-304
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b2c66142832c262a92b485cae553b0d1f6cd94b8",
+  "prompts": {},
+  "sessions": {
+    "s_90fb45fdc150f7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d316e3a3-d8d7-49ae-ab2b-2e22c52a91ab",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

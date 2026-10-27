@@ -1,0 +1,24 @@
+CHANGELOG.md
+  h_77173abe25c3ff 8-11
+apps/management/src/api/admin/__tests__/problems.spec.ts
+  h_77173abe25c3ff 1,110-118
+apps/management/src/api/admin/problems.ts
+  h_77173abe25c3ff 140-141,145,167,226-234,238,250
+docs/DEVELOPMENT.md
+  h_77173abe25c3ff 122-144
+scripts/test/browser-business-acceptance.mjs
+  h_77173abe25c3ff 1-209
+services/agent/data/repository_corpus_manifest.json
+  h_77173abe25c3ff 32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3f1b0dc391e87d8dbc72ee3174f06824d2c8741d",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

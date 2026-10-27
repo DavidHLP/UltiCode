@@ -59,7 +59,7 @@ describe('management semantic color contracts', () => {
     const localeTypes = readSource('src/i18n/types.ts')
 
     expect(switcher).toContain('{{ localeConfig.nativeName }}')
-    expect(switcher).toContain('@click="setLocale(localeConfig.code)"')
+    expect(switcher).toContain('@select="setLocale(localeConfig.code)"')
     expect(switcher).toContain('isCurrentLocale(localeConfig.code)')
     expect(switcher).toContain('@ulticode/design-system/ui/')
     expect(switcher).not.toContain('localeConfig.flag')

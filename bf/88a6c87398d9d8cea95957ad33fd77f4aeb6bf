@@ -1,0 +1,24 @@
+docs/ARCHITECTURE.md
+  h_77173abe25c3ff 96
+services/agent/data/repository_corpus_manifest.json
+  h_77173abe25c3ff 18-19
+services/app/app-web/src/main/java/com/ulticode/modules/websocket/interceptor/JwtChannelInterceptor.java
+  h_77173abe25c3ff 137,165-168
+services/app/app-web/src/main/java/com/ulticode/modules/websocket/interceptor/WebSocketAuthHandshakeInterceptor.java
+  h_77173abe25c3ff 29-37,56
+services/app/app-web/src/test/java/com/ulticode/modules/websocket/interceptor/JwtChannelInterceptorTest.java
+  h_77173abe25c3ff 78-85,97,105-106,119,130-131,186
+services/app/app-web/src/test/java/com/ulticode/modules/websocket/interceptor/WebSocketAuthHandshakeInterceptorTest.java
+  h_77173abe25c3ff 1-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bf88a6c87398d9d8cea95957ad33fd77f4aeb6bf",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

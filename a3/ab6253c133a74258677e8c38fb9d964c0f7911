@@ -1,0 +1,18 @@
+apps/management/src/components/LanguageSwitcher.test.ts
+  h_77173abe25c3ff 1-48
+apps/management/src/components/theme-color-contract.test.ts
+  h_77173abe25c3ff 62
+services/agent/data/repository_corpus_manifest.json
+  h_77173abe25c3ff 32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a3ab6253c133a74258677e8c38fb9d964c0f7911",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

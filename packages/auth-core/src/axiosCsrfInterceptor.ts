@@ -100,6 +100,10 @@ export function createCsrfAxiosInterceptor(
       };
       try {
         await refreshAccessToken();
+        // Refresh rotates the double-submit cookie too. rawAxios deliberately
+        // bypasses request interceptors, so replace the stale CSRF header before
+        // replaying a mutation while preserving its body and account binding.
+        requestInterceptor(config);
         // Replay via rawAxios — it has `withCredentials: true` so the
         // freshly-set HttpOnly access cookie is sent, AND it has no
         // interceptors so the replay cannot re-enter this 401 branch

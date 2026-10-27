@@ -106,6 +106,38 @@ describe("auth-refresh integration — T6 regression (10-minute hang)", () => {
     expect(onFailure).not.toHaveBeenCalled();
   });
 
+  it("replays a POST with the rotated CSRF header and unchanged account/body", async () => {
+    vi.mocked(rawAxios.post).mockResolvedValueOnce({
+      data: { code: 0, data: { csrfToken: "rotated-csrf" } },
+    });
+    const payload = { language: "python", code: "synthetic-fixture" };
+    const error = make401Error();
+    error.config = {
+      ...error.config,
+      method: "post",
+      url: "/problems/1/submissions",
+      data: payload,
+      headers: {
+        "X-CSRF-Token": "stale-csrf-from-login",
+        "X-Session-Account": "account-fixture",
+      },
+    } as InternalAxiosRequestConfig;
+    vi.mocked(rawAxios.request).mockImplementationOnce(async config => {
+      // A server enforcing the rotated cookie would reject the stale header.
+      expect(config.headers?.["X-CSRF-Token"]).toBe("rotated-csrf");
+      expect(config.headers?.["X-Session-Account"]).toBe("account-fixture");
+      expect(config.data).toBe(payload);
+      return { status: 200, data: { id: "submission-fixture" } } as never;
+    });
+
+    await errorInterceptor(error);
+
+    expect(rawAxios.post).toHaveBeenCalledTimes(1);
+    expect(rawAxios.request).toHaveBeenCalledTimes(1);
+    expect(csrf.getToken()).toBe("rotated-csrf");
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
   it("refresh itself fails (refresh cookie expired, 30+ days idle): user is logged out, no loop", async () => {
     vi.mocked(rawAxios.post).mockRejectedValue(new Error("refresh 401"));
 

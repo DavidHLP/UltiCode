@@ -343,6 +343,28 @@ env ENV_FILE="$TEST_ENV" \
 CUTOVER_COUNTS="$(mysql_root -N -B -e "SELECT (SELECT COUNT(*) FROM submission.submissions),(SELECT COUNT(*) FROM submission.judge_outbox),(SELECT COUNT(*) FROM submission.submission_result_outbox),(SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE=CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)) AND TABLE_SCHEMA='ulticode' AND PRIVILEGE_TYPE IN ('SELECT','INSERT','UPDATE','DELETE')); ")"
 [[ "$CUTOVER_COUNTS" == $'1\t1\t1\t0' ]]
 
+# Fresh provisioning and repeated cutovers share the already-isolated state.
+# Neither may restore compatibility grants as compensation for an empty REVOKE.
+env ENV_FILE="$TEST_ENV" \
+  SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
+  SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
+  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-cutover-repeat.log" 2>&1
+grep -q 'App grants are already absent; no grant mutation required' "$TEST_DIR/submission-cutover-repeat.log"
+[[ "$(mysql_root -N -B -e "SELECT COUNT(*) FROM information_schema.table_privileges WHERE GRANTEE=CONCAT(CHAR(39),'app_rw',CHAR(39),'@',CHAR(39),'%',CHAR(39)) AND TABLE_SCHEMA='ulticode';")" == 0 ]]
+printf 'already-isolated submission cutover: PASS\n'
+
+cp "$TEST_ENV" "$TEST_DIR/missing-app-account.env"
+printf '\nSUBMISSION_APP_DB_HOST=missing-host\n' >> "$TEST_DIR/missing-app-account.env"
+if env ENV_FILE="$TEST_DIR/missing-app-account.env" \
+  SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
+  SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
+  bash "$ROOT_DIR/scripts/runbooks/submission-schema-cutover.sh" cutover --execute > "$TEST_DIR/submission-missing-account.log" 2>&1; then
+  echo 'Already-isolated cutover accepted a missing runtime account.' >&2
+  exit 1
+fi
+grep -q 'writer differences are not zero' "$TEST_DIR/submission-missing-account.log"
+printf 'already-isolated missing account rejection: PASS\n'
+
 env ENV_FILE="$TEST_ENV" \
   SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_ROLLBACK \
   SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \

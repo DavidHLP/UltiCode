@@ -38,7 +38,68 @@ mise Feature 使用 `ghcr.io/devcontainers-extra/features/mise:1`，配置与锁
 `host` 配置只接受 `scope` 和 `observability` 两个无密钥键；启动和
 生命周期逻辑仍由 `scripts/dev/*` 与 `devstack-manifest.sh` 所有。
 
-### 推荐启动
+### 干净卷首次安装（仅本机 disposable 开发环境）
+
+首次安装与已有数据库升级是两个入口。以下流程只用于新 checkout、全新
+Compose project 和空卷；不得对已有环境执行，也不删除或重置任何卷。
+已有环境继续使用 [Operations](OPERATIONS.md#数据库迁移与-owner-收敛) 的备份、
+writer drain、增量 backfill 和 cutover 流程。先安装上面的工具链及锁定依赖；
+默认端口必须空闲，独立 PM2 home 不会隔离 TCP 端口。
+
+```bash
+set -euo pipefail
+test ! -e .env                       # 已有配置应走升级入口，不能 --force
+export COMPOSE_PROJECT_NAME=ulticode-fresh
+export PM2_HOME="$PWD/.local/fresh-pm2"
+test -z "$(docker ps -aq --filter label=com.docker.compose.project=$COMPOSE_PROJECT_NAME)"
+test -z "$(docker volume ls -q --filter name=${COMPOSE_PROJECT_NAME}_)"
+./scripts/dev/init-env.sh
+pnpm install --frozen-lockfile
+./scripts/dev/up.sh --scope full-stack --prepare-submission-owner --skip-install
+```
+
+`--prepare-submission-owner` 只准备基础设施、canonical migrations、owner 账号和
+grant，不启动业务 writer。空卷不意味着迁移后没有数据：不可改写的历史共享迁移
+包含 sample submissions，仍必须经过 insert-only backfill 和完整 parity 检查。
+不要跳过这些检查，也不要先手工设置 `SUBMISSION_CUTOVER_COMPLETE=true`。
+
+在同一个 shell 中、所有业务 writer 仍未启动时执行：
+
+```bash
+set -a
+source .env
+set +a
+export MIGRATION_MYSQL_CONTAINER="$(docker compose --project-directory . --env-file .env \
+  -f docker/docker-compose.yml -f docker/docker-compose.dev.yml ps -q mysql)"
+export MYSQL_CONTAINER="$MIGRATION_MYSQL_CONTAINER"
+export MIGRATION_DB_USER=root MIGRATION_DB_PASSWORD="$MYSQL_ROOT_PASSWORD"
+./scripts/runbooks/submission-schema-cutover.sh backfill
+SUBMISSION_BACKFILL_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL \
+SUBMISSION_BACKFILL_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_BACKFILL_QUIESCE_ALL_WRITERS \
+  ./scripts/runbooks/submission-schema-cutover.sh backfill --execute
+./scripts/runbooks/submission-schema-cutover.sh verify
+SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
+SUBMISSION_CUTOVER_QUIESCE_CONFIRM=I_UNDERSTAND_SUBMISSION_QUIESCE_ALL_WRITERS \
+  ./scripts/runbooks/submission-schema-cutover.sh cutover --execute
+./scripts/runbooks/submission-schema-cutover.sh verify
+export SUBMISSION_CUTOVER_COMPLETE=true
+./scripts/dev/up.sh --scope full-stack --skip-infra --skip-install --rebuild
+./scripts/dev/up.sh health --scope full-stack
+```
+
+只有最终 parity 和 writer checks 成功才导出完成标记。已隔离的 App 账号再次 cutover
+仍检查 schema、parity、权限和 source 稳定性，但不重复 REVOKE，也不恢复 legacy grant。
+此处的 root migration 身份、生成的 dev-admin 和示例数据仅属于这个 disposable project，
+不能复用于生产。生成的 `.env`、PM2 state、ACL、日志和数据库都不能提交。
+中断时保留卷并检查日志及正在运行的进程；不要重跑首次安装检查或删除卷来掩盖失败。
+恢复迁移可显式传入上述 `MIGRATION_MYSQL_CONTAINER`，无需安装 host mysql CLI。
+
+health 通过只证明 readiness。发布前仍须用真实 Auth/App/Submission/Judge 验证浏览器
+登录、题目、提交和 terminal verdict，以及 Management/contest 权限与业务操作；
+mock API、sample verdict、容器 healthy 和截图均不能替代这项验收。Agent 默认关闭，
+不属于这个基础安装的模型验收。
+
+### 已准备环境启动
 
 ```bash
 ./scripts/dev/init-env.sh

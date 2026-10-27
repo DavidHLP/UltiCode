@@ -412,8 +412,12 @@ do_backfill() {
 }
 
 app_grants_absent() {
-  local table_privilege_count column_privilege_count check_status
+  local table_privilege_count column_privilege_count check_status account_count
   [[ -n "$APP_DB_USER" && -n "$APP_DB_HOST" ]] || return 1
+  account_count="$(mysql_query "SELECT COUNT(*) FROM mysql.user WHERE User = '$APP_DB_USER';")" || return 1
+  [[ "$account_count" == "1" ]] || return 1
+  account_count="$(mysql_query "SELECT COUNT(*) FROM mysql.user WHERE User = '$APP_DB_USER' AND Host = '$APP_DB_HOST';")" || return 1
+  [[ "$account_count" == "1" ]] || return 1
   table_privilege_count="$(mysql_query "SELECT COUNT(*) FROM information_schema.table_privileges
     WHERE GRANTEE = CONCAT(CHAR(39), '$APP_DB_USER', CHAR(39), '@', CHAR(39), '$APP_DB_HOST', CHAR(39))
       AND TABLE_SCHEMA = '$SOURCE_SCHEMA'
@@ -828,6 +832,23 @@ case "$ACTION" in
     if ! source_before="$(source_snapshot "$SOURCE_SCHEMA")"; then
       echo "Unable to capture source rows/checksums before grant revocation; refusing cutover." >&2
       exit 1
+    fi
+    # Fresh owner provisioning may already have removed the compatibility
+    # grants. A repeated REVOKE fails on MySQL; its compensation must never
+    # reintroduce a writer into this verified, already-isolated state.
+    if app_grants_absent; then
+      source_after="$(source_snapshot "$SOURCE_SCHEMA")" || {
+        echo "Unable to recheck already-isolated source; refusing cutover." >&2
+        exit 1
+      }
+      [[ "$source_before" == "$source_after" ]] || {
+        echo "Source changed during already-isolated cutover verification." >&2
+        exit 1
+      }
+      print_snapshot "$SOURCE_SCHEMA" source-after-cutover
+      print_snapshot "$TARGET_SCHEMA" target-after-cutover
+      echo "CUTOVER PASS: App grants are already absent; no grant mutation required."
+      exit 0
     fi
     if ! revoke_app_grants; then
       echo "Grant revocation failed; restoring App grants before stopping." >&2

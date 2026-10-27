@@ -1,0 +1,16 @@
+scripts/ci/business-acceptance.sh
+  h_77173abe25c3ff 105-107
+scripts/test/verified-release-package-contract.py
+  h_77173abe25c3ff 92,100-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2b1a97d3b67e40a2517c3ec3d3f82f812deae19c",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

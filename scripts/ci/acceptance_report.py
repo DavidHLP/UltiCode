@@ -13,7 +13,7 @@ PHASES = {"environment", "sandbox", "fresh-migrations", "backfill-and-cutover", 
 
 
 def summary(paths):
-    kinds, frames = set(), []
+    kinds, frames, messages = set(), [], []
     for path in paths:
         if path.is_symlink() or not path.is_file():
             continue
@@ -23,12 +23,27 @@ def summary(paths):
                 text = stream.read(LIMIT).decode("utf-8", errors="replace")
         except OSError:
             continue
+        lines = text.splitlines()
+        for index, line in enumerate(lines):
+            if any(marker in line for marker in ("RpcException", "Caused by:", "Last error", "last error", "Exception:", "Error:")):
+                messages.extend(lines[index:index + 3])
         kinds.update(KINDS.findall(text))
         for symbol, location in FRAMES.findall(text):
             frame = {"symbol": symbol, "location": location}
             if frame not in frames:
                 frames.append(frame)
-    return {"exception_classes": sorted(kinds)[:20], "public_source_frames": frames[-16:]}
+    context = "\n".join(messages)
+    patterns = {
+        "timeout": r"\b(?:timeout waiting|timed out|deadline exceeded|TimeoutException)\b",
+        "no_rpc_provider": r"no providers? available|not found exported service|no valid provider",
+        "connection": r"\b(?:connection refused|connection reset|failed to connect|broken pipe)\b",
+        "serialization": r"(?:failed|unable|cannot|error)[^\n]{0,80}(?:serialize|deserialize|serialization)|(?:serialize|deserialize|serialization)[^\n]{0,60}(?:failed|error|reject|not allow)|not serializable|unsupported[^\n]{0,40}record",
+        "authorization": r"\b(?:unauthorized|forbidden|access denied|permission denied)\b",
+        "tls_identity": r"\b(?:SSLHandshakeException|certificate_unknown|untrusted peer|peer identity mismatch|tls handshake)\b",
+        "validation_provider": r"\bNoProviderFoundException\b",
+    }
+    return {"exception_classes": sorted(kinds)[:20], "public_source_frames": frames[-16:],
+            "rpc_failure_categories": {name: bool(re.search(pattern, context, re.I)) for name, pattern in patterns.items()}}
 
 
 def build_report(root, phase, exit_code, project):
@@ -36,7 +51,7 @@ def build_report(root, phase, exit_code, project):
     services = {}
     for owner in ("app", "submission", "admin", "auth", "judge"):
         item = summary([root / "logs" / f"backend-{owner}.{kind}.log" for kind in ("out", "err")])
-        if item["exception_classes"] or item["public_source_frames"]:
+        if item["exception_classes"] or item["public_source_frames"] or any(item["rpc_failure_categories"].values()):
             services[owner] = item
     return {
         "evidence": "disposable-real-services",

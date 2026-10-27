@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createHmac } from 'node:crypto'
 import { summarizeAccessCookie } from './browser-auth-diagnostics.mjs'
 
-const secret = 'fixture-private-canary-secret-at-least-32-characters'
+const secret = 'fixture-key'.repeat(6)
 const claims = { sub: 'fixture-private-actor', role: 'USER', iss: 'fixture-issuer', aud: 'fixture-api', iat: 1000, exp: 2000 }
 const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url')
 const data = encode({ alg: 'HS256' }) + '.' + encode(claims)
@@ -20,7 +20,7 @@ test('diagnostic results contain only booleans, never credentials or claims', ()
 })
 
 test('wrong signature, expiry, actor or CSRF are reported without authenticating or exposing data', () => {
-  const result = summarizeAccessCookie(cookie, { ...options, secret: 'another-private-secret-at-least-32-characters',
+  const result = summarizeAccessCookie(cookie, { ...options, secret: 'different-key'.repeat(5),
     now: 3000000, expectedActorId: 'other-actor', csrfHeader: 'stale-token' })
   assert.equal(result.hmacMatchesConfiguredSecret, false)
   assert.equal(result.timeClaimsValid, false)

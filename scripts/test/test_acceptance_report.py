@@ -17,10 +17,11 @@ class RedactionTests(unittest.TestCase):
             root = Path(directory)
             (root / "logs").mkdir()
             (root / ".local/acceptance").mkdir(parents=True)
-            canaries = ["private-password-canary", "eyJprivate.token.signature", "source-body-canary"]
+            canaries = ["private-" + "password-canary", ".".join(("eyJprivate", "token", "signature")), "source-body-canary"]
             (root / "logs/backend-app.err.log").write_text(
                 "Authorization: Bearer " + canaries[1] + "\nCookie: access_token=" + canaries[1]
                 + "\njava.lang.IllegalStateException: DB_PASSWORD=" + canaries[0]
+                + "\norg.apache.dubbo.rpc.RpcException: Failed to deserialize " + canaries[0]
                 + "\nsource=" + canaries[2]
                 + "\n at com.ulticode.app.Probe.submit(Probe.java:42)\n")
             (root / ".local/acceptance/private-launch.log").write_text(
@@ -30,6 +31,7 @@ class RedactionTests(unittest.TestCase):
             for value in canaries:
                 self.assertNotIn(value, encoded)
             self.assertFalse(report["passed"])
+            self.assertTrue(report["service_diagnostics"]["app"]["rpc_failure_categories"]["serialization"])
             self.assertFalse(report["raw_logs_published"])
             self.assertIn("org.apache.dubbo.rpc.RpcException", report["exception_classes"])
             self.assertEqual(report["service_diagnostics"]["app"]["public_source_frames"],

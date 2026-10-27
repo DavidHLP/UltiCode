@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { chromium } from 'playwright'
+import { summarizeAccessCookie } from './browser-auth-diagnostics.mjs'
 
 const consoleOrigin = localOrigin(process.env.ACCEPTANCE_CONSOLE_ORIGIN || 'http://127.0.0.1:9002')
 const managementOrigin = localOrigin(process.env.ACCEPTANCE_MANAGEMENT_ORIGIN || 'http://127.0.0.1:9003')
@@ -14,6 +15,9 @@ assert.equal(process.env.ACCEPTANCE_DISPOSABLE, 'true', 'Explicit disposable-sta
 const output = resolve(process.env.ACCEPTANCE_OUTPUT || '.local/browser-acceptance')
 await mkdir(output, { recursive: true })
 const report = { startedAt: new Date().toISOString(), evidence: 'real-local-services', checks: [] }
+const authObservations = []
+let protectedAccessToken = ''
+let protectedActorId = ''
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.ACCEPTANCE_CHROMIUM ? { executablePath: process.env.ACCEPTANCE_CHROMIUM } : {}),
@@ -22,10 +26,52 @@ const timer = setTimeout(() => { console.error('Acceptance exceeded five minutes
 try {
   const context = await browser.newContext({ locale: 'en-US' })
   const page = await context.newPage()
+  page.on('response', response => {
+    const path = new URL(response.url()).pathname
+    if (response.request().method() === 'POST' && /\/problems\/\d+\/submissions$/.test(path)) {
+      report.submissionAttemptStatuses ||= []
+      report.submissionAttemptStatuses.push(response.status())
+    }
+    if (path === '/api/auth/refresh') {
+      report.authRefreshStatuses ||= []
+      report.authRefreshStatuses.push(response.status())
+    }
+    if (response.status() !== 401 || authObservations.length >= 20) return
+    authObservations.push((async () => {
+      const request = response.request()
+      const cookie = await request.headerValue('cookie') || ''
+      const authorization = await request.headerValue('authorization') || ''
+      const csrfHeader = await request.headerValue('x-csrf-token') || ''
+      const envelope = await response.json().catch(() => ({}))
+      const code = envelope.code
+      const safeCode = typeof code === 'number' && Number.isFinite(code) ? code
+        : typeof code === 'string' && /^[A-Z0-9_:-]{1,80}$/i.test(code) ? code : null
+      report.httpAuthFailures ||= []
+      report.httpAuthFailures.push({ path: new URL(response.url()).pathname, method: request.method(),
+        status: 401, code: safeCode, accessCookiePresent: /(?:^|;\s*)access_token=/.test(cookie),
+        bearerPresent: authorization.startsWith('Bearer '),
+        tokenChecks: summarizeAccessCookie(cookie, { csrfHeader, preflightToken: protectedAccessToken,
+          expectedActorId: protectedActorId, secret: process.env.JWT_SECRET,
+          issuer: process.env.JWT_EXPECTED_ISSUER || process.env.JWT_ISSUER || 'ulticode-auth',
+          audience: process.env.JWT_EXPECTED_AUDIENCE || process.env.JWT_AUDIENCE || 'ulticode-api' }) })
+    })())
+  })
   page.setDefaultTimeout(30_000)
   await login(page, consoleOrigin)
   await page.waitForURL(`${consoleOrigin}/problemset`)
   report.checks.push({ name: 'console-browser-login', passed: true })
+  report.protectedSessionPreflight = []
+  for (const path of ['/api/auth/me', '/api/submissions']) {
+    const response = await page.request.get(`${consoleOrigin}${path}`)
+    const envelope = await response.json().catch(() => ({}))
+    if (path === '/api/auth/me' && typeof envelope.data?.user?.id === 'string') protectedActorId = envelope.data.user.id
+    report.protectedSessionPreflight.push({ path, status: response.status(),
+      code: typeof envelope.code === 'number' ? envelope.code : null,
+      accessCookiePresent: (await context.cookies(consoleOrigin)).some(cookie => cookie.name === 'access_token') })
+    assert(response.ok(), `Protected session preflight ${path} HTTP ${response.status()}`)
+  }
+  protectedAccessToken = (await context.cookies(consoleOrigin)).find(cookie => cookie.name === 'access_token')?.value || ''
+  report.checks.push({ name: 'auth-and-app-protected-session', passed: true })
 
   await page.goto(`${consoleOrigin}/problems/two-sum/description`)
   await page.getByRole('button', { name: 'Select programming language' }).click()
@@ -39,11 +85,15 @@ try {
   report.checks.push({ name: 'problem-browser-editor', passed: true })
 
   const submitted = page.waitForResponse(response => response.request().method() === 'POST'
-    && /\/problems\/\d+\/submissions$/.test(new URL(response.url()).pathname))
+    && /\/problems\/\d+\/submissions$/.test(new URL(response.url()).pathname)
+    && response.status() !== 401)
   await page.getByRole('button', { name: 'Submit Solution', exact: true }).click()
   const response = await submitted
   assert.equal(response.request().postDataJSON().code, code, 'Editor must submit the exact fixture')
   assert(response.ok(), `Submission HTTP ${response.status()}`)
+  if (report.submissionAttemptStatuses?.includes(401)) {
+    assert(report.authRefreshStatuses?.includes(200), 'A 401 retry requires the real successful Auth refresh flow')
+  }
   const envelope = await response.json()
   assert(envelope.data?.id, 'Real submission response must contain its ID')
   const id = envelope.data.id
@@ -123,6 +173,7 @@ try {
   report.failure = failure.replaceAll(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED]').slice(0, 2000)
   process.exitCode = 1
 } finally {
+  await Promise.allSettled(authObservations)
   report.finishedAt = new Date().toISOString()
   await writeFile(resolve(output, 'report.json'), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 })
   console.log(JSON.stringify(report))

@@ -26,12 +26,12 @@ def validate(results: dict, selected: dict) -> list[str]:
 
     if result_of("changes") != "success":
         errors.append(f"changes must succeed (got {result_of('changes')})")
-    flags = {gate: selected_flag(gate) for gate in ("backend", "console", "management", "landing", "contract", "docker", "agent")}
+    flags = {gate: selected_flag(gate) for gate in ("backend", "console", "management", "landing", "contract", "docker", "agent", "acceptance")}
     gates = {"governance": True, "security": True,
              "backend": flags["backend"],
              "frontend": flags["console"] or flags["management"] or flags["landing"],
              "contract": flags["contract"], "docker": flags["docker"],
-             "agent": flags["agent"]}
+             "agent": flags["agent"], "acceptance": flags["acceptance"]}
     for gate, required in gates.items():
         result = result_of(gate)
         if required:

@@ -1,9 +1,11 @@
 # Security policy
 
-UltiCode is under active development. This repository has no published stable
-GitHub Release or production security certification. Reports against the current
-`main` branch are welcome; include the exact commit or immutable image digest.
-The Agent is experimental and disabled by default.
+[v1.0.4](https://github.com/DavidHLP/UltiCode/releases/tag/v1.0.4) was published on
+2026-10-27. Security reports for this release and current `main` are welcome;
+include the exact commit or immutable image digest. Older releases may require an
+upgrade before a fix can be evaluated. Fixes may land on `main` and a later
+release; no LTS/backport window, response-time SLA or production security
+certification is promised. The Agent remains experimental and disabled by default.
 
 ## Private reporting
 

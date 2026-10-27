@@ -629,6 +629,7 @@ devstack_apply_scope() {
 
 devstack_readiness_banner() {
   case "$1" in
+    ulticode-submission) printf 'Submission projection providers discovered' ;;
     ulticode-judge) printf 'Started BackendJudgeApplication' ;;
     ulticode-core) printf 'Started CoreApplication' ;;
     *) printf '' ;;

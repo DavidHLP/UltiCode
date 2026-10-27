@@ -123,6 +123,19 @@ def check_repository(root):
             if set(events) != {"workflow_call"} and "concurrency" not in data:
                 reject("entry workflow must declare concurrency")
             check_permissions(data.get("permissions"), set(), "workflow permissions")
+            if path.name == "ci.yml" and (root / ".github/services-matrix.json").exists():
+                jobs = data.get("jobs", {})
+                gate = jobs.get("acceptance", {})
+                if (gate.get("uses") != "./.github/workflows/_acceptance.yml"
+                        or gate.get("if") != "${{ !cancelled() && needs.changes.outputs.acceptance == 'true' }}"):
+                    reject("real acceptance must use the selected required reusable gate")
+                if "acceptance" not in jobs.get("ci-ok", {}).get("needs", []):
+                    reject("ci-ok must depend on real acceptance")
+                if jobs.get("changes", {}).get("outputs", {}).get("acceptance") != "${{ steps.select.outputs.acceptance }}":
+                    reject("changes must expose the acceptance selection")
+                steps = jobs.get("ci-ok", {}).get("steps", [])
+                if not any('needs.changes.outputs.acceptance' in str(step.get('env', {}).get('SELECTED', '')) for step in steps):
+                    reject("ci-ok must validate the acceptance selection")
             for name, job in data.get("jobs", {}).items():
                 if "permissions" in job:
                     check_permissions(job["permissions"], WRITE_PERMISSIONS.get((path.name, name), set()), f"job {name} permissions")

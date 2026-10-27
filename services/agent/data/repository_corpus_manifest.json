@@ -29,8 +29,8 @@
   },
   {
     "doc_id": "repository-development",
-    "version": "sha256-cae402bd326c114bc1c4acef873c477d7ae1fbd371358f1c1a251c582f301ad9",
-    "chunk_id": "repository-development:sha256-cae402bd326c114bc1c4acef873c477d7ae1fbd371358f1c1a251c582f301ad9:1",
+    "version": "sha256-5417a89a3f26d82c4a92e2d643042659427ca9f2956bc300fdcace80b292d35c",
+    "chunk_id": "repository-development:sha256-5417a89a3f26d82c4a92e2d643042659427ca9f2956bc300fdcace80b292d35c:1",
     "source_path": "docs/DEVELOPMENT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -43,14 +43,14 @@
   },
   {
     "doc_id": "repository-operations",
-    "version": "sha256-62e7604861666186f9c127231c3e1990286d310f3b15891b2cbe15042576f847",
-    "chunk_id": "repository-operations:sha256-62e7604861666186f9c127231c3e1990286d310f3b15891b2cbe15042576f847:1",
+    "version": "sha256-21a06609f296f9a8d00b7a46abcd2948cf737d04c9ccb86ce74b4b8e976f0513",
+    "chunk_id": "repository-operations:sha256-21a06609f296f9a8d00b7a46abcd2948cf737d04c9ccb86ce74b4b8e976f0513:1",
     "source_path": "docs/OPERATIONS.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
     "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
     "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
-    "source_position": "lines 57-61",
+    "source_position": "lines 131-135",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
     "content_digest": "sha256:e1ff3e78b8192a25aabf19db0fff20115b87b67b653240fbb31a0eba8a9b979e"

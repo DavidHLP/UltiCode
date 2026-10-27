@@ -148,6 +148,38 @@ RPC 返回失败值前显式标记写事务回滚，避免子项拒绝后留下�
 Admin description readback 映射 nested detail，不能把读取已存在题目或单独 Judge
 验收当成创建/编辑验收。fresh/upgrade ID 与外键保持检查属于真实 MySQL migration drill。
 
+### CI 真实安装与业务门禁
+
+`Real acceptance` 是 `ci-ok` 的必需选择门禁：runtime/frontend/安装工具变化与所有
+release-selected/full runs 都必须成功，不能把 skipped/cancelled 当成通过。文档元数据
+变化不会误触发镜像发布。工作流先运行现有 MySQL fresh/upgrade/FK、backfill、backup
+和权限隔离 drill，然后在独立 runner 顺序运行 `scripts/ci/business-acceptance.sh`。
+
+业务入口只接受没有 `.env`、默认端口空闲、本机 Unix Docker endpoint 的新 checkout，
+并要求 `ACCEPTANCE_DISPOSABLE=true`。它创建唯一 Compose project 和独立 PM2 home，
+通过现有 launcher 准备 canonical migrations，执行全部 backfill/parity/cutover 检查后
+才导出完成标记。每个 JVM 有 heap 上限；不会并行启动多个本机 acceptance stack。
+不使用生产 secret、生产数据、mock API 或付费模型。
+
+HTTP 存活不代表 Dubbo 接口已被消费者发现。Admin readiness 额外检查 ProblemAdminReadPort
+与 TestCaseOwnerPort 的实际 consumer invoker；缺失时返回 503。Submission 在两分钟的
+有界发现期限内检查 ProblemFactsPort 与 SubmissionUserReadPort，成功后才输出 launcher
+使用的就绪标记；超时则启动失败。检查只读取发现状态，不调用业务 RPC 或重试写入。
+launcher 记录本次启动前日志偏移，旧标记不会被当成本次成功。
+
+测试账号仅由 disposable dev bootstrap 与 Auth registration 创建。Manager 的直接权限
+通过真实 Auth API 临时授予并过期，不改全局 role policy；Console participant 保持 USER。
+随后执行基础与扩展 browser scripts，覆盖 AC/WA、重判、完整 admin create/edit/readback、
+非法子项事务回滚、contest 提交及最终排名。只上传排除凭据的 JSON 报告，不上传 `.env`、
+cookies、源码、PM2 state 或原始服务日志。退出时仅停止该测试 project/home，保留本机卷供
+诊断；GitHub hosted runner 生命周期负责回收其临时磁盘。
+
+本机重现需在新 checkout 安装锁定依赖、PM2 与 Playwright Chromium，然后运行：
+
+```bash
+ACCEPTANCE_DISPOSABLE=true bash scripts/ci/business-acceptance.sh
+```
+
 ### 已准备环境启动
 
 ```bash

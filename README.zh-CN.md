@@ -50,59 +50,22 @@ UltiCode 是一个全栈在线编程平台，提供题库、竞赛、在线评�
 ### 1. 获取项目
 
 ```bash
-git clone https://github.com/DavidHLP/UltiCode.git
+git clone --branch v1.0.4 https://github.com/DavidHLP/UltiCode.git
 cd UltiCode
 ```
 
-### 2. 准备环境
+### 2. 在生成配置前选择安装路径
 
-前置条件：Docker Compose v2、mise、Node.js 22.x（当前锁定前端依赖要求该系列至少 22.22.2）、pnpm 11.0.0、PM2，以及 `curl`、`timeout`、`openssl`。前端 CI 选择 Node 22.x 并固定 pnpm 11.0.0；应用 manifest 的 `>=22.12.0` 下限不足以覆盖全部锁定依赖。后端启动由仓库内 `services/mvnw` 和 mise 管理的 Zulu Java 17 执行。Dev Container 的工具链选择与重建说明见[开发前置条件](docs/DEVELOPMENT.md#前置条件)。
+当前发行版是 [v1.0.4（2026-10-27）](https://github.com/DavidHLP/UltiCode/releases/tag/v1.0.4)。
+普通使用者应固定发行版，不直接跟随 `main`；贡献者可在独立 checkout 使用 `main`。
 
-贡献者也可以直接使用 Dev Containers/Codespaces；创建容器只安装依赖，
-随后默认执行 unit 验证，不自动启动全栈：
+- **下载发行版镜像部署**：从[发行版安装](docs/OPERATIONS.md#从已发布发行版安装)开始，下载全部资产、验证校验和与九镜像签名证据，再准备主机 TLS/Judge 和部署审批。
+- **全新本机开发环境**：在 `.env` 尚不存在时进入[干净卷首次安装](docs/DEVELOPMENT.md#干净卷首次安装仅本机-disposable-开发环境)。该入口负责生成配置、迁移、backfill/parity、cutover 与首次启动；不要提前运行 `init-env.sh`。
+- **已有配置、数据库或卷**：保留它们，先阅读[升级与回滚](docs/OPERATIONS.md#升级与回滚入口)。不得把已有环境当成空卷，也不要使用 `--force` 重建配置或只修改 cutover marker。
 
-```bash
-./ulticode doctor --json
-```
+本机源码开发需要 Docker Compose v2、mise 管理的 Zulu Java 17、Node.js 22.x（至少 22.22.2）、pnpm 11.0.0、PM2、`curl`、`timeout` 和 `openssl`。Dev Container 只准备工具链和 unit 验证，不自动启动业务栈。精确前置条件、scope、readiness 与排障见[本地开发](docs/DEVELOPMENT.md#本地开发)。
 
-```bash
-./scripts/dev/init-env.sh
-```
-
-### 3. 完成数据库准备
-
-> **首次启动必读**
->
-> `init-env.sh` 会把 `SUBMISSION_CUTOVER_COMPLETE` 生成为 `false`。`dev-lite` 和 `dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 与已完成的 Submission cutover marker；未满足时启动脚本会拒绝执行。
->
-> 请先阅读[数据库迁移](docs/OPERATIONS.md#数据库迁移与-owner-收敛)，按授权的 cutover/backfill runbook 完成迁移与验证。不要仅修改标记来跳过检查。
-
-### 4. 启动开发环境
-
-完成上述准备后，选择适合的模式：
-
-| 模式 | 搜索 | 前端 |
-| --- | --- | --- |
-| `dev-lite` | 数据库 Search，不启动 Search Worker | 默认不启动 |
-| `dev-full` | 索引 Search，启用 Search Worker | 启动两个前端 |
-
-```bash
-./scripts/dev/up.sh --mode dev-lite
-```
-
-`dev-lite` 使用数据库 Search、不启动 Search worker，默认不启动两个前端；需要浏览器界面可另运行：
-
-```bash
-./scripts/dev/up.sh --frontend-only
-```
-
-`dev-full` 会启用 indexed Search、Search worker 和两个前端，但仍受同一 cutover gate 保护：
-
-```bash
-./scripts/dev/up.sh --mode dev-full
-```
-
-前端启动后访问：[Console 用户端](http://localhost:9002) · [Management 管理端](http://localhost:9003)。更多 scope、日志与排障入口见[本地开发](docs/DEVELOPMENT.md#本地开发)。
+完成所选入口后，开发前端为 [Console](http://localhost:9002) 与 [Management](http://localhost:9003)。不要通过直接启动 Maven/PM2 绕过 launcher 的准备和安全门禁。
 
 <details>
 <summary>可选 Core 试点与回滚说明</summary>

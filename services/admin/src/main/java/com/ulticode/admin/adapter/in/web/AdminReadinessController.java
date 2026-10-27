@@ -2,6 +2,11 @@ package com.ulticode.admin.adapter.in.web;
 
 import com.ulticode.common.health.ReadinessChecks;
 import com.ulticode.common.storage.StorageReadiness;
+import com.ulticode.rpc.resilience.DubboDiscoveryReadiness;
+import com.ulticode.app.api.service.TestCaseOwnerPort;
+import com.ulticode.app.api.service.ProblemAdminReadPort;
+import org.apache.dubbo.config.spring.reference.ReferenceBeanManager;
+import java.util.Set;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -29,6 +34,7 @@ public class AdminReadinessController {
     private final DataSource dataSource;
     private final StringRedisTemplate redisTemplate;
     private final StorageReadiness storageReadiness;
+    private final ReferenceBeanManager references;
 
     /**
      * Dependencies resolve through {@link ObjectProvider} so contexts that
@@ -38,11 +44,13 @@ public class AdminReadinessController {
      */
     public AdminReadinessController(org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
                   org.springframework.beans.factory.ObjectProvider<StringRedisTemplate> redisTemplateProvider,
-                  org.springframework.beans.factory.ObjectProvider<StorageReadiness> storageReadinessProvider) {
+                  org.springframework.beans.factory.ObjectProvider<StorageReadiness> storageReadinessProvider,
+                  org.springframework.beans.factory.ObjectProvider<ReferenceBeanManager> referenceProvider) {
         this.dataSource = dataSourceProvider.getIfAvailable();
         this.redisTemplate = redisTemplateProvider.getIfAvailable();
         // Absent only in contexts that do not carry the shared storage module.
         this.storageReadiness = storageReadinessProvider.getIfAvailable();
+        this.references = referenceProvider.getIfAvailable();
     }
 
     @GetMapping("/health/ready")
@@ -50,6 +58,8 @@ public class AdminReadinessController {
         Map<String, Boolean> components = new LinkedHashMap<>();
         components.put("db", ReadinessChecks.dataSourceUp(dataSource));
         components.put("redis", redisUp());
+        components.put("problemOwnerRpc", DubboDiscoveryReadiness.available(references,
+                Set.of(TestCaseOwnerPort.class.getName(), ProblemAdminReadPort.class.getName())));
         // Re-probe asynchronously after a runtime failure so health checks can recover an idle instance.
         if (storageReadiness != null) {
             storageReadiness.probeIfFailed();

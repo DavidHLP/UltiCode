@@ -50,58 +50,22 @@ The screenshots below are the design and regression reference screenshots mainta
 ### 1. Get the project
 
 ```bash
-git clone https://github.com/DavidHLP/UltiCode.git
+git clone --branch v1.0.4 https://github.com/DavidHLP/UltiCode.git
 cd UltiCode
 ```
 
-### 2. Prepare the environment
+### 2. Choose the installation path before creating configuration
 
-Prerequisites: Docker Compose v2, mise, Node.js 22.x (22.22.2 or newer on that line for the locked frontend dependencies), pnpm 11.0.0, PM2, plus `curl`, `timeout`, and `openssl`. Frontend CI selects Node 22.x and pins pnpm 11.0.0; the app manifests' `>=22.12.0` minimum alone does not cover every locked dependency. Backend startup runs through the repository's `services/mvnw` and the mise-managed Zulu Java 17. See [development prerequisites](docs/DEVELOPMENT.md#前置条件) for Dev Container toolchain selection and rebuild guidance.
+The current release is [v1.0.4 (2026-10-27)](https://github.com/DavidHLP/UltiCode/releases/tag/v1.0.4).
+Normal installations should pin a release; contributors can use `main` in a separate checkout.
 
-Contributors can also use Dev Containers / Codespaces directly; creating the container only installs dependencies and then runs the unit gate by default — it does not start the full stack:
+- **Deploy published images:** start with [release installation](docs/OPERATIONS.md#从已发布发行版安装). Download all assets, verify checksums and nine-image signature evidence, then prepare host TLS/Judge prerequisites and deployment approval.
+- **Fresh local development:** open the [empty-volume installation guide](docs/DEVELOPMENT.md#干净卷首次安装仅本机-disposable-开发环境) while `.env` is still absent. That entry owns configuration generation, migration, backfill/parity, cutover and first startup. Do not run `init-env.sh` before it.
+- **Existing configuration, databases or volumes:** preserve them and use the [upgrade and rollback entry](docs/OPERATIONS.md#升级与回滚入口). Never treat them as empty volumes, recreate configuration with `--force`, or only change a cutover marker.
 
-```bash
-./ulticode doctor --json
-```
+Source development requires Docker Compose v2, mise-managed Zulu Java 17, Node.js 22.x (at least 22.22.2), pnpm 11.0.0, PM2, `curl`, `timeout` and `openssl`. Dev Containers prepare tooling and unit validation; they do not start the business stack. See [local development](docs/DEVELOPMENT.md#本地开发) for exact prerequisites, scopes, readiness and troubleshooting.
 
-```bash
-./scripts/dev/init-env.sh
-```
-
-### 3. Finish the database preparation
-
-> **Required reading for the first start**
->
-> `init-env.sh` generates `SUBMISSION_CUTOVER_COMPLETE` as `false`. Both `dev-lite` and `dev-full` require `APP_SUBMISSION_ROUTING_MODE=remote` and a completed Submission cutover marker; the startup scripts refuse to run when either is missing.
->
-> Read [Database migrations](docs/OPERATIONS.md#数据库迁移与-owner-收敛) first, and complete migration and verification according to the authorized cutover/backfill runbook. Do not skip the checks by only changing the marker.
-
-### 4. Start the development environment
-
-Once the preparation above is done, choose a mode:
-
-| Mode | Search | Frontends |
-| --- | --- | --- |
-| `dev-lite` | Database-backed search; no Search worker | Not started by default |
-| `dev-full` | Indexed search with the Search worker | Both frontends started |
-
-```bash
-./scripts/dev/up.sh --mode dev-lite
-```
-
-`dev-lite` uses database search, does not start the Search worker, and does not start either frontend by default; run the following when you need the browser UI:
-
-```bash
-./scripts/dev/up.sh --frontend-only
-```
-
-`dev-full` enables indexed search, the Search worker, and both frontends, still behind the same cutover gate:
-
-```bash
-./scripts/dev/up.sh --mode dev-full
-```
-
-Once the frontends are running: [Console](http://localhost:9002) · [Management](http://localhost:9003). See [Local development](docs/DEVELOPMENT.md#本地开发) for scopes, logs, and troubleshooting entry points.
+After completing the selected entry, local frontends are [Console](http://localhost:9002) and [Management](http://localhost:9003). Use the supported launcher rather than starting Maven/PM2 directly around its preparation and safety gates.
 
 <details>
 <summary>Optional Core pilot and rollback notes</summary>

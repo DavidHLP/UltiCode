@@ -8,7 +8,8 @@ source "$ROOT_DIR/scripts/dev/devstack-manifest.sh"
 assert_file_contains() {
   local file="$1" expected="$2"
   [[ -f "$ROOT_DIR/$file" ]] || { echo "missing guarded file: $file" >&2; return 1; }
-  grep -F -- "$expected" "$ROOT_DIR/$file" >/dev/null
+  grep -F -- "$expected" "$ROOT_DIR/$file" >/dev/null \
+    || { echo "missing guarded content in $file: $expected" >&2; return 1; }
 }
 
 assert_file_not_contains() {
@@ -99,7 +100,7 @@ assert_file_not_contains services/admin/src/main/java/com/ulticode/admin/securit
 [[ "$(devstack_readiness ulticode-9004)" == "http|9004|/landing/" ]]
 [[ "$(devstack_readiness_banner ulticode-judge)" == "Started BackendJudgeApplication" ]]
 [[ "$(devstack_readiness_banner ulticode-core)" == "Started CoreApplication" ]]
-[[ -z "$(devstack_readiness_banner ulticode-submission)" ]]
+[[ "$(devstack_readiness_banner ulticode-submission)" == "Submission projection providers discovered" ]]
 [[ "$DEVSTACK_SERVICE_READINESS_ATTEMPTS" == 90 ]]
 [[ "$DEVSTACK_READINESS_INTERVAL_SECONDS" == 2 ]]
 [[ "$DEVSTACK_BOOTSTRAP_TIMEOUT_SECONDS" == 90 ]]
@@ -213,8 +214,10 @@ assert_file_contains ecosystem.config.cjs "APP_FEATURES_USE_GENERATION_FENCE: pr
 assert_file_contains ecosystem.config.cjs "APP_FEATURES_JUDGE_QUEUE_USE_PORT: process.env.APP_FEATURES_JUDGE_QUEUE_USE_PORT || 'true'"
 assert_file_contains docker/docker-compose.prod.yml 'APP_SEARCH_READ_MODE=indexed'
 assert_file_contains docker/docker-compose.prod.yml 'APP_SEARCH_FALLBACK_TO_DATABASE=true'
-assert_file_contains README.md './scripts/dev/up.sh --mode dev-lite'
-assert_file_contains README.md './scripts/dev/up.sh --mode dev-full'
+assert_file_contains README.md 'docs/DEVELOPMENT.md#干净卷首次安装仅本机-disposable-开发环境'
+assert_file_contains README.md 'docs/OPERATIONS.md#升级与回滚入口'
+assert_file_contains docs/DEVELOPMENT.md './scripts/dev/up.sh --mode dev-lite'
+assert_file_contains docs/DEVELOPMENT.md './scripts/dev/up.sh --mode dev-full'
 assert_file_not_contains README.md 'pm2 restart ulticode-auth ulticode-admin'
 assert_file_not_contains README.md 'spring-boot:run -Dmaven.test.skip=true'
 if grep -Eq 'APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION|envelope-version:' \

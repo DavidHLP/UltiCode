@@ -1,5 +1,6 @@
 package com.ulticode.app.security;
 
+import jakarta.servlet.DispatcherType;
 import com.ulticode.websecurity.csrf.CookieCsrfFilter;
 import com.ulticode.websecurity.jwt.JwtAuthenticationFilter;
 import com.ulticode.websecurity.jwt.JwtResourceServerConfiguration;
@@ -38,6 +39,10 @@ public class AppSecurityConfig {
             .exceptionHandling(exception -> exception
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
+                // Container error dispatches run after the JWT filter/context
+                // unwinds. Preserve the original failure instead of issuing a
+                // misleading 401 that asks clients to refresh and replay writes.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers("/actuator/health", "/api/v1/health",
                         "/api/v1/app/health", "/api/v1/app/health/ready").permitAll()
                 .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")

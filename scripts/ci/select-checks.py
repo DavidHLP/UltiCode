@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 ZERO = "0" * 40
-GATES = ("backend", "console", "management", "landing", "contract", "docker", "agent")
+GATES = ("backend", "console", "management", "landing", "contract", "docker", "agent", "acceptance")
 
 
 def valid_sha(value) -> bool:
@@ -83,6 +83,7 @@ def select(paths: set[str] | None) -> dict[str, bool]:
         "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".dockerignore",
         "pyproject.toml", "uv.lock", "mise.toml", ".mise.toml",
         "docs/**", "assets/**", "README*", "AGENTS.md", "CONTEXT.md", "LICENSE", ".gitleaks.toml",
+        "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
     )
     if not paths or any(not matches(path, *known) for path in paths):
         return {**dict.fromkeys(GATES, True), "release": True, "full": True}
@@ -122,6 +123,7 @@ def select(paths: set[str] | None) -> dict[str, bool]:
     )
     selected = dict(backend=backend, console=console, management=management, landing=landing,
                     contract=contract, docker=docker, agent=agent,
+                    acceptance=release or backend or console or management or broad,
                     release=release, full=False)
     return selected
 

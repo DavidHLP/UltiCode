@@ -15,3 +15,4 @@ python3 "$ROOT_DIR/scripts/test/fetch-buildkit-provenance-contract.py"
 bash "$ROOT_DIR/scripts/test/host-deploy-contract.sh"
 bash "$ROOT_DIR/scripts/test/deploy-runtime-contract.sh"
 bash "$ROOT_DIR/scripts/test/ssh-host-identity-contract.sh"
+python3 "$ROOT_DIR/scripts/test/verified-release-package-contract.py" -v

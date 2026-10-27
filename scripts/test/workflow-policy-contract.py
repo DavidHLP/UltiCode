@@ -44,6 +44,20 @@ class WorkflowPolicyContract(unittest.TestCase):
         (self.root / ".github/workflows" / filename).write_text(json.dumps(data))
         return policy.check_repository(self.root)
 
+    def test_real_acceptance_cannot_be_removed_from_required_summary(self):
+        import shutil
+        shutil.copytree(ROOT / '.github', self.root / '.github', dirs_exist_ok=True)
+        self.assertEqual(policy.check_repository(self.root), [])
+        path = self.root / '.github/workflows/ci.yml'
+        original = policy.yaml.load(path.read_text(), Loader=policy.WorkflowLoader)
+        for mutation in ['needs', 'condition', 'output']:
+            data = copy.deepcopy(original)
+            if mutation == 'needs': data['jobs']['ci-ok']['needs'].remove('acceptance')
+            elif mutation == 'condition': data['jobs']['acceptance']['if'] = '${{ false }}'
+            else: del data['jobs']['changes']['outputs']['acceptance']
+            path.write_text(json.dumps(data))
+            self.assertTrue(any('acceptance' in error for error in policy.check_repository(self.root)))
+
     def test_safe_workflow_and_yaml_on_key(self):
         self.assertEqual(self.check(WORKFLOW), [])
         parsed = policy.yaml.load("on:\n  push:\npermissions: {}\nenabled: false\n", Loader=policy.WorkflowLoader)

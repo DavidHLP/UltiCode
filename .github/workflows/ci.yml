@@ -29,6 +29,7 @@ jobs:
       contract: ${{ steps.select.outputs.contract }}
       docker: ${{ steps.select.outputs.docker }}
       agent: ${{ steps.select.outputs.agent }}
+      acceptance: ${{ steps.select.outputs.acceptance }}
       release: ${{ steps.select.outputs.release }}
       full: ${{ steps.select.outputs.full }}
     steps:
@@ -119,9 +120,15 @@ jobs:
     if: ${{ !cancelled() && needs.changes.outputs.agent == 'true' }}
     uses: ./.github/workflows/_agent.yml
 
+  acceptance:
+    name: Real acceptance
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.acceptance == 'true' }}
+    uses: ./.github/workflows/_acceptance.yml
+
   ci-ok:
     name: ci-ok
-    needs: [changes, governance, security, backend, frontend, contract, docker, agent]
+    needs: [changes, governance, security, backend, frontend, contract, docker, agent, acceptance]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -135,7 +142,7 @@ jobs:
       - name: Verify every selected gate succeeded
         env:
           RESULTS: ${{ toJSON(needs) }}
-          SELECTED: '{"backend":"${{ needs.changes.outputs.backend }}","console":"${{ needs.changes.outputs.console }}","management":"${{ needs.changes.outputs.management }}","landing":"${{ needs.changes.outputs.landing }}","contract":"${{ needs.changes.outputs.contract }}","docker":"${{ needs.changes.outputs.docker }}","agent":"${{ needs.changes.outputs.agent }}"}'
+          SELECTED: '{"backend":"${{ needs.changes.outputs.backend }}","console":"${{ needs.changes.outputs.console }}","management":"${{ needs.changes.outputs.management }}","landing":"${{ needs.changes.outputs.landing }}","contract":"${{ needs.changes.outputs.contract }}","docker":"${{ needs.changes.outputs.docker }}","agent":"${{ needs.changes.outputs.agent }}","acceptance":"${{ needs.changes.outputs.acceptance }}"}'
         run: python3 scripts/ci/check-results.py
 
   publish:

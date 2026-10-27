@@ -78,7 +78,7 @@ build_java() {
     mkdir -p "${STAGING}/java"
     (
         cd "${SCRIPT_DIR}/java"
-        mvn -B -q -DskipTests test-compile
+        "${MAVEN_BIN:-${SANDBOX_DIR}/../../services/mvnw}" -B -q -DskipTests test-compile
         cp -r target/classes/. "${STAGING}/java/"
     )
     echo "[build.sh] java: $(ls "${STAGING}/java" | wc -l) class files"

@@ -177,7 +177,7 @@ for service in owner_services:
     owner_pom = repo / 'services' / service['module'].split('/', 1)[0] / 'pom.xml'
     owner_properties = ET.parse(owner_pom).getroot().find('m:properties', ns)
     owner_version = owner_properties.findtext(f'm:{prop}', namespaces=ns)
-    expected_version = '1.0.3'
+    expected_version = '1.0.4'
     assert root_version == owner_version == expected_version, f'{service["name"]}: release version mismatch ({root_version!r} != {owner_version!r})'
 assert 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' in workflow
 print('digest-only candidates, common normalized repo and all-service promote gate: PASS')

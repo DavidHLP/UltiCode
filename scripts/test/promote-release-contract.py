@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,7 +30,9 @@ def maven_version(service):
     prop = service.get("maven_version_property")
     if not prop:
         return None
-    return "1.0.3"
+    properties = ET.parse(ROOT / "services/pom.xml").getroot().find(
+        "{http://maven.apache.org/POM/4.0.0}properties")
+    return properties.findtext(f"{{http://maven.apache.org/POM/4.0.0}}{prop}")
 
 
 def seed(base):

@@ -17,7 +17,7 @@ try {
   assert(meResponse.ok(), 'Manager identity read failed')
   const me = (await meResponse.json()).data
   assert.equal(me.user.role, 'SUPER_ADMIN', 'Fixture may grant only the generated superadmin')
-  const csrf = (await admin.storageState()).cookies.find(cookie => cookie.name === 'csrf_token')
+  let csrf = (await admin.storageState()).cookies.find(cookie => cookie.name === 'csrf_token')
   assert(csrf?.value)
   const permissions = [
     ['READ', 'PROBLEM'], ['CREATE', 'PROBLEM'], ['UPDATE', 'PROBLEM'],
@@ -31,12 +31,34 @@ try {
     assert(response.ok(), `Fixture permission ${action}:${resource} rejected`)
     assert.equal((await response.json()).code, 0)
   }
+  // Permission writes advance authorization state. Obtain a real fresh session
+  // before crossing into Management, and use the rotated double-submit token.
+  csrf = (await admin.storageState()).cookies.find(cookie => cookie.name === 'csrf_token')
+  assert(csrf?.value)
+  const refreshed = await admin.post('/api/auth/refresh', {
+    headers: { 'X-CSRF-Token': decodeURIComponent(csrf.value) },
+  })
+  const refreshBody = await refreshed.json().catch(() => ({}))
+  console.log(JSON.stringify({ fixtureStep: 'manager-session-refresh', status: refreshed.status(),
+    code: typeof refreshBody.code === 'number' ? refreshBody.code : null }))
+  assert(refreshed.ok() && refreshBody.code === 0, 'Manager session refresh after permission writes failed')
+  csrf = (await admin.storageState()).cookies.find(cookie => cookie.name === 'csrf_token')
+  assert(csrf?.value)
+  const refreshedMe = await admin.get('/api/auth/me')
+  assert(refreshedMe.ok(), 'Refreshed manager identity read failed')
+  const refreshedIdentity = (await refreshedMe.json()).data
+  assert.equal(refreshedIdentity.user.id, me.user.id, 'Refresh must preserve the fixture actor')
+  assert.equal(refreshedIdentity.user.role, 'SUPER_ADMIN')
   // The canonical DEV-LOCAL seed supplies the published problem, languages and
   // tags. Judge cases are separate owner data: prepare them explicitly through
   // the real Management API, with server-generated IDs and structured inputs.
   const descriptionResponse = await admin.get('/api/admin/problems/1/description')
-  assert(descriptionResponse.ok(), 'Canonical problem seed is missing')
-  const description = (await descriptionResponse.json()).data
+  const descriptionBody = await descriptionResponse.json().catch(() => ({}))
+  const descriptionCode = typeof descriptionBody.code === 'number' ? descriptionBody.code : null
+  console.log(JSON.stringify({ fixtureStep: 'manager-seed-description', status: descriptionResponse.status(), code: descriptionCode }))
+  assert(descriptionResponse.ok() && descriptionCode === 0,
+    `Manager seed description HTTP ${descriptionResponse.status()}, code ${descriptionCode}`)
+  const description = descriptionBody.data
   assert.equal(description.slug, 'two-sum')
   assert.equal(description.isPublished, true)
   assert(description.tags.length > 0, 'CRUD tag roundtrip requires seeded tags')

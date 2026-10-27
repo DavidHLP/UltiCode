@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { AxiosHeaders } from "axios";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { createCsrfAxiosInterceptor } from "../axiosCsrfInterceptor";
 import { createCsrfTokenManager, type CsrfTokenManager } from "../csrf";
@@ -117,10 +118,10 @@ describe("auth-refresh integration — T6 regression (10-minute hang)", () => {
       method: "post",
       url: "/problems/1/submissions",
       data: payload,
-      headers: {
+      headers: new AxiosHeaders({
         "X-CSRF-Token": "stale-csrf-from-login",
         "X-Session-Account": "account-fixture",
-      },
+      }),
     } as InternalAxiosRequestConfig;
     vi.mocked(rawAxios.request).mockImplementationOnce(async config => {
       // A server enforcing the rotated cookie would reject the stale header.

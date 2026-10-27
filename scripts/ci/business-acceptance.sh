@@ -18,7 +18,11 @@ for port in [23306, 26379, 28848, 29848, 9000, 9001, 9002, 9003, 9004, 9101, 910
         except OSError: raise SystemExit(f'Acceptance port {port} is occupied; no existing stack was changed')
 PY
 export COMPOSE_PROJECT_NAME="ulticode-acceptance-$(date +%s)-$$"
-export PM2_HOME="$ROOT/.local/acceptance/pm2"
+# Unix socket paths are bounded; nested worktrees must not lengthen PM2's
+# private socket names beyond the OS limit. Keep a local recovery pointer.
+PM2_HOME="$(mktemp -d /tmp/ulticode-acceptance-pm2.XXXXXXXX)"
+export PM2_HOME
+printf '%s\n' "$PM2_HOME" > .local/acceptance/pm2-home
 export ENV_FILE="$ROOT/.env"
 [[ -z "$(docker ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME")" ]]
 [[ -z "$(docker volume ls -q --filter "name=${COMPOSE_PROJECT_NAME}_")" ]]

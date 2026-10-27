@@ -1,0 +1,16 @@
+scripts/runbooks/prepare-verified-release.py
+  h_77173abe25c3ff 127
+scripts/test/verified-release-package-contract.py
+  h_77173abe25c3ff 136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e0738cfd0c27d7bbdec358866399b68c8be509cb",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

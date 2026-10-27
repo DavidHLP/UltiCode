@@ -1,0 +1,32 @@
+scripts/test/promote-release-contract.py
+  h_77173abe25c3ff 8,33-35
+scripts/test/supply-chain-contract.sh
+  h_77173abe25c3ff 180
+services/admin/pom.xml
+  h_77173abe25c3ff 16
+services/app/pom.xml
+  h_77173abe25c3ff 16
+services/auth/pom.xml
+  h_77173abe25c3ff 16
+services/judge/pom.xml
+  h_77173abe25c3ff 18
+services/notification/pom.xml
+  h_77173abe25c3ff 17
+services/pom.xml
+  h_77173abe25c3ff 55-61
+services/search/pom.xml
+  h_77173abe25c3ff 17
+services/submission/pom.xml
+  h_77173abe25c3ff 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ae8862b316081051754f9367a45722335dd40c9f",
+  "prompts": {},
+  "humans": {
+    "h_77173abe25c3ff": {
+      "author": "DavidHLP <lysf15520112973@163.com>"
+    }
+  }
+}

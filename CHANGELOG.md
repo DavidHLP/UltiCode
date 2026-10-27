@@ -2,8 +2,17 @@
 
 ## Unreleased
 
-This is release-candidate preparation, not an official stable release or a
-production-readiness declaration.
+No next release has been published from this development branch.
+
+- Clarify release-pinned installation versus existing-environment upgrades.
+- Add selected real business/migration acceptance to the CI summary gate.
+- Prepare repeatable eight-asset packages only from complete verified image evidence;
+  external tag/Release publication still requires separate human authorization.
+
+## [1.0.4](https://github.com/DavidHLP/UltiCode/releases/tag/v1.0.4) — 2026-10-27
+
+Published from `465b9fd031f2c398f39f4696d8b33360f635ed5d`. This release is not a
+production-readiness certification.
 
 - Normalize Management problem difficulty at the API boundary, with regression tests.
 - Restore database-generated problem IDs with an additive owner migration;
@@ -29,8 +38,7 @@ The Agent remains experimental and disabled by default. Tests using scripted
 models do not establish real-model quality, budget readiness or production
 acceptance. Local Docker/browser evidence is scoped to disposable local services.
 
-Before an official release, retain the tested source commit, successful CI and
-real-service acceptance evidence, full signed nine-service digest manifest,
-SBOM/provenance/scan evidence and release notes as durable assets. The source-only
-bundle is not deployment input. Production deployment, release publication and
-branch-protection changes require separate approval.
+The published release retains the exact source, complete nine-service digest
+manifest, signed SBOM/provenance/scan evidence and checksums as eight durable
+assets. Main CI/publication and independent verification passed. Existing
+immutable tags were preserved; no business production deployment was performed.

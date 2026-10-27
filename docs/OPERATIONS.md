@@ -8,6 +8,54 @@
 
 本仓库没有生产环境。生产 Compose、CI/CD、远程 SSH、证书、registry、数据库和流量切换均是可执行但需部署方授权的控制面；disposable Compose/DinD 只证明仓库实现，不构成生产应用证据。
 
+### 从已发布发行版安装
+
+当前固定版本为 [v1.0.4（2026-10-27）](https://github.com/DavidHLP/UltiCode/releases/tag/v1.0.4)，
+源码为 `465b9fd031f2c398f39f4696d8b33360f635ed5d`。该发布有八个长期资产，
+包含源码、完整九服务 manifest/set、签名证据 ZIP、verification report、release notes、
+license 和 SHA256SUMS。Actions artifact 是 publisher 的原始证据来源，发行版下载是
+日常安装入口；不能用 source-only plan 或单个镜像替代完整 manifest。
+
+在新目录下载所有资产并验证后再使用；已有目录不应覆盖：
+
+```bash
+set -euo pipefail
+mkdir ulticode-v1.0.4
+cd ulticode-v1.0.4
+gh release download v1.0.4 --repo DavidHLP/UltiCode
+sha256sum --check SHA256SUMS
+tar -xzf UltiCode-465b9fd031f2c398f39f4696d8b33360f635ed5d.tar.gz
+python3 -m zipfile -e release-evidence-v1.0.4.zip evidence
+cd UltiCode-465b9fd031f2c398f39f4696d8b33360f635ed5d
+./scripts/runbooks/promote-release.sh ../evidence \
+  465b9fd031f2c398f39f4696d8b33360f635ed5d ghcr.io/davidhlp/ulticode
+```
+
+最后一条仅做 read-only 验证，需要 Docker Buildx 和 publisher 固定版本的 Cosign；
+它验证全部九个 digest、签名、SPDX/SLSA predicate、source/recipe、扫描策略和已存在标签。
+必须要求精确 signer identity/issuer（见下文），不得跳过 Rekor/签名验证或改用通配身份。
+下载失败、缺少资产、校验和或证据不一致时停止，不要使用旧目录中的残留文件。
+
+安装前由部署方准备主机、受保护 GitHub Environment、独立审批者、经核对的 SSH 指纹、
+registry 拉取权限、owner DB 与 migration principal、Redis/Nacos 身份及 secret-managed TLS/JWKS。
+Judge 仍要求 remote/rootless daemon、`DOCKER_TLS_VERIFY=1`、只读 client certificate、
+共享绝对 workspace 和固定 seccomp；生产不挂载 docker.sock。这里不生成生产凭据或新基础设施。
+
+从发行版 tag/ref 选择手动 `cd-deploy.yml`，提供已验证的九行 `release-manifest.txt`、
+目标 Environment 与 `services=all`；首次安装不跳过 migration。工作流的 `github.sha`
+必须是该 release source，主机 checkout、schema checksum 和 manifest 必须一致。
+保留现有 host preflight、writer drain、migration、artifact/sandbox verification 与
+全服务 readiness；只有 descriptor 标记 HEALTHY 才算部署成功。容器 healthy 或 PM2 online
+不能替代真实登录、提交与 terminal Judge 验收。
+
+### 升级与回滚入口
+
+已有环境先保留 `.env`、卷、上一份完整健康 release descriptor 和数据库/对象备份；
+不要运行空卷入口或 `init-env.sh --force`。先比较 source/schema/contract 兼容性，
+按下文 Owner migration 顺序、writer drain、增量 backfill/parity、cutover 和健康门禁升级。
+回滚复用上一份已验证的完整九镜像 descriptor，保持 `skip_migrations=true`，不做 schema
+降级、恢复跨 Owner grant 或重写已应用迁移；细节见[健康与回滚](#健康与回滚)。
+
 ### 开发部署
 
 开发启动命令与 mode 语义由[本地开发](DEVELOPMENT.md#本地开发)统一维护；正常 `dev-lite`/`dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 和 `SUBMISSION_CUTOVER_COMPLETE=true`。
@@ -22,7 +70,33 @@ Docker Verify builds each service locally (`load: true`, no push) and runs pinne
 
 Each service must pass HIGH/CRITICAL Trivy scanning, then be signed and receive SPDX/SLSA attestations for the same candidate digest. The publisher reads BuildKit provenance attached to that immutable candidate, rather than synthesizing a source-only predicate. The producer explicitly selects the supported SLSA v0.2 format; extraction and promotion validate the image subject, repository, revision and BuildKit recipe, including the Dockerfile path configured for that service in `.github/services-matrix.json`. BuildKit compatibility v30 may also repeat the local recipe and VCS arguments under `invocation.parameters.root`; both validators require that redundant path and argument map to match the primary fields exactly, and reject unsupported compatibility versions. The publisher passes the full `https://slsa.dev/provenance/v0.2` URI to `cosign attest`: the `slsaprovenance` signing alias in Cosign v2.5.3 drops BuildKit's namespaced metadata during typed serialization. Verification may still use that alias to select the same predicate type, and promotion compares the complete verified predicate with the extracted evidence. A populated BuildKit statement subject must identify the image manifest attached to the candidate index; a mismatched or malformed subject is rejected. This does not claim a certified SLSA level. The `promote` job runs only after all nine matrix builds succeed; it validates all nine reports, source commit, digest subjects, signer identity, and verified DSSE predicates before inspecting or writing any tags. A changed backend image requires a new service release version in both `services/pom.xml` and its owner POM; an existing version tag may only be reused for the identical digest. Keep contract fixtures aligned with the intended release versions instead of weakening the immutable-tag guard.
 
-Use the `release-manifest` artifact from a successful CI run's Docker Publish stage as canonical deployment input. It contains complete nine-service `release-manifest.txt`, `release-set.json`, and per-service evidence. Docker Publish is a reusable workflow called only after the same commit passes `ci-ok`; its authorization still requires a `main` push, never a PR, merge-group or manual verification run. Local `scripts/runbooks/promote-release.sh EVIDENCE_DIR SOURCE_SHA ghcr.io/davidhlp/ulticode` supports read-only dry-run only; `--execute` remains restricted to the authorized publisher on `main`. The workflow uses repository-wide `ulticode-release-tag-writer` concurrency with cancellation disabled. If promotion fails after candidate builds succeed, rerun only the failed `promote` job in that same Actions run, while its nine candidate artifacts remain within their retention period; do not rerun successful `build-and-push` jobs, since a rebuild may produce a different digest and collide with immutable tags. There is no independent push trigger or `workflow_dispatch` publishing entry point. Do not promote tags through local commands or other writers. This serializes repository-controlled writers, not external registry actors, and GHCR offers no compare-and-swap guarantee here. Existing manifest conflicts fail before registry inspection/writes; all planned tags are read back after promotion, including tags that already existed, before complete manifests are written. Matching existing tags are idempotent; a different digest is a hard failure. A mid-promotion failure may leave already verified tags in place, but emits no complete manifest. Never retarget or delete old tags/digests; retain previous successful release artifact for rollback.
+Use the published release assets above for normal installations; the `release-manifest` artifact from the matching successful CI run's Docker Publish stage is the canonical producer evidence. It contains complete nine-service `release-manifest.txt`, `release-set.json`, and per-service evidence. Docker Publish is a reusable workflow called only after the same commit passes `ci-ok`; its authorization still requires a `main` push, never a PR, merge-group or manual verification run. Local `scripts/runbooks/promote-release.sh EVIDENCE_DIR SOURCE_SHA ghcr.io/davidhlp/ulticode` supports read-only dry-run only; `--execute` remains restricted to the authorized publisher on `main`. The workflow uses repository-wide `ulticode-release-tag-writer` concurrency with cancellation disabled. If promotion fails after candidate builds succeed, rerun only the failed `promote` job in that same Actions run, while its nine candidate artifacts remain within their retention period; do not rerun successful `build-and-push` jobs, since a rebuild may produce a different digest and collide with immutable tags. There is no independent push trigger or `workflow_dispatch` publishing entry point. Do not promote tags through local commands or other writers. This serializes repository-controlled writers, not external registry actors, and GHCR offers no compare-and-swap guarantee here. Existing manifest conflicts fail before registry inspection/writes; all planned tags are read back after promotion, including tags that already existed, before complete manifests are written. Matching existing tags are idempotent; a different digest is a hard failure. A mid-promotion failure may leave already verified tags in place, but emits no complete manifest. Never retarget or delete old tags/digests; retain previous successful release artifact for rollback.
+
+### 下一次发行版资产准备
+
+先为实际改变的 backend image 分配新 service version（reactor 与 owner POM 一致），
+通过全部质量/真实业务门禁后，再由已授权的 main publisher 构建、签名并晋升完整九镜像。
+不能为绕过旧 tag 冲突重跑成功的候选 build；失败晋升只重试同一次 run 的 promote。
+
+对已经成功发布的完整证据运行新的只读包装入口；源码 checkout 必须干净并位于精确 SHA：
+
+```bash
+python3 scripts/runbooks/prepare-verified-release.py FULL_SOURCE_SHA EVIDENCE_DIR NEW_OUTPUT_DIR \
+  --version vNEXT --notes REVIEWED_NOTES.md --workflow-run SUCCESSFUL_MAIN_RUN_ID \
+  --source-root EXACT_SOURCE_CHECKOUT
+```
+
+将 `vNEXT` 替换为实际语义版本（例如 `v1.0.5`）。工具核对成功 main push/source、完整
+九服务 manifest、全部 evidence hashes，再复用该 source 的签名、SPDX/SLSA、扫描和
+registry tag readback 验证；不接受外部声称已验证的空 proof。它不构建镜像、不写 registry、
+不创建 Git tag/Release，也不部署。输出固定八资产布局及 SHA256SUMS；相同输入可重复
+验证已有完整目录，不同/部分目录或文件冲突拒绝覆盖，修改过的 source/proof 会失败。
+旧的 source-only 工具仍只用于尚无镜像证据的准备阶段，不是这个入口的替代品。
+
+公开发布前必须另外取得精确 Git tag/目标 SHA 与 GitHub Release 的人工授权，重新检查
+二者不存在，以原子创建方式新增 tag，绝不 force/覆盖。上传后验证所有资产 hashes、tag
+与 Release source，再核验公开下载的 SHA256SUMS。保留旧发行版与镜像，不能覆盖
+v1.0.4 或其他既有资产。本阶段的包装工具不会执行这些外部发布动作。
 
 ### 未发布的源码制品准备
 
@@ -71,6 +145,15 @@ GitHub Actions 由 `.github/workflows/ci.yml` 编排，`ci-ok` 是稳定汇总�
 - 提供经独立渠道核对的 SSH 主机指纹及限定权限的部署账号；不要在运行时自动接受 `ssh-keyscan` 结果作为信任根。主机 checkout、批准的 source commit、schema checksum 和完整镜像 manifest 必须一致。
 - GHCR 仅向指定构建与晋升 job 开放写权限；部署凭据只需拉取权限。OIDC 身份必须匹配被批准的发布 workflow，不能用通配身份替代。Environment secret 不传入 PR 测试。
 - 保留成功发布的完整 artifact、上一份健康 descriptor 和数据库备份。根据组织审计与恢复周期配置 artifact/registry 保留策略；删除旧镜像或过期 artifact 前确认没有回滚依赖。
+
+建议仅对 `UltiCode/main` 使用以下最小配置（配置提案，不代表已启用）：PR 必需，
+`ci-ok` 必需且 up-to-date，检查绑定当前 GitHub Actions app（核验 ID 15368），禁止
+force push/deletion；`required_approving_review_count=0`，不要求 code-owner 或
+last-push 的额外审批，适合单维护者。`enforce_admins=true` 使管理员正常直接 push 也被
+规则拦截；仓库管理员仍能通过管理权限修改/关闭规则，不能声称不可绕过。精确配置由
+维护者另行批准后通过 GitHub administration API 应用并 readback；本仓库脚本不改设置。
+[GitHub branch-protection API](https://docs.github.com/en/rest/branches/branch-protection#update-branch-protection)
+允许 required approval count 为 0；增加独立审批者要求前应先确认团队可执行性。
 
 本地契约、workflow lint 和离线替身测试不证明以上外部设置已启用，也不构成生产部署验收。真实部署仍需审批、主机预检、迁移验证与全服务健康检查闭环。
 

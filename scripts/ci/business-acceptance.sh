@@ -102,7 +102,9 @@ SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
 ./scripts/runbooks/submission-schema-cutover.sh verify >> .local/acceptance/private-cutover.log 2>&1
 export SUBMISSION_CUTOVER_COMPLETE=true
 phase=launch
-./scripts/dev/up.sh --scope full-stack --skip-infra --skip-install --skip-migrate --rebuild > .local/acceptance/private-launch.log 2>&1
+# Follow the documented second startup: migrations are idempotent, and the
+# supported DEV-LOCAL App seed adapter runs only when migrations are enabled.
+./scripts/dev/up.sh --scope full-stack --skip-infra --skip-install --rebuild > .local/acceptance/private-launch.log 2>&1
 phase=fixtures
 node scripts/test/acceptance-fixtures.mjs
 phase=browser-base

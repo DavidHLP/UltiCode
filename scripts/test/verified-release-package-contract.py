@@ -89,11 +89,22 @@ class PackagingTests(unittest.TestCase):
             verify.assert_not_called()
         self.assertFalse(self.output.exists())
 
-    def test_missing_service_or_tampered_evidence_fails_closed(self):
+    def test_tampered_evidence_fails_closed(self):
         path = self.evidence / 'candidate-evidence-console/console.spdx.json'
         path.write_text('tampered')
         with patch.object(module, 'verify_published_set') as verify:
             with self.assertRaisesRegex(ValueError, 'checksum'): self.prepare()
+            verify.assert_not_called()
+        self.assertFalse(self.output.exists())
+
+    def test_missing_service_fails_before_crypto_or_output(self):
+        path = self.evidence / 'release-set.json'
+        release = json.loads(path.read_text())
+        release['services'].pop()
+        path.write_text(json.dumps(release))
+        with patch.object(module, 'verify_published_set') as verify:
+            with self.assertRaisesRegex(ValueError, 'Incomplete'):
+                self.prepare()
             verify.assert_not_called()
         self.assertFalse(self.output.exists())
 

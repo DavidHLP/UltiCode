@@ -36,6 +36,8 @@ try {
 
   await check('management-problem-create-edit-readback', async () => {
     const slug = `acceptance-problem-${Date.now()}`
+    const tag = (await api(admin, '/admin/problems/1/description')).tags[0]?.label
+    assert(tag, 'Seeded problem must expose an existing tag')
     report.fixtures.problemSlug = slug
     await admin.goto(`${managementOrigin}/problems/create`)
     await admin.getByPlaceholder('Enter problem title', { exact: true }).fill(slug)
@@ -46,6 +48,8 @@ try {
     await admin.getByPlaceholder('Add a hint...', { exact: true }).press('Enter')
     await admin.getByPlaceholder('Add language...', { exact: true }).fill('python')
     await admin.getByPlaceholder('Add language...', { exact: true }).press('Enter')
+    await admin.getByPlaceholder('Add tag...', { exact: true }).fill(tag)
+    await admin.getByPlaceholder('Add tag...', { exact: true }).press('Enter')
     await admin.getByPlaceholder('Enter test input...', { exact: true }).fill('1')
     await admin.getByPlaceholder('Enter expected output...', { exact: true }).fill('1')
     const constraint = admin.getByPlaceholder('e.g., 1 <= nums.length <= 10^4', { exact: true })
@@ -68,6 +72,7 @@ try {
     assert.equal(description.detail.content, 'Return the supplied integer. Synthetic acceptance fixture.')
     assert.deepEqual(description.detail.constraintsJson, ['1 <= n <= 10'])
     assert.deepEqual(description.detail.hints, ['Return n'])
+    assert.deepEqual(description.tags.map(value => value.label), [tag])
     assert.equal(description.examples[0].input, '1')
     assert.equal(description.examples[0].output, '1')
     assert((await api(admin, `/admin/problems/${data.id}/code`)).languages.some(language => language.value === 'python'))
@@ -94,6 +99,7 @@ try {
     assert.equal(edited.detail.content, 'Edited synthetic content.')
     assert.deepEqual(edited.detail.constraintsJson, ['2 <= n <= 20'])
     assert.deepEqual(edited.detail.hints, ['Edited hint'])
+    assert.deepEqual(edited.tags, [])
     assert.equal(edited.examples[0].input, '2')
     assert.equal(edited.examples[0].output, '2')
     const code = await api(admin, `/admin/problems/${data.id}/code`)

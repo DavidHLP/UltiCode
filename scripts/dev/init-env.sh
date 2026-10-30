@@ -123,6 +123,7 @@ app_db_password="app_$(random_hex 18)"
 notification_db_password="notification_$(random_hex 18)"
 submission_db_password="submission_$(random_hex 18)"
 submission_migration_password="migration_submission_$(random_hex 24)"
+dev_seed_admin_password="local_admin_$(random_hex 24)"
 
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 umask 077
@@ -311,12 +312,12 @@ APP_BOOTSTRAP_ADMIN_USERNAME=
 APP_BOOTSTRAP_ADMIN_EMAIL=
 APP_BOOTSTRAP_ADMIN_PASSWORD=
 
-# Fixed credentials for the disposable local development database only.
+# Per-checkout credentials for the disposable local development database only.
 DEV_SEED_USERS_ENABLED=true
 DEV_SEED_DATA_ENABLED=true
 DEV_SEED_ADMIN_USERNAME=admin
 DEV_SEED_ADMIN_EMAIL=admin@localhost.test
-DEV_SEED_ADMIN_PASSWORD=admin123
+DEV_SEED_ADMIN_PASSWORD=$dev_seed_admin_password
 DEV_SEED_ADMIN_ROLE=ADMIN
 
 GITHUB_CLIENT_ID=
@@ -335,7 +336,7 @@ EMAIL_FROM_NAME="UltiCode Dev"
 VITE_API_BASE_URL=/api
 VITE_ADMIN_BASE_URL=http://localhost:9003
 VITE_TEST_USERNAME=admin
-VITE_TEST_PASSWORD=admin123
+VITE_TEST_PASSWORD=$dev_seed_admin_password
 EOF
 
 chmod 600 "$OUTPUT_FILE"

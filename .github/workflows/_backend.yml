@@ -315,6 +315,15 @@ jobs:
           }
           trap cleanup EXIT
           cp .env.example "$env_file"
+          # Synthetic values for config-only validation; runtime templates stay empty.
+          printf '%s\n' \
+            "MYSQL_ROOT_PASSWORD=config-only-synthetic-mysql-root-password" \
+            "DB_PASSWORD=config-only-synthetic-db-password" \
+            "HEALTH_REDIS_PASSWORD=config-only-synthetic-health-redis-password" \
+            "NACOS_AUTH_TOKEN=config-only-synthetic-nacos-auth-token" \
+            "NACOS_AUTH_IDENTITY_KEY=config-only-synthetic-nacos-auth-identity-key" \
+            "NACOS_AUTH_IDENTITY_VALUE=config-only-synthetic-nacos-auth-identity-value" \
+            "MEILI_MASTER_KEY=config-only-synthetic-meili-master-key" >> "$env_file"
           replication_password="$(openssl rand -hex 16)"
           sentinel_password="$(openssl rand -hex 16)"
           printf '\nNACOS_DB_USER=nacos_rw\nNACOS_DB_PASSWORD=ci-ha-config\nNACOS_SERVERS=nacos:8848 nacos-2:8848 nacos-3:8848\nREDIS_HA_CONFIG_DIR=%s\nREDIS_REPLICATION_PASSWORD=%s\nREDIS_SENTINEL_PASSWORD=%s\n' \

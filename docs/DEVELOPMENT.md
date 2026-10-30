@@ -695,6 +695,8 @@ enabled-owner wiring 或业务 journey。
 
 `.env` 是本地部署密管输入，由 `./scripts/dev/init-env.sh` 生成并被 Git 忽略；`.env.example` 与 `.env.test.example` 是可提交模板，不包含可用凭据。实现配置以各服务 `application.yml`、Compose 和 `ecosystem.config.cjs` 为准。
 
+`.env.example` 的数据库、Redis ACL、Nacos、JWT、Meili 和开发用户凭据全部留空。首次本地初始化使用 `./scripts/dev/init-env.sh`，由初始化流程生成各角色独立的随机凭据并写入 ignored `.env`；开发管理员密码与 `VITE_TEST_PASSWORD` 使用同一份本次初始化值，验收入口继续从环境读取。部署环境从密钥系统注入。不要直接使用模板启动，也不要重用曾提交到 Git 的默认密码。Redis ACL 生成器在任一角色密码缺失时拒绝生成配置；已部署凭据的撤销或轮换需要单独执行相应运维流程。
+
 ### 常用变量
 
 | 变量 | 用途 | 规则 |

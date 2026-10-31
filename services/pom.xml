@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.ulticode</groupId>
@@ -65,17 +65,17 @@
 		<jackson-bom.version>3.1.7</jackson-bom.version>
 		<tomcat.version>11.0.25</tomcat.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<mybatis-plus.version>3.5.17</mybatis-plus.version>
+		<mybatis-plus.version>3.5.18.1</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>
 		<redisson.version>4.8.0</redisson.version>
-		<springdoc.version>3.1.1</springdoc.version>
+		<springdoc.version>3.2.0</springdoc.version>
 		<dubbo.version>3.3.6</dubbo.version>
 		<hutool.version>5.8.48</hutool.version>
 		<lombok.version>1.18.48</lombok.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<!-- OkHttp 5 ships an empty jar to Maven consumers; see the okhttp
 		     entry in dependencyManagement. -->
-		<okhttp.version>4.12.0</okhttp.version>
+		<okhttp.version>4.12.1</okhttp.version>
 		<japicmp.version>0.26.5</japicmp.version>
 		<coverage.bundle.minimum>0.50</coverage.bundle.minimum>
 		<!-- Submission has an explicit owner-specific floor because its current
@@ -367,7 +367,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-enforcer-plugin</artifactId>
-						<version>3.6.3</version>
+						<version>3.7.0</version>
 						<executions>
 							<execution>
 								<id>require-contract-baseline</id>

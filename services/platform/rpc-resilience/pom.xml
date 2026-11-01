@@ -20,16 +20,18 @@
             <artifactId>nacos-client</artifactId>
             <version>${nacos-client.version}</version>
             <classifier>pure</classifier>
+            <exclusions><exclusion><groupId>com.alibaba.nacos</groupId><artifactId>nacos-api</artifactId></exclusion></exclusions>
         </dependency>
         <dependency>
             <groupId>com.alibaba.nacos</groupId>
             <artifactId>nacos-common</artifactId>
             <version>${nacos-client.version}</version>
+            <exclusions><exclusion><groupId>com.alibaba.nacos</groupId><artifactId>nacos-api</artifactId></exclusion></exclusions>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.nacos</groupId>
-            <artifactId>nacos-api</artifactId>
-            <version>${nacos-client.version}</version>
+            <groupId>com.ulticode</groupId>
+            <artifactId>nacos-api-compat</artifactId>
+            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
@@ -63,7 +65,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+                    <argLine>-Djdk.attach.allowAttachSelf=true -Dcom.google.protobuf.error_on_unsafe_pre22_gencode=true</argLine>
                 </configuration>
             </plugin>
         </plugins>

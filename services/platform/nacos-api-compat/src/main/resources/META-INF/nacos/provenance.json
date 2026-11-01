@@ -1,0 +1,15 @@
+{
+  "upstream": "com.alibaba.nacos:nacos-api:2.5.1",
+  "upstream_sha256": "19b0eabdc1f637eeeec72cba9d6f85fe2bcae62bb9be7e7fb8a25ce183ce8738",
+  "modified_message_families": [
+    "Metadata",
+    "MetadataOrBuilder",
+    "Payload",
+    "PayloadOrBuilder",
+    "NacosGrpcService"
+  ],
+  "protoc": "3.25.8",
+  "descriptor_sha256": "ea709b2a17cd7e71b1467ff5be7fbacec74d52da50f956f6e48bbe4348faea20",
+  "original_grpc_stubs": "unchanged",
+  "official_upstream_release": false
+}

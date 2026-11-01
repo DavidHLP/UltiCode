@@ -806,3 +806,11 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 ### 有界启动失败诊断
 
 启动超时不放宽就绪门禁。失败报告记录最后一轮所选服务的固定 readiness 结果（HTTP 状态枚举或 PM2/banner 分类），而不是用历史启动成功行判断当前状态。额外依赖诊断只读取固定 IPv4 loopback 健康端点，限制 8 KiB 响应、每 socket 5 秒，并以 25 秒总时限和 2 秒强制终止上限约束整个子进程；不跟随跳转、不传认证、不输出原始响应或地址。只发布固定 db/redis/storage/problemOwnerRpc 的 up/down/unknown 枚举。额外探测发生在最终门禁轮次之后，不代表同一时刻；缺失探测或未选服务保留 unknown，不能当作健康或失败。日志 startup_signals 仍只表示有界日志尾部曾观察到的信号，成功与失败可同时存在。
+
+### Nacos protobuf 生成代码兼容层
+
+`services/platform/nacos-api-compat` 是本仓库维护的完整 API 替换制品，不是把同名消息类叠加到官方 API jar 之前。它校验官方 Nacos API 2.5.1 的固定 SHA-256，保留非消息 API、服务资源和原 gRPC stubs，仅替换从已发布 descriptor 生成的五个消息族。保留上游许可证、NOTICE、Maven 来源元数据，并额外标注修改与 provenance；不是官方 Nacos 发行。禁止原 `nacos-api` 重新进入运行依赖图，client/common 版本漂移会失败退出。普通 Maven 构建使用已提交源码，不下载或执行 protoc。
+
+维护者重新生成时，使用 Maven Central 的 `com.google.protobuf:protoc:3.25.8:exe:linux-x86_64`，执行 `python3 scripts/security/regenerate-nacos-protobuf.py --protoc /absolute/path/to/protoc` 进行源码一致性检查；显式 `--write` 才替换源码。脚本验证生成器与 descriptor 固定摘要。不能直接改用上游 tag 的 proto：它与发布包 descriptor 的 RequestStream 定义不一致。不得使用 warning suppression 或降级 protobuf runtime 代替修复。
+
+该层保留 GeneratedMessageV3 与公开 map reflection 行为；旧的 protected map 内部钩子行为可能变化，不把二进制检查通过等同于全部内部行为兼容。变更需执行模块 `clean verify`、最终制品 strict parser/双向 gRPC/受限畸形输入回归、六个可执行 jar 的全 API 类排重及 CodeSource 检查，以及真实 Nacos 鉴权、注册、订阅、推送、断连重连和完整真实业务验收。回退应原子回退模块接入与排除规则，绝不能让新旧 API 并存；回退会恢复已知旧生成代码风险，不能作为安全通过。

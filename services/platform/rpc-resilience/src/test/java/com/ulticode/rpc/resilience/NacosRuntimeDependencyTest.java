@@ -26,6 +26,9 @@ class NacosRuntimeDependencyTest {
         assertThat(getClass().getClassLoader().getResources(
                 "com/alibaba/nacos/api/NacosFactory.class").asIterator())
                 .toIterable().hasSize(1);
+        assertThat(Payload.class.getProtectionDomain().getCodeSource().getLocation().toString())
+                .contains("nacos-api-compat");
+        assertThat(Boolean.getBoolean("com.google.protobuf.error_on_unsafe_pre22_gencode")).isTrue();
         assertThat(getClass().getClassLoader().getResource(
                 "com/alibaba/nacos/shaded/com/google/common/collect/ImmutableList.class"))
                 .isNull();

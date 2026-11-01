@@ -1,0 +1,56 @@
+name: Nacos isolated compatibility validation
+on:
+  push:
+    branches: [validation/nacos-compat-20261101]
+permissions:
+  contents: read
+concurrency:
+  group: nacos-compat-isolated-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: ${{ github.repository == 'DavidHLP/UltiCode' && github.event.repository.private == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Candidate unit and packaging gates
+        run: |
+          set -euo pipefail
+          python3 scripts/validation/nacos/test_validation_contract.py
+          bash services/mvnw -B -f services/pom.xml -pl platform/nacos-api-compat -am clean verify
+          bash services/mvnw -B -f services/pom.xml -pl platform/rpc-resilience -am -Dtest=NacosRuntimeDependencyTest test
+          bash services/mvnw -B -f services/pom.xml -pl auth,admin,app/app-web,submission,notification,judge -am -DskipTests package
+      - name: Prepare pinned public server and local-only tools
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 180 \
+            https://github.com/alibaba/nacos/releases/download/2.5.1/nacos-server-2.5.1.tar.gz \
+            --output "$RUNNER_TEMP/nacos-server.tar.gz"
+          printf '%s  %s\n' e0877b8e5e8f234694f595a0f25b978c3745325e8b17625b7ab95661e5d3d38e "$RUNNER_TEMP/nacos-server.tar.gz" | sha256sum --check
+          python3 scripts/validation/nacos/prepare.py "$RUNNER_TEMP/nacos-work" "$RUNNER_TEMP/nacos-server.tar.gz"
+          docker build --pull --tag nacos-validation-local scripts/validation/nacos
+          docker image inspect --format '{{.Id}}' nacos-validation-local > "$RUNNER_TEMP/nacos-image-id"
+      - name: Six packaged SDK lifecycle checks without external network
+        run: |
+          set -euo pipefail
+          name="nacos-validation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
+          image="$(cat "$RUNNER_TEMP/nacos-image-id")"
+          [[ "$image" =~ ^sha256:[0-9a-f]{64}$ ]]
+          printf 'SOURCE_COMMIT=%s\nTOOL_IMAGE=%s\n' "$GITHUB_SHA" "$image"
+          timeout --kill-after=10s 2400s docker run --name "$name" \
+            --network none --cap-drop ALL --cap-add NET_ADMIN \
+            --security-opt no-new-privileges --memory 3g --cpus 2 --pids-limit 256 \
+            --mount "type=bind,src=$RUNNER_TEMP/nacos-work,dst=/work" \
+            --tmpfs /tmp:rw,nosuid,nodev,size=512m \
+            --env HOME=/tmp "$image"
+      # No caches, artifact uploads, registry publication, audit calls or production secrets.
+      # Fixed JSON remains in free job logs; the orchestrator persists it to the existing Library.

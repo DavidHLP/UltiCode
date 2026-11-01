@@ -22,6 +22,7 @@
 	<modules>
 		<module>platform/common</module>
 		<module>platform/storage</module>
+		<module>platform/nacos-api-compat</module>
 		<module>platform/rpc-resilience</module>
 		<module>platform/web-security</module>
 		<module>platform/integration-inbox</module>
@@ -314,6 +315,12 @@
 			</plugins>
 		</pluginManagement>
 		<plugins>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><version>3.6.3</version>
+                <executions><execution><id>ban-original-nacos-api</id><goals><goal>enforce</goal></goals><configuration><rules><bannedDependencies>
+                    <excludes><exclude>com.alibaba.nacos:nacos-api</exclude></excludes><searchTransitive>true</searchTransitive>
+                    <message>Use the complete nacos-api-compat replacement; never package duplicate original Nacos API classes.</message>
+                </bannedDependencies></rules></configuration></execution></executions>
+            </plugin>
 			<!--
 			  Per-service independent versioning: resolve ${revision} and the
 			  per-service ${service.version.*} references into literal versions in

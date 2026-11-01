@@ -1,0 +1,2 @@
+UltiCode experimental modified Nacos API 2.5.1.
+Metadata, Payload, their OrBuilder interfaces and NacosGrpcService were regenerated with protoc 3.25.8 from the descriptor in the published nacos-api 2.5.1 artifact. Other upstream API and gRPC stub classes are preserved. This is not an official Alibaba Nacos release.

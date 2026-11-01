@@ -64,6 +64,8 @@
 		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
 		<jackson-bom.version>3.1.7</jackson-bom.version>
 		<tomcat.version>11.0.25</tomcat.version>
+		<guava.version>33.7.2-jre</guava.version>
+		<nacos-client.version>2.5.1</nacos-client.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>
@@ -224,6 +226,23 @@
 				<groupId>com.squareup.okhttp3</groupId>
 				<artifactId>okhttp</artifactId>
 				<version>${okhttp.version}</version>
+			</dependency>
+			<!-- CVE-2026-102554: use the pure Nacos SDK so Guava is managed. -->
+			<dependency>
+				<groupId>org.apache.dubbo</groupId>
+				<artifactId>dubbo-registry-nacos</artifactId>
+				<version>${dubbo.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>com.alibaba.nacos</groupId>
+						<artifactId>nacos-client</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>${guava.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.testcontainers</groupId>

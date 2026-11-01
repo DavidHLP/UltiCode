@@ -12,7 +12,8 @@ usage() {
 Usage: ./scripts/dev/init-env.sh [--output PATH] [--force]
 
 Generates a private local development environment. Infrastructure credentials are
-random; the documented application login is fixed for developer convenience.
+random. The application username is admin; its random password is shared with
+the browser test configuration in the generated private environment file.
 Existing files are preserved unless --force is supplied.
 EOF
 }

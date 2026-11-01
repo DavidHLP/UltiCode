@@ -887,17 +887,36 @@ check_url() {
 }
 
 # 同时尝试 IPv4 与 IPv6 回环, 任一返回 200 即就绪, 避免绑定地址族导致的假性失败。
+readiness_http_detail() {
+  case "$1" in
+    200|401|403|404|500|502|503|504) printf 'http_%s' "$1" ;;
+    000|000000|'') printf 'http_unreachable' ;;
+    *) printf 'http_other' ;;
+  esac
+}
+
 check_port() {
-  local port="$1" path="${2:-/}"
-  [[ "$(check_url "http://127.0.0.1:${port}${path}")" == "200" ]] && return 0
-  [[ "$(check_url "http://[::1]:${port}${path}")" == "200" ]] && return 0
+  local port="$1" path="${2:-/}" ipv4 ipv6
+  ipv4="$(check_url "http://127.0.0.1:${port}${path}")"
+  if [[ "$ipv4" == "200" ]]; then
+    READINESS_DETAIL=http_200
+    return 0
+  fi
+  ipv6="$(check_url "http://[::1]:${port}${path}")"
+  if [[ "$ipv6" == "200" ]]; then
+    READINESS_DETAIL=http_200
+    return 0
+  fi
+  READINESS_DETAIL="$(readiness_http_detail "$ipv4")/$(readiness_http_detail "$ipv6")"
   return 1
 }
 
 check_pm2_online() {
   local app="$1" log
+  READINESS_DETAIL=pm2_not_online
   pm2_load_records
   pm2_record_is_online "$app" || return 1
+  READINESS_DETAIL=pm2_online_no_banner_required
 
   local banner
   banner="$(devstack_readiness_banner "$app")"
@@ -917,20 +936,49 @@ check_pm2_online() {
   fi
   # 不用 grep -q: 它在首个匹配即提前退出, tail 收到 SIGPIPE(141),
   # 在 set -o pipefail 下管道非零 → 假阴性。改为读完全部输入并丢弃输出。
-    tail -c +$((offset + 1)) "$log" 2>/dev/null \
-    | grep "$banner" >/dev/null 2>&1
+  READINESS_DETAIL=pm2_log_missing
+  [[ -f "$log" ]] || return 1
+  READINESS_DETAIL=pm2_banner_missing
+  if tail -c +$((offset + 1)) "$log" 2>/dev/null \
+    | grep "$banner" >/dev/null 2>&1; then
+    READINESS_DETAIL=pm2_banner_observed
+    return 0
+  fi
+  return 1
+}
+
+# Record only the latest completed probe cycle, not historical startup banners.
+# Values are fixed categories; no URLs, response bodies or environment values.
+declare -A READINESS_RESULTS=()
+check_selected_readiness() {
+  local readiness app readiness_kind readiness_port readiness_path state all_ok=true
+  READINESS_RESULTS=()
+  for readiness in "${SELECTED_READINESS[@]}"; do
+    IFS='|' read -r app readiness_kind readiness_port readiness_path <<< "$readiness"
+    state=ready
+    READINESS_DETAIL=unknown_probe_kind
+    case "$readiness_kind" in
+      http) check_port "$readiness_port" "$readiness_path" || state=failed ;;
+      pm2) check_pm2_online "$app" || state=failed ;;
+      *) state=failed ;;
+    esac
+    READINESS_RESULTS["$app"]="$state $READINESS_DETAIL"
+    [[ "$state" == ready ]] || all_ok=false
+  done
+  [[ "$all_ok" == true ]]
+}
+
+emit_final_readiness() {
+  local readiness app state detail
+  for readiness in "${SELECTED_READINESS[@]}"; do
+    IFS='|' read -r app _ <<< "$readiness"
+    read -r state detail <<< "${READINESS_RESULTS[$app]:-failed unknown_probe_kind}"
+    printf 'ULTICODE_FINAL_READINESS app=%s state=%s detail=%s\n' "$app" "$state" "$detail" >&2
+  done
 }
 
 for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
-  all_ok=true
-  for readiness in "${SELECTED_READINESS[@]}"; do
-    IFS='|' read -r app readiness_kind readiness_port readiness_path <<< "$readiness"
-    case "$readiness_kind" in
-      http) check_port "$readiness_port" "$readiness_path" || all_ok=false ;;
-      pm2) check_pm2_online "$app" || all_ok=false ;;
-    esac
-  done
-  if [[ "$all_ok" == true ]]; then
+  if check_selected_readiness; then
     printf 'Development stack is ready (scope: %s; mode: %s; services: %s).\n' \
       "$DEV_SCOPE" "$DEV_MODE" "$PM2_APPS"
     echo "Owner migrations: $(devstack_apps_csv "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}")"
@@ -961,6 +1009,9 @@ for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
   sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
 done
 
+emit_final_readiness
+# Failure-only read probes: fixed loopback endpoints and bounded enum output.
+timeout --kill-after=2s 25s python3 -u "$ROOT_DIR/scripts/dev/readiness-diagnostics.py" "$PM2_APPS" 2>/dev/null || true
 echo "Application readiness check timed out for: $PM2_APPS" >&2
 pm2 status >&2 || true
 echo >&2

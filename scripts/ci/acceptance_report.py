@@ -30,7 +30,44 @@ PHASES = {"environment", "sandbox", "fresh-migrations", "backfill-and-cutover", 
           "auth-environment", "fixtures", "browser-base", "browser-business", "complete"}
 
 
-def summary(paths):
+FINAL_APPS = tuple("ulticode-" + owner for owner in OWNERS) + ("ulticode-core", "ulticode-9002", "ulticode-9003", "ulticode-9004")
+HTTP_DETAILS = ("http_200", "http_401", "http_403", "http_404", "http_500", "http_502", "http_503", "http_504", "http_unreachable", "http_other")
+PM2_DETAILS = ("pm2_not_online", "pm2_online_no_banner_required", "pm2_log_missing", "pm2_banner_missing", "pm2_banner_observed", "unknown_probe_kind")
+HEALTH_COMPONENTS = {
+    "ulticode-auth": ("db", "redis"),
+    "ulticode-admin": ("db", "redis", "problemOwnerRpc", "storage"),
+    "ulticode-app": ("db", "redis", "storage"),
+    "ulticode-notification": ("db", "redis"),
+}
+
+
+def final_probes(text):
+    """Last explicit final-cycle markers only; all serialized values are fixed."""
+    details = set(HTTP_DETAILS) | set(PM2_DETAILS) | {a + "/" + b for a in HTTP_DETAILS for b in HTTP_DETAILS}
+    readiness = {app: {"observed": False, "state": "unknown", "detail": "unknown"} for app in FINAL_APPS}
+    dependencies = {app: {"observed": False, "probe": "unknown", "components": dict.fromkeys(keys, "unknown")}
+                    for app, keys in HEALTH_COMPONENTS.items()}
+    for line in text.splitlines():
+        match = re.fullmatch(r"ULTICODE_FINAL_READINESS app=([^ ]+) state=(ready|failed) detail=([^ ]+)", line)
+        if match:
+            app, state, detail = match.groups()
+            if app in readiness and detail in details:
+                readiness[app] = {"observed": True, "state": state, "detail": detail}
+        match = re.fullmatch(r"ULTICODE_FINAL_HEALTH app=([^ ]+) state=(http_200|http_503|unreachable|http_other|invalid_response|oversized_response)", line)
+        if match:
+            app, state = match.groups()
+            if app in dependencies:
+                dependencies[app]["observed"] = True
+                dependencies[app]["probe"] = state
+        match = re.fullmatch(r"ULTICODE_FINAL_COMPONENT app=([^ ]+) component=([^ ]+) state=(up|down|unknown)", line)
+        if match:
+            app, key, state = match.groups()
+            if app in dependencies and key in dependencies[app]["components"]:
+                dependencies[app]["components"][key] = state
+    return {"final_readiness": readiness, "final_dependency_probes": dependencies}
+
+
+def summary(paths, include_final_probes=False):
     paths = tuple(paths)
     kinds, frames, messages, observed = set(), set(), [], []
     coverage = {"files_expected": len(paths), "files_seen": 0, "files_missing": 0,
@@ -80,7 +117,7 @@ def summary(paths):
     # Only booleans under fixed keys are emitted; never include matched text,
     # exception messages, endpoints, process environment or arbitrary timestamps.
     startup_patterns = {
-        "spring_context_started": r"\bStarted Backend(?:App|Submission|Admin|Auth|Judge|Notification|Search)Application in ",
+        "spring_context_started": r"\bStarted (?:Backend(?:App|Submission|Admin|Auth|Judge|Notification)Application|SearchWorkerApplication) in ",
         "application_failed": r"APPLICATION FAILED TO START",
         "submission_projection_providers_discovered": r"Submission projection providers discovered",
         "submission_projection_discovery_deadline": r"Submission projection providers were not discovered before readiness deadline",
@@ -97,16 +134,19 @@ def summary(paths):
                             and not coverage["tail_truncated"])
     # False signals mean "not observed in the inspected tails", not proof of
     # absence. Coverage makes missing/unreadable/truncated evidence explicit.
-    return {"coverage": coverage,
+    result = {"coverage": coverage,
             "unlisted_exception_type_observed": unknown_kinds,
             "unlisted_source_frame_observed": unknown_frames,
             "startup_signals": {name: bool(re.search(pattern, observed_text)) for name, pattern in startup_patterns.items()},
             "exception_classes": sorted(kinds)[:20], "public_source_frames": [{"symbol": symbol, "location": location} for symbol, location in sorted(frames)],
             "rpc_failure_categories": {name: bool(re.search(pattern, context, re.I)) for name, pattern in patterns.items()}}
+    if include_final_probes:
+        result.update(final_probes(observed_text))
+    return result
 
 
 def build_report(root, phase, exit_code, project):
-    private = summary(root / ".local/acceptance" / f"private-{stage}.log" for stage in PRIVATE_LOGS)
+    private = summary((root / ".local/acceptance" / f"private-{stage}.log" for stage in PRIVATE_LOGS), include_final_probes=True)
     services = {}
     for owner in OWNERS:
         item = summary([root / "logs" / f"backend-{owner}.{kind}.log" for kind in ("out", "err")])
@@ -122,6 +162,8 @@ def build_report(root, phase, exit_code, project):
         "exception_classes": private["exception_classes"],
         "launcher_signals": private["startup_signals"],
         "launcher_coverage": private["coverage"],
+        "final_readiness": private["final_readiness"],
+        "final_dependency_probes": private["final_dependency_probes"],
         "service_diagnostics": services,
     }
 

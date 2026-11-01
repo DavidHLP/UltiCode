@@ -802,3 +802,7 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 - [部署与回滚](OPERATIONS.md#部署发布与回滚)
 - [Services 问题注册表](../services/docs/SERVICES_ISSUES.md)
 - [Worker SLO Runbook](../services/docs/WORKER_SLO_RUNBOOK.md)
+
+### 有界启动失败诊断
+
+启动超时不放宽就绪门禁。失败报告记录最后一轮所选服务的固定 readiness 结果（HTTP 状态枚举或 PM2/banner 分类），而不是用历史启动成功行判断当前状态。额外依赖诊断只读取固定 IPv4 loopback 健康端点，限制 8 KiB 响应、每 socket 5 秒，并以 25 秒总时限和 2 秒强制终止上限约束整个子进程；不跟随跳转、不传认证、不输出原始响应或地址。只发布固定 db/redis/storage/problemOwnerRpc 的 up/down/unknown 枚举。额外探测发生在最终门禁轮次之后，不代表同一时刻；缺失探测或未选服务保留 unknown，不能当作健康或失败。日志 startup_signals 仍只表示有界日志尾部曾观察到的信号，成功与失败可同时存在。

@@ -148,7 +148,7 @@ class RedactionTests(unittest.TestCase):
             (root / "logs").mkdir()
             for owner, name in (("notification", "Notification"), ("search", "Search"), ("submission", "Submission")):
                 (root / f"logs/backend-{owner}.out.log").write_text(
-                    f"Started Backend{name}Application in 1.0 seconds\n"
+                    f"Started {'SearchWorkerApplication' if owner == 'search' else 'Backend' + name + 'Application'} in 1.0 seconds\n"
                     + ("Submission projection providers discovered\n" if owner == "submission" else ""))
                 (root / f"logs/backend-{owner}.err.log").write_text("")
             report = module.build_report(root, "complete", 0, "ulticode-acceptance-1-2")

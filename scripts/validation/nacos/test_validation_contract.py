@@ -22,4 +22,5 @@ class Contract(unittest.TestCase):
    with self.assertRaises(RuntimeError):self.select(Path(tmp))
  def test_sources_parse(self):
   for name in ('prepare.py','run_six.py','real_nacos_test.py'):ast.parse((HERE/name).read_text())
+from test_safe_failure import SafeDiagnostics
 if __name__=='__main__':unittest.main()

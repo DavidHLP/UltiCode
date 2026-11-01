@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Disposable authenticated Nacos test; run only inside a private network namespace."""
 from pathlib import Path
+from safe_failure import summarize
 import base64,json,os,secrets,shutil,signal,subprocess,tempfile,time,urllib.request,urllib.parse,urllib.error
 ROOT=Path(__file__).resolve().parent
 JAVA=Path('/usr/lib/jvm/java-17-openjdk-amd64/bin/java')
@@ -45,6 +46,7 @@ try:
    return subprocess.Popen([str(JAVA),'-Xms128m','-Xmx512m','-Dnacos.standalone=true','-DembeddedStorage=true','-Dnacos.home='+str(home),'-Dloader.path='+str(DIST/'plugins'),'-jar',str(DIST/'target/nacos-server.jar'),'--spring.config.additional-location=file:'+str(home/'conf')+'/','--logging.config='+str(home/'conf/nacos-logback.xml')],stdout=log,stderr=subprocess.STDOUT)
   try:
    result['stage']='server_start'
+   result['launch_inputs_readable']=JAVA.is_file() and os.access(JAVA,os.X_OK) and (DIST/'target/nacos-server.jar').is_file() and os.access(DIST/'target/nacos-server.jar',os.R_OK)
    server=start_server();ready(server);result['server_started']=True
    result['stage']='bootstrap'
    status,_=request('/v1/auth/users/admin',{'password':password})
@@ -68,11 +70,20 @@ try:
    if client.returncode!=0:raise RuntimeError('client reconnect phase failed')
    result['restart_reconnect_reregister_deregister']=True;result['passed']=True;result['stage']='complete'
   finally:
-   try:stop(client)
+   try:
+    if not result['passed']:
+     for log in logs:log.flush()
+     result['diagnostics']=summarize(home)
+     code=server.poll() if server is not None else None
+     result['server_exit']='running' if code is None and server is not None else ('not_started' if server is None else ({0:'zero',1:'one',2:'two',137:'killed',-9:'killed'}.get(code,'other')))
+   except Exception:
+    result['diagnostic_error']=True
    finally:
-    try:stop(server)
+    try:stop(client)
     finally:
-     for log in logs:log.close()
+     try:stop(server)
+     finally:
+      for log in logs:log.close()
 except Exception as error:
  result['passed']=False
  result['failure']='fixture_failed'

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import json,os,subprocess,sys
+from safe_failure import sanitize_diagnostic
+import json,os,re,subprocess,sys
 n=Path('/work/nacos'); results=[]
 def run(cmd,seconds):
  try:
@@ -8,7 +9,9 @@ def run(cmd,seconds):
   return p.returncode==0
  except subprocess.TimeoutExpired:return False
 for item in json.loads((n/'inventory.json').read_text()):
- service=item['service']; cp=(n/(service+'.classpath')).read_text(); status=dict(item,passed=False)
+ if not isinstance(item,dict) or item.get('service') not in ('auth','admin','app','submission','notification','judge'):raise RuntimeError('invalid inventory')
+ if any(not isinstance(item.get(k),str) or not re.fullmatch('[0-9a-f]{64}',item[k]) for k in ('boot_sha256','module_sha256')) or type(item.get('api_classes')) is not int or item['api_classes']!=209:raise RuntimeError('invalid inventory')
+ service=item['service']; cp=(n/(service+'.classpath')).read_text(); status={k:item[k] for k in ('service','boot_sha256','module_sha256','api_classes')};status['passed']=False
  if not run(['javac','-cp',cp,'-d',str(n)]+[str(n/(x+'.java')) for x in ('PackagedSources','ParserProbe','LoopbackProbe','RealNamingProbe')],60):
   status['stage']='compile';results.append(status);break
  for probe in ('PackagedSources','ParserProbe','LoopbackProbe'):
@@ -18,10 +21,11 @@ for item in json.loads((n/'inventory.json').read_text()):
   ok=run(['timeout','--kill-after=10s','600s','python3',str(n/'real_nacos_test.py')],615)
   try:data=json.loads((n/'real-nacos-result.json').read_text())
   except (OSError,ValueError):data={}
+  if not isinstance(data,dict):data={}
   keys=('server_started','authenticated_register_subscribe_push','restart_reconnect_reregister_deregister','passed')
   status['passed']=ok and all(data.get(k) is True for k in keys) and data.get('admin_bootstrap_http')==200
   status['stage']='lifecycle'
-  stage=data.get('stage');status['lifecycle_stage']=stage if stage in ('isolation','server_start','bootstrap','client_phase_one','server_restart','client_reconnect','complete') else 'unknown'
+  status.update(sanitize_diagnostic(data))
   results.append(status)
   if status['passed']:continue
   break

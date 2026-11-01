@@ -38,6 +38,22 @@ capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION
   DEV_SEED_USERS_ENABLED DEV_SEED_DATA_ENABLED \
   DEV_SEED_ADMIN_USERNAME DEV_SEED_ADMIN_EMAIL DEV_SEED_ADMIN_PASSWORD DEV_SEED_ADMIN_ROLE
 
+# Administrator bootstrap policy: share the predicate between fail-closed
+# validation and execution; freeze it before sourcing a developer environment.
+dev_admin_bootstrap_enabled() {
+  [[ "$SKIP_BOOTSTRAP" != true && "$PREPARE_SUBMISSION_OWNER" != true \
+    && "$DEV_SEED_USERS_ENABLED" == true \
+    && ",$PM2_APPS," == *,ulticode-auth,* ]]
+}
+
+require_dev_admin_password() {
+  if dev_admin_bootstrap_enabled && [[ -z "${DEV_SEED_ADMIN_PASSWORD:-}" ]]; then
+    echo "DEV_SEED_ADMIN_PASSWORD is required when development administrator bootstrap is enabled; provide it in the private environment or disable bootstrap." >&2
+    return 1
+  fi
+}
+readonly -f dev_admin_bootstrap_enabled require_dev_admin_password
+
 # ===== 参数解析 =====
 SKIP_INSTALL=false
 SKIP_INFRA=false
@@ -287,8 +303,8 @@ devstack_apply_scope "$DEV_SCOPE"
 : "${DEV_SEED_DATA_ENABLED:=true}"
 : "${DEV_SEED_ADMIN_USERNAME:=admin}"
 : "${DEV_SEED_ADMIN_EMAIL:=admin@localhost.test}"
-: "${DEV_SEED_ADMIN_PASSWORD:=admin123}"
 : "${DEV_SEED_ADMIN_ROLE:=ADMIN}"
+require_dev_admin_password || exit $?
 
 mapfile -t required_vars < <(devstack_required_vars "$DEV_MODE" "$FRONTEND_ONLY")
 for var in "${required_vars[@]}"; do
@@ -620,8 +636,7 @@ if [[ "$REBUILD" == true && "$FRONTEND_ONLY" != true ]] && [[ ",$PM2_APPS," == *
 fi
 
 # ===== 步骤 4: dev-admin bootstrap (依赖 auth 的 Dubbo provider, 故先启动 auth) =====
-if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" \
-  && ",$PM2_APPS," == *,ulticode-auth,* ]]; then
+if dev_admin_bootstrap_enabled; then
   # UserProvisioningAdapter 通过 Dubbo RPC 调用 backend-auth 的
   # AccountManagementService 创建/恢复 admin (check=false: 容器可启动, 调用期才需要 provider)。
   # 所以 bootstrap 前必须先拉起 ulticode-auth 并等待其 Dubbo provider 注册到 Nacos。

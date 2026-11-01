@@ -174,6 +174,8 @@ launcher 记录本次启动前日志偏移，旧标记不会被当成本次成�
 cookies、源码、PM2 state 或原始服务日志。退出时仅停止该测试 project/home，保留本机卷供
 诊断；GitHub hosted runner 生命周期负责回收其临时磁盘。
 
+启动失败报告仅输出固定诊断词表、固定源码帧白名单及受限覆盖计数，不回显异常原文或 URL。每个 Owner 保留日志缺失、读取失败和尾部截断信息；信号为 false 只表示在受限日志尾部未观察到，不能据此认定服务未启动。Spring context 启动与投影 providers discovered 分别记录；历史成功与失败信号可以同时出现，不代表当前健康或因果关系。源码帧白名单随相关代码位置维护。
+
 本机重现需在新 checkout 安装锁定依赖、PM2 与 Playwright Chromium，然后运行：
 
 ```bash
@@ -697,7 +699,7 @@ enabled-owner wiring 或业务 journey。
 
 `.env` 是本地部署密管输入，由 `./scripts/dev/init-env.sh` 生成并被 Git 忽略；`.env.example` 与 `.env.test.example` 是可提交模板，不包含可用凭据。实现配置以各服务 `application.yml`、Compose 和 `ecosystem.config.cjs` 为准。
 
-`.env.example` 的数据库、Redis ACL、Nacos、JWT、Meili 和开发用户凭据全部留空。首次本地初始化使用 `./scripts/dev/init-env.sh`，由初始化流程生成各角色独立的随机凭据并写入 ignored `.env`；开发管理员密码与 `VITE_TEST_PASSWORD` 使用同一份本次初始化值，验收入口继续从环境读取。部署环境从密钥系统注入。不要直接使用模板启动，也不要重用曾提交到 Git 的默认密码。Redis ACL 生成器在任一角色密码缺失时拒绝生成配置；已部署凭据的撤销或轮换需要单独执行相应运维流程。
+`.env.example` 的数据库、Redis ACL、Nacos、JWT、Meili 和开发用户凭据全部留空。首次本地初始化使用 `./scripts/dev/init-env.sh`，由初始化流程生成各角色独立的随机凭据并写入 ignored `.env`；开发管理员密码与 `VITE_TEST_PASSWORD` 使用同一份本次初始化值，验收入口继续从环境读取。启用开发管理员 bootstrap 且启动 Auth 时，`up.sh` 要求显式提供非空 `DEV_SEED_ADMIN_PASSWORD`，缺失或空值会在基础设施变更前拒绝启动，不再回退到固定口令；`--skip-bootstrap`、`--prepare-submission-owner`、禁用开发用户或不启动 Auth 时不强求该密码。部署环境从密钥系统注入。不要直接使用模板启动，也不要重用曾提交到 Git 的默认密码。Redis ACL 生成器在任一角色密码缺失时拒绝生成配置；已部署凭据的撤销或轮换需要单独执行相应运维流程。
 
 ### 常用变量
 

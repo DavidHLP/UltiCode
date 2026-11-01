@@ -20,3 +20,4 @@ python3 "$ROOT_DIR/scripts/test/test_acceptance_report.py" -v
 node "$ROOT_DIR/scripts/test/browser-auth-diagnostics.test.mjs"
 
 bash "$ROOT_DIR/scripts/test/init-env-contract.sh"
+python3 "$ROOT_DIR/scripts/test/test_dev_admin_bootstrap.py" -v

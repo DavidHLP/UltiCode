@@ -2,11 +2,14 @@
 """Disposable authenticated Nacos test; run only inside a private network namespace."""
 from pathlib import Path
 from safe_failure import summarize
+from server_launch import command, parse_options
 import base64,json,os,secrets,shutil,signal,subprocess,tempfile,time,urllib.request,urllib.parse,urllib.error
+OPTIONS=parse_options()
 ROOT=Path(__file__).resolve().parent
 JAVA=Path('/usr/lib/jvm/java-17-openjdk-amd64/bin/java')
 DIST=ROOT/'server-dist/nacos'
-result={'scope':'disposable private-network Nacos 2.5.1, not production','passed':False}
+result={'scope':'disposable private-network Nacos 2.5.1, not production','passed':False,
+        'server_only':OPTIONS.server_only,'launch_mode':OPTIONS.launch_mode}
 server=client=None
 result['stage']='isolation'
 logs=[]
@@ -43,7 +46,7 @@ try:
   credentials=home/'client.properties';credentials.write_text('serverAddr=127.0.0.1:8848\nusername=nacos\npassword='+password+'\n');credentials.chmod(0o600)
   def start_server():
    log=(home/('server-'+str(len(logs))+'.log')).open('w');logs.append(log)
-   return subprocess.Popen([str(JAVA),'-Xms128m','-Xmx512m','-Dnacos.standalone=true','-DembeddedStorage=true','-Dnacos.home='+str(home),'-Dloader.path='+str(DIST/'plugins'),'-jar',str(DIST/'target/nacos-server.jar'),'--spring.config.additional-location=file:'+str(home/'conf')+'/','--logging.config='+str(home/'conf/nacos-logback.xml')],stdout=log,stderr=subprocess.STDOUT)
+   return subprocess.Popen(command(JAVA,DIST,home,OPTIONS.launch_mode),stdout=log,stderr=subprocess.STDOUT)
   try:
    result['stage']='server_start'
    result['launch_inputs_readable']=JAVA.is_file() and os.access(JAVA,os.X_OK) and (DIST/'target/nacos-server.jar').is_file() and os.access(DIST/'target/nacos-server.jar',os.R_OK)
@@ -52,23 +55,26 @@ try:
    status,_=request('/v1/auth/users/admin',{'password':password})
    result['admin_bootstrap_http']=status
    if status!=200:raise RuntimeError('disposable admin bootstrap failed')
-   log=(home/'client.log').open('w');logs.append(log)
-   cp=str(ROOT)+':'+(ROOT/'auth-packaged-classpath.txt').read_text()
-   result['stage']='client_phase_one'
-   client=subprocess.Popen([str(JAVA),'-Xmx256m','-Duser.home='+str(home),'-Dcom.google.protobuf.error_on_unsafe_pre22_gencode=true','-cp',cp,'RealNamingProbe',str(credentials),str(home)],stdout=log,stderr=subprocess.STDOUT)
-   end=time.monotonic()+80
-   while not (home/'phase-one').exists():
-    if client.poll() is not None:raise RuntimeError('client failed before restart')
-    if time.monotonic()>end:raise RuntimeError('client phase one timeout')
-    time.sleep(.2)
-   result['authenticated_register_subscribe_push']=True
-   result['stage']='server_restart'
-   stop(server);server=None;time.sleep(2)
-   server=start_server();ready(server);(home/'server-restarted').write_text('ready')
-   result['stage']='client_reconnect'
-   client.wait(timeout=120)
-   if client.returncode!=0:raise RuntimeError('client reconnect phase failed')
-   result['restart_reconnect_reregister_deregister']=True;result['passed']=True;result['stage']='complete'
+   if OPTIONS.server_only:
+    result['passed']=True;result['stage']='complete'
+   else:
+    log=(home/'client.log').open('w');logs.append(log)
+    cp=str(ROOT)+':'+(ROOT/'auth-packaged-classpath.txt').read_text()
+    result['stage']='client_phase_one'
+    client=subprocess.Popen([str(JAVA),'-Xmx256m','-Duser.home='+str(home),'-Dcom.google.protobuf.error_on_unsafe_pre22_gencode=true','-cp',cp,'RealNamingProbe',str(credentials),str(home)],stdout=log,stderr=subprocess.STDOUT)
+    end=time.monotonic()+80
+    while not (home/'phase-one').exists():
+     if client.poll() is not None:raise RuntimeError('client failed before restart')
+     if time.monotonic()>end:raise RuntimeError('client phase one timeout')
+     time.sleep(.2)
+    result['authenticated_register_subscribe_push']=True
+    result['stage']='server_restart'
+    stop(server);server=None;time.sleep(2)
+    server=start_server();ready(server);(home/'server-restarted').write_text('ready')
+    result['stage']='client_reconnect'
+    client.wait(timeout=120)
+    if client.returncode!=0:raise RuntimeError('client reconnect phase failed')
+    result['restart_reconnect_reregister_deregister']=True;result['passed']=True;result['stage']='complete'
   finally:
    try:
     if not result['passed']:
@@ -93,3 +99,4 @@ finally:
 # Raw logs and exception text never leave the private temporary directory.
 print(json.dumps(result))
 raise SystemExit(0 if result['passed'] else 1)
+

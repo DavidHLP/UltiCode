@@ -3,6 +3,11 @@ from pathlib import Path
 import errno,os,stat
 LIMIT=131072
 SIGNALS={
+ 'jvm_initialization_failed':b'Error occurred during initialization of VM',
+ 'jvm_creation_failed':b'Could not create the Java Virtual Machine',
+ 'main_class_unavailable':b'Could not find or load main class',
+ 'native_link_failed':b'UnsatisfiedLinkError',
+ 'native_thread_creation_failed':b'Failed to start thread',
  'jar_unavailable':b'Unable to access jarfile',
  'jar_invalid':b'Invalid or corrupt jarfile',
  'permission_denied':b'Permission denied',
@@ -82,3 +87,4 @@ def sanitize_sources(value):
   if state!='read':size='unknown'
   output[key]={'state':state,'size':size,'signals':{k:state=='read' and signals.get(k) is True for k in SIGNALS}}
  return output
+

@@ -3,6 +3,7 @@
 from pathlib import Path
 from safe_failure import summarize
 from server_launch import command, parse_options
+from layered_preflight import jvm_probe, input_probe
 import base64,json,os,secrets,shutil,signal,subprocess,tempfile,time,urllib.request,urllib.parse,urllib.error
 OPTIONS=parse_options()
 ROOT=Path(__file__).resolve().parent
@@ -48,6 +49,11 @@ try:
    log=(home/('server-'+str(len(logs))+'.log')).open('w');logs.append(log)
    return subprocess.Popen(command(JAVA,DIST,home,OPTIONS.launch_mode),stdout=log,stderr=subprocess.STDOUT)
   try:
+   if OPTIONS.layered:
+    result['stage']='jvm_probe';result['preflight']={'jvm':jvm_probe(JAVA)}
+    if result['preflight']['jvm']['status']!='pass':raise RuntimeError('preflight failed')
+    result['stage']='input_probe';result['preflight']['inputs']=input_probe(DIST,home)
+    if not all(result['preflight']['inputs'].values()):raise RuntimeError('preflight failed')
    result['stage']='server_start'
    result['launch_inputs_readable']=JAVA.is_file() and os.access(JAVA,os.X_OK) and (DIST/'target/nacos-server.jar').is_file() and os.access(DIST/'target/nacos-server.jar',os.R_OK)
    server=start_server();ready(server);result['server_started']=True

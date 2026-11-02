@@ -71,7 +71,7 @@ def sanitize_diagnostic(data):
   'diagnostic_error':data.get('diagnostic_error') is True,
   'launch_inputs_readable':data.get('launch_inputs_readable') is True,
   'server_exit':exit_code if isinstance(exit_code,str) and exit_code in ('running','not_started','zero','one','two','killed','other') else 'unknown',
-  'lifecycle_stage':stage if isinstance(stage,str) and stage in ('isolation','server_start','bootstrap','client_phase_one','server_restart','client_reconnect','complete') else 'unknown',
+  'lifecycle_stage':stage if isinstance(stage,str) and stage in ('isolation','jvm_probe','input_probe','server_start','bootstrap','client_phase_one','server_restart','client_reconnect','complete') else 'unknown',
  }
 
 def sanitize_sources(value):

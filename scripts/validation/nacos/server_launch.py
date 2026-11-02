@@ -8,10 +8,13 @@ import argparse
 def parse_options(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--server-only', action='store_true')
+    parser.add_argument('--layered', action='store_true')
     parser.add_argument('--launch-mode', choices=('direct', 'official-equivalent'), default='direct')
     result = parser.parse_args(args)
     if result.launch_mode != 'direct' and not result.server_only:
         parser.error('comparison mode is limited to server-only diagnostics')
+    if result.layered and (not result.server_only or result.launch_mode != 'direct'):
+        parser.error('layered diagnostics require direct server-only mode')
     return result
 
 def command(java, dist, home, mode):

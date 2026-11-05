@@ -2,10 +2,12 @@
 import importlib.util
 import json
 import tempfile
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts/ci"))
 spec = importlib.util.spec_from_file_location("acceptance_report", ROOT / "scripts/ci/acceptance_report.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -50,6 +52,41 @@ class RedactionTests(unittest.TestCase):
             self.assertEqual(report["phase"], "unknown")
             self.assertEqual(report["project"], "unknown")
             self.assertNotIn("private-canary", json.dumps(report))
+
+    def test_discovery_observations_are_strict_bounded_and_do_not_expose_messages(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "logs").mkdir()
+            payload = "SubmissionDiscoveryObservation outcome=deadline elapsed_ms=120000 problem_facts=UNAVAILABLE user_read=AVAILABLE"
+            invalid = [payload + " password=secret-canary", payload.replace("UNAVAILABLE", "secret-canary"),
+                       payload.replace("120000", "99999999"), payload.replace("120000", "-1"),
+                       payload.replace("deadline", "https://secret-canary"), payload.replace("120000", "1e5"), payload + " " + payload]
+            (root / "logs/backend-submission.out.log").write_text(
+                "\n".join(invalid + ["private-prefix-canary " + payload] * 20))
+            report = module.build_report(root, "launch", 1, "ulticode-acceptance-123-456")
+            entries = report["submission_discovery_observations"]
+            self.assertEqual(len(entries), 16)
+            self.assertEqual(entries[0], {"outcome": "deadline", "elapsed_ms": 120000,
+                                         "problem_facts": "UNAVAILABLE", "user_read": "AVAILABLE"})
+            self.assertNotIn("canary", json.dumps(report))
+            self.assertEqual(report["submission_discovery_scope"], "historical-bounded-tail-not-process-correlated")
+            # Malformed records alone do not become evidence.
+            (root / "logs/backend-submission.out.log").write_text("\n".join(invalid))
+            self.assertEqual(module.discovery_observations(root), [])
+
+    def test_discovery_observations_exclude_symlinks_and_truncated_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "logs").mkdir()
+            outside = root / "private-input"
+            payload = "SubmissionDiscoveryObservation outcome=ready elapsed_ms=1 problem_facts=AVAILABLE user_read=AVAILABLE"
+            outside.write_text(payload)
+            log = root / "logs/backend-submission.out.log"
+            log.symlink_to(outside)
+            self.assertEqual(module.discovery_observations(root), [])
+            log.unlink()
+            log.write_text("x" * module.LIMIT + payload)
+            self.assertEqual(module.discovery_observations(root), [])
 
 
 if __name__ == "__main__":

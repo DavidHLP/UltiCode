@@ -166,6 +166,12 @@ HTTP 存活不代表 Dubbo 接口已被消费者发现。Admin readiness 额外�
 有界发现期限内检查 ProblemFactsPort 与 SubmissionUserReadPort，成功后才输出 launcher
 使用的就绪标记；超时则启动失败。检查只读取发现状态，不调用业务 RPC 或重试写入。
 launcher 记录本次启动前日志偏移，旧标记不会被当成本次成功。
+Submission 门禁另外记录最终发现观测，仅含固定接口别名、状态枚举和有界耗时；
+观测独立于成功判定，不改变发现期限或重试策略。安装报告保留日志尾部最多 16 条
+此类观测，以及 launcher 最后一次 readiness/PM2 快照，不上传原始日志或环境。
+这些历史观测没有按进程代次关联，也不能证明 App 与 Submission 启动的因果顺序；
+自动重启后 ready 不能作为首次启动失败已修复的证据。
+
 
 测试账号仅由 disposable dev bootstrap 与 Auth registration 创建。Manager 的直接权限
 通过真实 Auth API 临时授予并过期，不改全局 role policy；Console participant 保持 USER。

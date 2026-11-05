@@ -34,12 +34,28 @@ public class SubmissionDiscoveryStartupGate implements ApplicationRunner {
     }
 
     void await(Duration timeout) throws InterruptedException {
-        long deadline = System.nanoTime() + timeout.toNanos();
+        long started = System.nanoTime();
+        long deadline = started + timeout.toNanos();
         while (!ready()) {
             if (System.nanoTime() >= deadline) {
+                observe("deadline", started);
                 throw new IllegalStateException("Submission projection providers were not discovered before readiness deadline");
             }
             Thread.sleep(250);
+        }
+        observe("ready", started);
+    }
+
+    private void observe(String outcome, long started) {
+        // Separate observations may race with discovery; they never determine the outcome.
+        try {
+            long elapsed = Math.min(86_400_000L, Math.max(0L, (System.nanoTime() - started) / 1_000_000L));
+            log.info("SubmissionDiscoveryObservation outcome={} elapsed_ms={} problem_facts={} user_read={}",
+                    outcome, elapsed,
+                    DubboDiscoveryReadiness.inspect(references, ProblemFactsPort.class.getName()),
+                    DubboDiscoveryReadiness.inspect(references, SubmissionUserReadPort.class.getName()));
+        } catch (RuntimeException ignored) {
+            // Diagnostics must not change startup success/failure, including logging failures.
         }
     }
 }

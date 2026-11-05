@@ -5,11 +5,50 @@ import os
 import re
 from pathlib import Path
 
+from acceptance_readiness import read_snapshot
+
 LIMIT = 1_000_000
 KINDS = re.compile(r"\b(?:org|com|java|javax|jakarta|io)\.(?:[A-Za-z_$][A-Za-z0-9_$]*\.)*[A-Za-z_$][A-Za-z0-9_$]*(?:Exception|Error)\b")
 FRAMES = re.compile(r"\bat (com\.ulticode\.[A-Za-z0-9_.$]+)\(([A-Za-z0-9_$]+\.java:[0-9]+)\)")
 PHASES = {"environment", "sandbox", "fresh-migrations", "backfill-and-cutover", "launch",
           "auth-environment", "fixtures", "browser-base", "browser-business", "complete"}
+
+
+# Match the entire generated payload. Prefixes are private logger metadata, never emitted.
+DISCOVERY = re.compile(
+    r"^SubmissionDiscoveryObservation outcome=(ready|deadline) elapsed_ms=([0-9]{1,8}) "
+    r"problem_facts=(MANAGER_MISSING|REFERENCE_MISSING|CONFIG_MISSING|INVOKER_MISSING|UNAVAILABLE|INSPECTION_ERROR|AVAILABLE) "
+    r"user_read=(MANAGER_MISSING|REFERENCE_MISSING|CONFIG_MISSING|INVOKER_MISSING|UNAVAILABLE|INSPECTION_ERROR|AVAILABLE)$"
+)
+
+
+def discovery_observations(root):
+    # Historical bounded log tail, not a same-process timeline or root-cause claim.
+    path = root / "logs/backend-submission.out.log"
+    if path.is_symlink() or not path.is_file():
+        return []
+    try:
+        with path.open("rb") as stream:
+            offset = max(0, path.stat().st_size - LIMIT)
+            stream.seek(offset)
+            text = stream.read(LIMIT).decode("utf-8", errors="replace")
+            if offset:
+                text = text.partition("\n")[2]  # discard a potentially truncated record
+    except OSError:
+        return []
+    observations = []
+    for line in text.splitlines():
+        # Logger prefixes are discarded, not trusted. Require one complete fixed payload.
+        marker = "SubmissionDiscoveryObservation "
+        if line.count(marker) != 1:
+            continue
+        payload = marker + line.partition(marker)[2]
+        match = DISCOVERY.fullmatch(payload)
+        if not match or int(match[2]) > 86_400_000:
+            continue
+        observations.append({"outcome": match[1], "elapsed_ms": int(match[2]),
+                             "problem_facts": match[3], "user_read": match[4]})
+    return observations[-16:]
 
 
 def summary(paths):
@@ -61,6 +100,10 @@ def build_report(root, phase, exit_code, project):
         "raw_logs_published": False,
         "exception_classes": private["exception_classes"],
         "service_diagnostics": services,
+        "service_diagnostics_scope": "historical-log-observations-not-root-cause",
+        "launch_readiness": read_snapshot(root, project),
+        "submission_discovery_observations": discovery_observations(root),
+        "submission_discovery_scope": "historical-bounded-tail-not-process-correlated",
     }
 
 

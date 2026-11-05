@@ -347,6 +347,8 @@ Management forms use patched Zod 4 through `src/lib/toTypedSchema.ts`, which pre
 vee-validate 4 form contract for parsed values, defaults, field errors and required metadata.
 The published Zod 3 adapter is not used; production dependency audits retain the high-severity gate.
 
+Nacos 客户端使用官方 `pure` classifier，并显式引入同版本 `nacos-api`、`nacos-common`，由共享 RPC 模块提供给各 Owner/Worker；排除 Dubbo 引入的默认 shaded client，避免其内嵌依赖绕过 Maven 的安全版本管理。依赖升级须保留 protobuf 消息解析与 loopback gRPC 回归，并由镜像扫描及真实安装 CI 验证。Guava 升级不修复 Nacos 旧 protobuf 生成代码的资源放大风险；本地消息回归也不证明该风险已消除或线上可利用。
+
 后续变更必须保留以下基线契约：
 
 - Console 与 Management 保持各自路由、布局和权限边界，跨端行为归属现有 focused package；

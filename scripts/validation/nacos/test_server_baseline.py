@@ -59,9 +59,10 @@ class BaselineTests(unittest.TestCase):
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 server_launch.parse_options(args)
 
-    def test_direct_command_exactly_preserved(self):
+    def test_direct_command_adds_only_explicit_loopback_ip(self):
         self.assertEqual(server_launch.command('/j','/d','/h','direct'),[
             '/j','-Xms128m','-Xmx512m','-Dnacos.standalone=true','-DembeddedStorage=true',
+            '-Dnacos.server.ip=127.0.0.1',
             '-Dnacos.home=/h','-Dloader.path=/d/plugins','-jar','/d/target/nacos-server.jar',
             '--spring.config.additional-location=file:/h/conf/','--logging.config=/h/conf/nacos-logback.xml'])
 

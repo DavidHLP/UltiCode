@@ -21,7 +21,7 @@ def command(java, dist, home, mode):
     java, dist, home = str(java), str(dist), str(home)
     if mode == 'direct':
         return [java, '-Xms128m', '-Xmx512m', '-Dnacos.standalone=true',
-                '-DembeddedStorage=true', '-Dnacos.home='+home,
+                '-DembeddedStorage=true', '-Dnacos.server.ip=127.0.0.1', '-Dnacos.home='+home,
                 '-Dloader.path='+dist+'/plugins', '-jar', dist+'/target/nacos-server.jar',
                 '--spring.config.additional-location=file:'+home+'/conf/',
                 '--logging.config='+home+'/conf/nacos-logback.xml']

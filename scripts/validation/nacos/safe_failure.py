@@ -1,6 +1,6 @@
 """Fixed signal set only. Never return matched text, exceptions, paths or credentials."""
 from pathlib import Path
-import errno,os,stat
+import errno,os,re,stat
 LIMIT=131072
 SIGNALS={
  'jvm_initialization_failed':b'Error occurred during initialization of VM',
@@ -22,6 +22,44 @@ SIGNALS={
  'log_configuration_failed':b'Logback configuration error',
  'application_failed':b'APPLICATION FAILED TO START',
 }
+# Observed text shapes only, never a root-cause or execution-stage claim.
+# Only complete lines within the existing bounded read are classified.
+SHAPE_TYPES = {
+ 'initializer_error': b'java.lang.ExceptionInInitializerError',
+ 'illegal_state': b'java.lang.IllegalStateException',
+ 'reflection_wrapper': b'java.lang.reflect.InvocationTargetException',
+ 'missing_method': b'java.lang.NoSuchMethodError',
+ 'missing_field': b'java.lang.NoSuchFieldError',
+ 'security_exception': b'java.lang.SecurityException',
+ 'null_pointer': b'java.lang.NullPointerException',
+}
+SHAPES = ('uncaught_thread_header', 'cause_header', 'throwable_header', 'stack_frame', *SHAPE_TYPES)
+_TYPE = rb'(?:[A-Za-z_$][A-Za-z0-9_$]*\.)+[A-Za-z_$][A-Za-z0-9_$]*'
+_HEADER = re.compile(rb'^(?P<prefix>Exception in thread "[^"\r\n]{1,128}" |Caused by: )?'
+                     rb'(?P<type>' + _TYPE + rb')(?::(?: .*)?)?$')
+_FRAME = re.compile(rb'^\t+at (?:[A-Za-z0-9_.@-]+/)?' + _TYPE + rb'\([^\r\n]*\)$')
+
+def classify_shapes(data, tail_only=False):
+ result = dict.fromkeys(SHAPES, False)
+ lines = data.split(b'\n')[:-1]  # An incomplete final line is not evidence.
+ if tail_only:
+  lines = lines[1:]  # The bounded tail may begin inside a line.
+ for line in lines:
+  line = line.removesuffix(b'\r')
+  result['stack_frame'] |= bool(_FRAME.fullmatch(line))
+  match = _HEADER.fullmatch(line)
+  if match is None:
+   continue
+  name = match['type']
+  if not name.endswith((b'Exception', b'Error')):
+   continue
+  result['throwable_header'] = True
+  result['uncaught_thread_header'] |= bool(match['prefix'] and match['prefix'].startswith(b'Exception in thread '))
+  result['cause_header'] |= match['prefix'] == b'Caused by: '
+  for key, expected in SHAPE_TYPES.items():
+   result[key] |= name == expected
+ return result
+
 SOURCES={
  'launcher_0':('server-0.log',),
  'launcher_1':('server-1.log',),
@@ -51,13 +89,15 @@ def read_fixed(home,parts):
    try:os.close(fd)
    except OSError:pass
 def summarize(home):
- result={'files_seen':0,'read_error':False,'tail_truncated':False,'signals':dict.fromkeys(SIGNALS,False),'sources':{}}
+ result={'files_seen':0,'read_error':False,'tail_truncated':False,'signals':dict.fromkeys(SIGNALS,False),'shapes':dict.fromkeys(SHAPES,False),'sources':{}}
  for key,parts in SOURCES.items():
   state,size,data=read_fixed(home,parts)
   signals={key:marker in data for key,marker in SIGNALS.items()}
-  result['sources'][key]={'state':state,'size':size,'signals':signals}
+  shapes=classify_shapes(data,size=='tail_only')
+  result['sources'][key]={'state':state,'size':size,'signals':signals,'shapes':shapes}
   result['files_seen']+=state=='read';result['read_error']|=state in ('read_error','rejected');result['tail_truncated']|=size=='tail_only'
   for signal,value in signals.items():result['signals'][signal]|=value
+  for shape,value in shapes.items():result['shapes'][shape]|=value
  return result
 
 def sanitize_diagnostic(data):
@@ -67,7 +107,7 @@ def sanitize_diagnostic(data):
  sources=sanitize_sources(diagnostic.get('sources'))
  stage=data.get('stage');exit_code=data.get('server_exit')
  return {
-  'diagnostics':{'sources':sources,'files_seen':sum(v['state']=='read' for v in sources.values()),'read_error':any(v['state'] in ('read_error','rejected') for v in sources.values()),'tail_truncated':any(v['size']=='tail_only' for v in sources.values()),'signals':{key:any(v['signals'][key] for v in sources.values()) for key in SIGNALS}},
+  'diagnostics':{'sources':sources,'files_seen':sum(v['state']=='read' for v in sources.values()),'read_error':any(v['state'] in ('read_error','rejected') for v in sources.values()),'tail_truncated':any(v['size']=='tail_only' for v in sources.values()),'signals':{key:any(v['signals'][key] for v in sources.values()) for key in SIGNALS},'shapes':{key:any(v['shapes'][key] for v in sources.values()) for key in SHAPES}},
   'diagnostic_error':data.get('diagnostic_error') is True,
   'launch_inputs_readable':data.get('launch_inputs_readable') is True,
   'server_exit':exit_code if isinstance(exit_code,str) and exit_code in ('running','not_started','zero','one','two','killed','other') else 'unknown',
@@ -80,11 +120,12 @@ def sanitize_sources(value):
  for key in SOURCES:
   source=value.get(key);source=source if isinstance(source,dict) else {}
   signals=source.get('signals');signals=signals if isinstance(signals,dict) else {}
+  shapes=source.get('shapes');shapes=shapes if isinstance(shapes,dict) else {}
   state=source.get('state');size=source.get('size')
   state=state if isinstance(state,str) and state in STATES else 'unknown'
   size=size if isinstance(size,str) and size in SIZES else 'unknown'
   if state=='read' and size=='unknown':state='unknown'
   if state!='read':size='unknown'
-  output[key]={'state':state,'size':size,'signals':{k:state=='read' and signals.get(k) is True for k in SIGNALS}}
+  output[key]={'state':state,'size':size,'signals':{k:state=='read' and signals.get(k) is True for k in SIGNALS},'shapes':{k:state=='read' and shapes.get(k) is True for k in SHAPES}}
  return output
 

@@ -41,7 +41,7 @@ jobs:
           python3 scripts/validation/nacos/prepare.py "$RUNNER_TEMP/nacos-work" "$RUNNER_TEMP/nacos-server.tar.gz"
           docker build --pull --tag nacos-validation-local scripts/validation/nacos
           docker image inspect --format '{{.Id}}' nacos-validation-local > "$RUNNER_TEMP/nacos-image-id"
-      - name: One bounded class-trace server diagnostic without external network
+      - name: One bounded server diagnostic with fixed exception shapes
         run: |
           set -euo pipefail
           name="nacos-validation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
@@ -49,7 +49,7 @@ jobs:
           image="$(cat "$RUNNER_TEMP/nacos-image-id")"
           [[ "$image" =~ ^sha256:[0-9a-f]{64}$ ]]
           printf 'SOURCE_COMMIT=%s\nTOOL_IMAGE=%s\n' "$GITHUB_SHA" "$image"
-          timeout --kill-after=10s 2400s docker run --name "$name" \
+          timeout --kill-after=10s 300s docker run --name "$name" \
             --network none --cap-drop ALL --cap-add NET_ADMIN \
             --security-opt no-new-privileges --memory 3g --cpus 2 --pids-limit 256 \
             --mount "type=bind,src=$RUNNER_TEMP/nacos-work,dst=/work" \

@@ -94,6 +94,70 @@ class SafeDiagnostics(unittest.TestCase):
    x=sanitize_diagnostic({'diagnostics':summarize(d)})['diagnostics']
    self.assertEqual(x['files_seen'],5);self.assertTrue(all(v['state']=='read' and v['size']=='empty' for v in x['sources'].values()))
    self.assertEqual(set(x['sources']),set(safe_failure.SOURCES))
+class FailureShapes(unittest.TestCase):
+ def test_fixed_types_in_each_header_position(self):
+  for key,name in safe_failure.SHAPE_TYPES.items():
+   for prefix in (b'',b'Exception in thread "main" ',b'Caused by: '):
+    out=safe_failure.classify_shapes(prefix+name+b': PRIVATE_SECRET\n')
+    self.assertTrue(out[key]);self.assertTrue(out['throwable_header'])
+    self.assertEqual(out['cause_header'],prefix==b'Caused by: ')
+    self.assertEqual(out['uncaught_thread_header'],prefix.startswith(b'Exception in thread'))
+    self.assertTrue(all(type(value) is bool for value in out.values()))
+    self.assertEqual(set(out),set(safe_failure.SHAPES))
+    self.assertNotIn('PRIVATE_SECRET',json.dumps(out))
+ def test_unknown_classes_and_messages_never_exported(self):
+  data=b'Exception in thread "PRIVATE_THREAD" secret.privateNameError: https://user:PRIVATE_TOKEN@host/path\n\tat secret.PrivateFrame.run(PRIVATE_PATH:23)\n'
+  out=safe_failure.classify_shapes(data)
+  self.assertTrue(out['uncaught_thread_header']);self.assertTrue(out['stack_frame'])
+  self.assertFalse(any(out[k] for k in safe_failure.SHAPE_TYPES))
+  for value in ('PRIVATE','secret','host','path'):
+   self.assertNotIn(value,json.dumps(out))
+ def test_prefix_suffix_and_message_mentions_do_not_classify_types(self):
+  for data in (b'INFO java.lang.IllegalStateException: mentioned\n',
+               b'java.lang.IllegalStateExceptionExtra: message\n',
+               b'java.lang.IllegalStateException.fake: message\n',
+               b'java.lang.RuntimeException: java.lang.IllegalStateException\n',
+               b'Caused by: java.lang.RuntimeException: java.lang.IllegalStateException\n',
+               b'java.lang.IllegalStateException : message\n'):
+   self.assertFalse(safe_failure.classify_shapes(data)['illegal_state'])
+ def test_complete_line_and_tail_boundaries(self):
+  line=b'java.lang.IllegalStateException: private'
+  self.assertFalse(safe_failure.classify_shapes(line)['illegal_state'])
+  self.assertTrue(safe_failure.classify_shapes(line+b'\r\n')['illegal_state'])
+  self.assertFalse(safe_failure.classify_shapes(line+b'\n',True)['illegal_state'])
+  self.assertTrue(safe_failure.classify_shapes(b'partial\n'+line+b'\n',True)['illegal_state'])
+ def test_real_bounded_tail_does_not_invent_header(self):
+  line=b'java.lang.IllegalStateException: private\n'
+  with tempfile.TemporaryDirectory() as d:
+   (Path(d)/'server-0.log').write_bytes(b'PREFIX'+line+b'x'*(LIMIT-len(line)))
+   out=summarize(d)
+   self.assertTrue(out['tail_truncated']);self.assertFalse(out['shapes']['illegal_state'])
+ def test_frame_requires_exact_shape(self):
+  self.assertTrue(safe_failure.classify_shapes(b'\tat java.base/java.lang.Thread.run(Thread.java:1)\n')['stack_frame'])
+  for line in (b'INFO at java.lang.Thread.run(Thread.java:1)',b'\tat missing',b'prefix\tat java.lang.Thread.run(Thread.java:1)'):
+   self.assertFalse(safe_failure.classify_shapes(line+b'\n')['stack_frame'])
+ def test_binary_and_long_lines_are_not_echoed(self):
+  out=safe_failure.classify_shapes(b'\xff\x00'+b'x'*LIMIT+b'\n')
+  self.assertFalse(any(out.values()));self.assertLess(len(json.dumps(out)),500)
+ def test_sanitizer_derives_shapes_only_from_read_sources(self):
+  for state in safe_failure.STATES:
+   supplied={'diagnostics':{'shapes':{'illegal_state':True},'sources':{
+    'launcher_0':{'state':state,'size':'within_limit','shapes':{'illegal_state':True,'PRIVATE':'secret','null_pointer':'yes'}}}}}
+   out=sanitize_diagnostic(supplied)['diagnostics']
+   self.assertEqual(out['shapes']['illegal_state'],state=='read')
+   self.assertFalse(out['shapes']['null_pointer']);self.assertNotIn('PRIVATE',json.dumps(out))
+ def test_missing_or_malformed_shapes_default_false(self):
+  for shapes in (None,[],{}, {'illegal_state':1}):
+   out=sanitize_diagnostic({'diagnostics':{'sources':{'launcher_0':{'state':'read','size':'within_limit','shapes':shapes}}}})
+   self.assertFalse(any(out['diagnostics']['shapes'].values()))
+ def test_summarize_sanitize_round_trip(self):
+  with tempfile.TemporaryDirectory() as d:
+   (Path(d)/'server-0.log').write_bytes(b'Exception in thread "main" java.lang.ExceptionInInitializerError\nCaused by: java.lang.IllegalStateException: PRIVATE\n')
+   original=summarize(d);out=sanitize_diagnostic({'diagnostics':original})['diagnostics']
+   self.assertEqual(out['shapes'],original['shapes'])
+   self.assertTrue(out['shapes']['initializer_error']);self.assertTrue(out['shapes']['illegal_state'])
+   self.assertNotIn('PRIVATE',json.dumps(out))
+
 if __name__=='__main__':unittest.main()
 
 

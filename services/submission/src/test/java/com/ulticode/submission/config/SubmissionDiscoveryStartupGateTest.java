@@ -98,8 +98,9 @@ class SubmissionDiscoveryStartupGateTest {
     @ExtendWith(OutputCaptureExtension.class)
     void diagnosticInspectionFailureDoesNotChangeSuccessfulGateDecision(CapturedOutput output) throws Exception {
         var manager = mock(ReferenceBeanManager.class);
-        when(manager.getReferences()).thenReturn(List.of(
-                reference(ProblemFactsPort.class, true), reference(SubmissionUserReadPort.class, true)))
+        var problem = reference(ProblemFactsPort.class, true);
+        var users = reference(SubmissionUserReadPort.class, true);
+        when(manager.getReferences()).thenReturn(List.of(problem, users))
                 .thenThrow(new IllegalStateException("credential-canary"));
         gate(manager).await(Duration.ZERO);
         assertThat(output.getAll()).contains("SubmissionDiscoveryObservation outcome=ready elapsed_ms=")

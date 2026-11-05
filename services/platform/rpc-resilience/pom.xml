@@ -14,6 +14,23 @@
     <name>UltiCode Backend (Dubbo dependency resilience)</name>
 
     <dependencies>
+        <!-- The shaded SDK embeds vulnerable Guava that dependency management cannot replace. -->
+        <dependency>
+            <groupId>com.alibaba.nacos</groupId>
+            <artifactId>nacos-client</artifactId>
+            <version>${nacos-client.version}</version>
+            <classifier>pure</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.nacos</groupId>
+            <artifactId>nacos-common</artifactId>
+            <version>${nacos-client.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.nacos</groupId>
+            <artifactId>nacos-api</artifactId>
+            <version>${nacos-client.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-config-spring</artifactId>

@@ -27,6 +27,7 @@ jobs:
           python3 scripts/validation/nacos/test_validation_contract.py
           python3 scripts/validation/nacos/test_server_baseline.py
           python3 scripts/validation/nacos/test_layered_preflight.py
+          python3 scripts/validation/nacos/test_trace_summary.py
           bash services/mvnw -B -f services/pom.xml -pl platform/nacos-api-compat -am clean verify
           bash services/mvnw -B -f services/pom.xml -pl platform/rpc-resilience -am -Dtest=NacosRuntimeDependencyTest test
           bash services/mvnw -B -f services/pom.xml -pl auth,admin,app/app-web,submission,notification,judge -am -DskipTests package
@@ -40,7 +41,7 @@ jobs:
           python3 scripts/validation/nacos/prepare.py "$RUNNER_TEMP/nacos-work" "$RUNNER_TEMP/nacos-server.tar.gz"
           docker build --pull --tag nacos-validation-local scripts/validation/nacos
           docker image inspect --format '{{.Id}}' nacos-validation-local > "$RUNNER_TEMP/nacos-image-id"
-      - name: Layered server-only diagnostics without external network
+      - name: One bounded class-trace server diagnostic without external network
         run: |
           set -euo pipefail
           name="nacos-validation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
@@ -53,7 +54,9 @@ jobs:
             --security-opt no-new-privileges --memory 3g --cpus 2 --pids-limit 256 \
             --mount "type=bind,src=$RUNNER_TEMP/nacos-work,dst=/work" \
             --tmpfs /tmp:rw,nosuid,nodev,size=512m \
-            --env HOME=/tmp "$image" python3 /work/nacos/layered_driver.py
+            --tmpfs /trace:rw,nosuid,nodev,noexec,size=8m \
+            --env HOME=/tmp "$image" python3 /work/nacos/trace_driver.py
       # No caches, artifact uploads, registry publication, audit calls or production secrets.
       # Fixed JSON remains in free job logs; the orchestrator persists it to the existing Library.
+
 

@@ -49,7 +49,7 @@ class BaselineTests(unittest.TestCase):
         for required in ('--network none --cap-drop ALL --cap-add NET_ADMIN',
                          '--security-opt no-new-privileges --memory 3g --cpus 2 --pids-limit 256',
                          '--tmpfs /tmp:rw,nosuid,nodev,size=512m',
-                         '--env HOME=/tmp "$image" python3 /work/nacos/layered_driver.py',
+                         '--env HOME=/tmp "$image" python3 /work/nacos/trace_driver.py',
                          'persist-credentials: false'):
             self.assertIn(required,workflow)
         self.assertNotIn('upload-artifact@',workflow)
@@ -214,3 +214,4 @@ class BaselineTests(unittest.TestCase):
             self.assertEqual(code,1);self.assertFalse(data['passed'])
 
 if __name__ == '__main__': unittest.main()
+

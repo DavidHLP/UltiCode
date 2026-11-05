@@ -2,10 +2,12 @@
 import importlib.util
 import json
 import tempfile
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts/ci"))
 spec = importlib.util.spec_from_file_location("acceptance_report", ROOT / "scripts/ci/acceptance_report.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)

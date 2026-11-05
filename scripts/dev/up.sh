@@ -350,6 +350,26 @@ if [[ ",$INFRA_TARGETS," == *,rustfs,* ]]; then
 fi
 mapfile -t SELECTED_READINESS < <(devstack_readiness_for_selection "$DEV_SCOPE" "$PM2_APPS")
 
+# Capture observations only for disposable acceptance. The EXIT hook never changes
+# launch status; PM2 metadata comes from the last existing readiness query.
+declare -A ACCEPTANCE_LAST_READINESS=()
+acceptance_launch_snapshot() {
+  local status=$? app
+  local -a observations=()
+  for app in "${!ACCEPTANCE_LAST_READINESS[@]}"; do
+    observations+=("$app=${ACCEPTANCE_LAST_READINESS[$app]}")
+  done
+  printf '%s' "${ACCEPTANCE_PM2_JSON:-}" | \
+    python3 "$ROOT_DIR/scripts/ci/acceptance_readiness.py" "$ROOT_DIR" "$PM2_APPS" \
+      "${ACCEPTANCE_PM2_COLLECTION:-failed}" "${observations[@]}" >/dev/null 2>&1 || true
+  return "$status"
+}
+if [[ "${ACCEPTANCE_DISPOSABLE:-}" == true && "$PREPARE_SUBMISSION_OWNER" != true ]]; then
+  ACCEPTANCE_PM2_JSON=""
+  ACCEPTANCE_PM2_COLLECTION=failed
+  trap acceptance_launch_snapshot EXIT
+fi
+
 resolve_mysql_container() {
   local configured="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
   if [[ -n "$configured" ]] && container_running "$configured"; then
@@ -910,10 +930,15 @@ for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
   all_ok=true
   for readiness in "${SELECTED_READINESS[@]}"; do
     IFS='|' read -r app readiness_kind readiness_port readiness_path <<< "$readiness"
+    observation=ready
     case "$readiness_kind" in
-      http) check_port "$readiness_port" "$readiness_path" || all_ok=false ;;
-      pm2) check_pm2_online "$app" || all_ok=false ;;
+      http) check_port "$readiness_port" "$readiness_path" || observation=not_ready ;;
+      pm2) check_pm2_online "$app" || observation=not_ready ;;
     esac
+    [[ "$observation" == ready ]] || all_ok=false
+    if [[ "${ACCEPTANCE_DISPOSABLE:-}" == true ]]; then
+      ACCEPTANCE_LAST_READINESS["$app"]="$observation"
+    fi
   done
   if [[ "$all_ok" == true ]]; then
     printf 'Development stack is ready (scope: %s; mode: %s; services: %s).\n' \

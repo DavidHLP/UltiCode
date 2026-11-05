@@ -5,6 +5,8 @@ import os
 import re
 from pathlib import Path
 
+from acceptance_readiness import read_snapshot
+
 LIMIT = 1_000_000
 KINDS = re.compile(r"\b(?:org|com|java|javax|jakarta|io)\.(?:[A-Za-z_$][A-Za-z0-9_$]*\.)*[A-Za-z_$][A-Za-z0-9_$]*(?:Exception|Error)\b")
 FRAMES = re.compile(r"\bat (com\.ulticode\.[A-Za-z0-9_.$]+)\(([A-Za-z0-9_$]+\.java:[0-9]+)\)")
@@ -61,6 +63,8 @@ def build_report(root, phase, exit_code, project):
         "raw_logs_published": False,
         "exception_classes": private["exception_classes"],
         "service_diagnostics": services,
+        "service_diagnostics_scope": "historical-log-observations-not-root-cause",
+        "launch_readiness": read_snapshot(root, project),
     }
 
 

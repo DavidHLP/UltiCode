@@ -181,6 +181,11 @@ App readiness 另外读取 `SubmissionUserQueryPort` 与 `AccountQueryService` �
 仅在两种固定接口别名的观测变化时记录，不调用 availability、业务 RPC 或读取 URL，也不改变
 原有 HTTP readiness 判定。安装报告独立保留 App 日志尾部最多 16 条此类观测；它们不是跨进程
 调用链，不能把历史 Auth 查询异常自动归因为另一次 Submission 请求的失败。
+App 还单独读取现有 application child 的目录，以及已有 listener 的应用数、已收到实例事件的应用数和实例总数，
+同样只输出固定枚举和有界数量，不读取或输出应用名称、实例内容、URL，不创建或刷新发现订阅。
+选中目录与 application child 分开记录，不能把空 DYNAMIC 目录直接认定为应用级实例缺失。
+验收退出时只在已经进入启动阶段后读取一次 Admin 原有 readiness HTTP 响应，报告仅保留固定组件的 UP/DOWN/UNKNOWN，
+此观察晚于 launcher 快照，不改变原退出码、就绪条件或超时。
 
 
 测试账号仅由 disposable dev bootstrap 与 Auth registration 创建。Manager 的直接权限

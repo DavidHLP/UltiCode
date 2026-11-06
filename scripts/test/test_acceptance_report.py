@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import importlib.util
 import json
+import os
+import subprocess
+import time
 import tempfile
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -172,6 +176,161 @@ class RedactionTests(unittest.TestCase):
             self.assertEqual(module.app_discovery_observations(root), [item])
             log.write_text(payload.replace("all=10000", "all=1000" + "\ufffd"))
             self.assertEqual(module.app_discovery_observations(root), [])
+
+
+class AdditionalObservationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        (self.root / "logs").mkdir()
+        (self.root / ".local/acceptance").mkdir(parents=True)
+        self.project = f"ulticode-acceptance-{int(time.time())}-456"
+        self.env = mock.patch.dict(os.environ, {"ACCEPTANCE_DISPOSABLE": "true"})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        self.body = self.root / ".local/acceptance" / module.ADMIN_FILE
+
+    def launched(self):
+        (self.body.parent / "launch-readiness.json").write_text(json.dumps({
+            "schema_version": 1, "run_project": self.project, "collection": "ok",
+            "services": {"ulticode-admin": {"pm2_collection": "ok", "status": "online"}}}))
+
+    def observe(self, phase="launch", project=None):
+        return module.admin_readiness_observation(self.root, phase, project or self.project)
+
+    def test_application_discovery_schema_bounds_aliases_and_secrets(self):
+        log = self.root / "logs/backend-app.out.log"
+        payload = ("AppApplicationDiscoveryObservation interface=submission_user_query "
+                   "state=INVOKER_PRESENT invoker_kind=SERVICE_DISCOVERY_MIGRATION directory_kind=SERVICE_DISCOVERY "
+                   "destroyed=FALSE all=1 valid=0 reconnect=OVERFLOW disabled=ERROR "
+                   "listener_state=PRESENT mapped_apps=1 observed_apps=UNKNOWN instances=10000")
+        invalid = [payload + " password=secret-canary", payload + " " + payload,
+                   payload.replace("listener_state=PRESENT", "listener_state=secret-canary"),
+                   payload.replace("AppApplicationDiscoveryObservation", "AppDiscoveryObservation"),
+                   payload.replace("submission_user_query", "secret-canary")]
+        for name in ("all", "valid", "reconnect", "disabled", "mapped_apps", "observed_apps", "instances"):
+            for value in ("-1", "00", "10001", "999999", "1e2", "secret-canary", "1.0"):
+                import re
+                invalid.append(re.sub(rf"{name}=\S+", f"{name}={value}", payload))
+        log.write_text("\n".join(invalid))
+        self.assertEqual(module.app_application_discovery_observations(self.root), [])
+        log.write_text("\n".join(invalid + ["secret-prefix-canary " + payload] * 20))
+        report = module.build_report(self.root, "launch", 1, self.project)
+        entries = report["app_application_discovery_observations"]
+        self.assertEqual(len(entries), 16)
+        self.assertEqual(entries[0]["mapped_apps"], 1)
+        self.assertEqual(entries[0]["observed_apps"], "UNKNOWN")
+        self.assertEqual(entries[0]["instances"], 10000)
+        self.assertEqual(entries[0]["listener_state"], "PRESENT")
+        self.assertNotIn("canary", json.dumps(report))
+        for state in ("MISSING", "PRESENT", "UNSUPPORTED", "ERROR"):
+            log.write_text(payload.replace("PRESENT mapped", state + " mapped")
+                           .replace("submission_user_query", "auth_account_query"))
+            self.assertEqual(module.app_application_discovery_observations(self.root)[0]["listener_state"], state)
+        log.write_text("x" * module.LIMIT + payload)
+        self.assertEqual(module.app_application_discovery_observations(self.root), [])
+        log.write_text("x" * module.LIMIT + "\n" + payload)
+        self.assertEqual(len(module.app_application_discovery_observations(self.root)), 1)
+        log.unlink()
+        self.assertEqual(module.app_application_discovery_observations(self.root), [])
+        target = self.root / "target"
+        target.write_text(payload)
+        log.symlink_to(target)
+        self.assertEqual(module.app_application_discovery_observations(self.root), [])
+        log.unlink()
+        (self.root / "logs").rmdir()
+        (self.root / "logs").symlink_to(self.root)
+        (self.root / "backend-app.out.log").write_text(payload)
+        self.assertEqual(module.app_application_discovery_observations(self.root), [])
+
+    def test_admin_success_and_503_payload_only_allowlisted_fields(self):
+        for status in ("UP", "DOWN"):
+            self.body.write_text(json.dumps({"status": status, "message": "secret-canary",
+                "url": "http://secret-canary", "components": {"db": "UP", "redis": "UP", "storage": "UP",
+                "problemOwnerRpc": status, "secret-canary": "secret-canary"}}))
+            observation = self.observe()
+            self.assertEqual(observation, {"status": status, "components": {
+                "db": "UP", "redis": "UP", "storage": "UP", "problemOwnerRpc": status}})
+            report = module.build_report(self.root, "launch", 1, self.project)
+            self.assertFalse(report["passed"])
+            self.assertNotIn("canary", json.dumps(report))
+            self.assertEqual(report["admin_post_launch_readiness"], observation)
+            self.assertIn("not-same-timestamp", report["admin_post_launch_readiness_scope"])
+
+    def test_admin_missing_malformed_oversize_aliases_and_invalid_context(self):
+        unknown = self.observe()
+        self.assertEqual(set(unknown), {"status", "components"})
+        for value in ("{", "[]", "null", "x" * (module.ADMIN_LIMIT + 1),
+                      '{"status":"secret-canary","components":{"db":true,"redis":"up","storage":[],"problemOwnerRpc":{}}}',
+                      '{"status":"READY","components":{"database":"UP","problem_owner_rpc":"UP"}}'):
+            self.body.write_text(value)
+            self.assertEqual(self.observe(), unknown)
+        self.body.write_text('{"status":"UP","components":{"db":"UP"}}')
+        self.assertEqual(self.observe("environment"), unknown)
+        self.assertEqual(self.observe(project="secret-canary"), unknown)
+        with mock.patch.dict(os.environ, {"ACCEPTANCE_DISPOSABLE": "false"}):
+            self.assertEqual(self.observe(), unknown)
+        os.utime(self.body, (1, 1))
+        self.assertEqual(self.observe(), unknown)
+
+    def test_admin_refuses_symlinks_directories_and_fifos(self):
+        unknown = self.observe()
+        target = self.root / "target"
+        target.write_text('{"status":"UP"}')
+        self.body.symlink_to(target)
+        self.assertEqual(self.observe(), unknown)
+        self.body.unlink()
+        self.body.mkdir()
+        self.assertEqual(self.observe(), unknown)
+        self.body.rmdir()
+        os.mkfifo(self.body)
+        self.assertEqual(self.observe(), unknown)
+        self.body.unlink()
+        self.body.parent.rmdir()
+        self.body.parent.symlink_to(self.root)
+        (self.root / module.ADMIN_FILE).write_text('{"status":"UP"}')
+        self.assertEqual(self.observe(), unknown)
+
+    def test_capture_is_once_bounded_credentials_free_and_preserves_body(self):
+        with mock.patch.object(module.subprocess, "run") as call:
+            module.capture_admin_readiness(self.root, "launch", self.project)
+            call.assert_not_called()
+        self.launched()
+        for status in ("UP", "DOWN"):
+            def run(command, **kwargs):
+                self.assertEqual(command[:2], ["curl", "-q"])
+                self.assertIn("--noproxy", command)
+                self.assertIn("--max-filesize", command)
+                self.assertEqual(command[command.index("--max-time") + 1], "3")
+                self.assertEqual(command[-1], "http://127.0.0.1:9102/api/v1/admin/health/ready")
+                for forbidden in ("--fail", "--location", "--retry", "--netrc", "--user"):
+                    self.assertNotIn(forbidden, command)
+                kwargs["stdout"].write(json.dumps({"status": status}).encode())
+                return subprocess.CompletedProcess(command, 0)
+            with mock.patch.object(module.subprocess, "run", side_effect=run) as call:
+                module.capture_admin_readiness(self.root, "launch", self.project)
+                self.assertEqual(call.call_count, 1)
+                self.assertEqual(self.observe()["status"], status)
+                self.assertEqual(self.body.stat().st_mode & 0o777, 0o600)
+        with mock.patch.object(module.subprocess, "run") as call:
+            module.capture_admin_readiness(self.root, "environment", self.project)
+            call.assert_not_called()
+        script = (ROOT / "scripts/ci/business-acceptance.sh").read_text()
+        self.assertEqual(script.count("--capture-admin-readiness"), 1)
+        self.assertLess(script.index("--capture-admin-readiness"), script.index("  python3 scripts/ci/acceptance_report.py\n"))
+        self.assertIn('if [[ "$launch_started" == true ]]', script)
+        self.assertIn("launch_started=false", script)
+
+    def test_capture_failure_does_not_publish_partial_body(self):
+        self.launched()
+        with mock.patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 28)):
+            module.capture_admin_readiness(self.root, "launch", self.project)
+        self.assertFalse(self.body.exists())
+        with mock.patch.object(module.subprocess, "run", side_effect=subprocess.TimeoutExpired("curl", 4)):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                module.capture_admin_readiness(self.root, "launch", self.project)
+        self.assertEqual([p.name for p in self.body.parent.iterdir()], ["launch-readiness.json"])
 
 
 if __name__ == "__main__":

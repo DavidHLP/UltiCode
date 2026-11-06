@@ -36,6 +36,7 @@ public class AppReadinessController {
     private final StorageReadiness storageReadiness;
     private final ReferenceBeanManager references;
     private final Map<String, DubboDiscoveryReadiness.Observation> lastDiscovery = new LinkedHashMap<>();
+    private final Map<String, DubboDiscoveryReadiness.ApplicationObservation> lastApplicationDiscovery = new LinkedHashMap<>();
 
     /**
      * The DataSource is resolved through {@link ObjectProvider} so contexts
@@ -75,6 +76,8 @@ public class AppReadinessController {
         try {
             observeInterface("submission_user_query", SubmissionUserQueryPort.class.getName());
             observeInterface("auth_account_query", AccountQueryService.class.getName());
+            observeApplicationInterface("submission_user_query", SubmissionUserQueryPort.class.getName());
+            observeApplicationInterface("auth_account_query", AccountQueryService.class.getName());
         } catch (RuntimeException ignored) {
             // Diagnostic failures never affect HTTP readiness or invoke business RPC.
         }
@@ -88,6 +91,18 @@ public class AppReadinessController {
                 alias, observation.state(), observation.invokerKind(), observation.directoryKind(),
                 observation.destroyed(), observation.all().token(), observation.valid().token(),
                 observation.reconnect().token(), observation.disabled().token());
+    }
+
+    private void observeApplicationInterface(String alias, String interfaceName) {
+        var application = DubboDiscoveryReadiness.inspectApplication(references, interfaceName);
+        if (application.equals(lastApplicationDiscovery.put(alias, application))) return;
+        var observation = application.directory();
+        log.info("AppApplicationDiscoveryObservation interface={} state={} invoker_kind={} directory_kind={} destroyed={} all={} valid={} reconnect={} disabled={} listener_state={} mapped_apps={} observed_apps={} instances={}",
+                alias, observation.state(), observation.invokerKind(), observation.directoryKind(),
+                observation.destroyed(), observation.all().token(), observation.valid().token(),
+                observation.reconnect().token(), observation.disabled().token(), application.listenerState(),
+                application.mappedApplications().token(), application.observedApplications().token(),
+                application.instances().token());
     }
 
     private boolean redisUp() {

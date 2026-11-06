@@ -10,6 +10,9 @@ import org.apache.dubbo.config.spring.ReferenceBean;
 import org.apache.dubbo.config.spring.reference.ReferenceBeanManager;
 import org.apache.dubbo.registry.client.ServiceDiscoveryRegistryDirectory;
 import org.apache.dubbo.registry.client.migration.MigrationInvoker;
+import org.apache.dubbo.rpc.cluster.ClusterInvoker;
+import org.apache.dubbo.registry.client.ServiceInstance;
+import org.apache.dubbo.registry.client.event.listener.ServiceInstancesChangedListener;
 import org.apache.dubbo.rpc.cluster.router.state.BitList;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -68,6 +71,21 @@ class AppReadinessControllerTest {
         when(directory.getValidInvokers()).thenReturn(new BitList(List.of()));
         when(directory.getInvokersToReconnect()).thenReturn(List.of());
         when(directory.getDisabledInvokers()).thenReturn(Set.of());
+        ClusterInvoker applicationInvoker = mock(ClusterInvoker.class);
+        ServiceDiscoveryRegistryDirectory applicationDirectory = mock(ServiceDiscoveryRegistryDirectory.class);
+        ServiceInstancesChangedListener listener = mock(ServiceInstancesChangedListener.class);
+        when(invoker.getServiceDiscoveryInvoker()).thenReturn(applicationInvoker);
+        when(applicationInvoker.getDirectory()).thenReturn(applicationDirectory);
+        when(applicationDirectory.getAllInvokers()).thenReturn(List.of(mock(org.apache.dubbo.rpc.Invoker.class)));
+        when(applicationDirectory.getValidInvokers()).thenReturn(new BitList(List.of()));
+        when(applicationDirectory.getInvokersToReconnect()).thenReturn(List.of());
+        when(applicationDirectory.getDisabledInvokers()).thenReturn(Set.of());
+        when(applicationDirectory.getServiceListener()).thenReturn(listener);
+        when(listener.getServiceNames()).thenReturn(Set.of("never-log-application-name"));
+        when(listener.getAllInstances()).thenReturn(Map.of("never-log-application-name", List.of(mock(ServiceInstance.class))));
+        doThrow(new AssertionError("must not probe application")).when(applicationInvoker).isAvailable();
+        doThrow(new AssertionError("must not read application URL")).when(applicationInvoker).getUrl();
+        doThrow(new AssertionError("must not invoke application RPC")).when(applicationInvoker).invoke(any());
         ReferenceBean authReference = mock(ReferenceBean.class);
         when(authReference.getServiceInterface()).thenReturn(AccountQueryService.class.getName());
         when(authReference.getReferenceConfig()).thenReturn(config);
@@ -85,6 +103,10 @@ class AppReadinessControllerTest {
         assertThat(output.getAll().split("AppDiscoveryObservation interface=submission_user_query", -1)).hasSize(2);
         assertThat(output.getAll()).contains("AppDiscoveryObservation interface=auth_account_query state=INVOKER_PRESENT");
         assertThat(output.getAll().split("AppDiscoveryObservation interface=auth_account_query", -1)).hasSize(2);
+        assertThat(output.getAll()).contains("AppApplicationDiscoveryObservation interface=submission_user_query state=INVOKER_PRESENT invoker_kind=MIGRATION directory_kind=SERVICE_DISCOVERY destroyed=FALSE all=1 valid=0 reconnect=0 disabled=0 listener_state=PRESENT mapped_apps=1 observed_apps=1 instances=1")
+                .doesNotContain("never-log-application-name");
+        assertThat(output.getAll().split("AppApplicationDiscoveryObservation interface=submission_user_query", -1)).hasSize(2);
+        assertThat(output.getAll().split("AppApplicationDiscoveryObservation interface=auth_account_query", -1)).hasSize(2);
         when(manager.getReferences()).thenThrow(new IllegalStateException("credential-canary"));
         assertThat(controller.ready().getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(output.getAll()).contains("interface=submission_user_query state=INSPECTION_ERROR")
@@ -95,6 +117,10 @@ class AppReadinessControllerTest {
         verify(directory, never()).isAvailable();
         verify(reference, never()).getObject();
         verify(authReference, never()).getObject();
+        verify(applicationInvoker, never()).isAvailable();
+        verify(applicationInvoker, never()).getUrl();
+        verify(applicationInvoker, never()).invoke(any());
+        verify(applicationDirectory, never()).isAvailable();
     }
 
     @SuppressWarnings("unchecked")

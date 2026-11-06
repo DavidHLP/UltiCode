@@ -1,6 +1,8 @@
 package com.ulticode.rpc.resilience;
 
 import java.util.Collection;
+import java.util.Map;
+import org.apache.dubbo.registry.client.event.listener.ServiceInstancesChangedListener;
 import java.util.function.Supplier;
 import org.apache.dubbo.registry.client.ServiceDiscoveryRegistryDirectory;
 import org.apache.dubbo.registry.client.migration.MigrationInvoker;
@@ -85,6 +87,95 @@ public final class DubboDiscoveryReadiness {
                     count(dynamic::getInvokersToReconnect), count(dynamic::getDisabledInvokers));
         } catch (RuntimeException notInitialized) {
             return absent(State.INSPECTION_ERROR, kind, DirectoryKind.MISSING);
+        }
+    }
+
+    public enum ListenerState { MISSING, PRESENT, UNSUPPORTED, ERROR }
+
+    /** Existing application-discovery child only, independent of the selected migration branch. */
+    public record ApplicationObservation(Observation directory, ListenerState listenerState,
+                                         Count mappedApplications, Count observedApplications, Count instances) {}
+
+    private static ApplicationObservation applicationAbsent(Observation directory, ListenerState listener) {
+        return new ApplicationObservation(directory, listener, UNKNOWN, UNKNOWN, UNKNOWN);
+    }
+
+    public static ApplicationObservation inspectApplication(ReferenceBeanManager manager, String requiredInterface) {
+        if (manager == null) return applicationAbsent(
+                absent(State.MANAGER_MISSING, InvokerKind.MISSING, DirectoryKind.MISSING), ListenerState.MISSING);
+        try {
+            for (var reference : manager.getReferences()) {
+                if (!requiredInterface.equals(reference.getServiceInterface())) continue;
+                var config = reference.getReferenceConfig();
+                if (config == null) return applicationAbsent(
+                        absent(State.CONFIG_MISSING, InvokerKind.MISSING, DirectoryKind.MISSING), ListenerState.MISSING);
+                return inspectApplicationInvoker(config.getInvoker());
+            }
+            return applicationAbsent(absent(State.REFERENCE_MISSING, InvokerKind.MISSING, DirectoryKind.MISSING),
+                    ListenerState.MISSING);
+        } catch (RuntimeException notInitialized) {
+            return applicationAbsent(absent(State.INSPECTION_ERROR, InvokerKind.MISSING, DirectoryKind.MISSING),
+                    ListenerState.ERROR);
+        }
+    }
+
+    private static ApplicationObservation inspectApplicationInvoker(Invoker<?> invoker) {
+        InvokerKind kind = invoker instanceof ServiceDiscoveryMigrationInvoker<?> ? InvokerKind.SERVICE_DISCOVERY_MIGRATION
+                : invoker instanceof MigrationInvoker<?> ? InvokerKind.MIGRATION
+                : invoker instanceof ClusterInvoker<?> ? InvokerKind.CLUSTER
+                : invoker == null ? InvokerKind.MISSING : InvokerKind.OTHER;
+        try {
+            // ServiceDiscoveryMigrationInvoker also stores its application invoker in this inherited field.
+            // Never use the selected branch, initialize a reference, or probe transport availability.
+            Invoker<?> application = invoker instanceof MigrationInvoker<?> migration
+                    ? migration.getServiceDiscoveryInvoker() : invoker;
+            if (application == null) return applicationAbsent(
+                    absent(State.INVOKER_MISSING, kind, DirectoryKind.MISSING), ListenerState.MISSING);
+            if (!(application instanceof ClusterInvoker<?> cluster)) return applicationAbsent(
+                    absent(State.UNSUPPORTED, kind, DirectoryKind.MISSING), ListenerState.UNSUPPORTED);
+            var directory = cluster.getDirectory();
+            if (directory == null) return applicationAbsent(
+                    absent(State.INVOKER_PRESENT, kind, DirectoryKind.MISSING), ListenerState.MISSING);
+            if (!(directory instanceof ServiceDiscoveryRegistryDirectory<?> dynamic)) return applicationAbsent(
+                    absent(State.UNSUPPORTED, kind, directory instanceof DynamicDirectory<?>
+                            ? DirectoryKind.DYNAMIC : DirectoryKind.OTHER), ListenerState.UNSUPPORTED);
+            Observation observation = new Observation(State.INVOKER_PRESENT, kind, DirectoryKind.SERVICE_DISCOVERY,
+                    destroyed(dynamic), count(dynamic::getAllInvokers), count(dynamic::getValidInvokers),
+                    count(dynamic::getInvokersToReconnect), count(dynamic::getDisabledInvokers));
+            try {
+                ServiceInstancesChangedListener listener = dynamic.getServiceListener();
+                if (listener == null) return applicationAbsent(observation, ListenerState.MISSING);
+                Count mapped = count(listener::getServiceNames);
+                // These are bounded, non-atomic samples. A concurrent update can produce ERROR;
+                // absence/zero alone does not prove a missing mapping or explain an RPC failure.
+                Map<?, ? extends Collection<?>> instances = listener.getAllInstances();
+                Count observed = instances == null ? UNKNOWN : count(instances::values);
+                return new ApplicationObservation(observation, ListenerState.PRESENT, mapped, observed,
+                        instanceCount(instances));
+            } catch (RuntimeException notInitialized) {
+                return applicationAbsent(observation, ListenerState.ERROR);
+            }
+        } catch (RuntimeException notInitialized) {
+            return applicationAbsent(absent(State.INSPECTION_ERROR, kind, DirectoryKind.MISSING), ListenerState.ERROR);
+        }
+    }
+
+    private static Count instanceCount(Map<?, ? extends Collection<?>> instances) {
+        if (instances == null) return UNKNOWN;
+        try {
+            int total = 0;
+            int visited = 0;
+            for (Collection<?> values : instances.values()) {
+                if (++visited > 10_000) return new Count(CountState.OVERFLOW, 0);
+                if (values == null) return UNKNOWN;
+                int size = values.size();
+                if (size < 0) return new Count(CountState.ERROR, 0);
+                if (size > 10_000 - total) return new Count(CountState.OVERFLOW, 0);
+                total += size;
+            }
+            return new Count(CountState.MEASURED, total);
+        } catch (RuntimeException notInitialized) {
+            return new Count(CountState.ERROR, 0);
         }
     }
 

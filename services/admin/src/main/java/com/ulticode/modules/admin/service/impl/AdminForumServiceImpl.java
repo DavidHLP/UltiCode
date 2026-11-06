@@ -72,7 +72,7 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final AdminBulkExecutor bulkExecutor;
     private final AdminForumReadPort adminForumReadPort;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ContentModerationService contentModerationService;
 

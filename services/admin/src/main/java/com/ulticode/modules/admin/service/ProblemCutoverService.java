@@ -50,7 +50,7 @@ public class ProblemCutoverService {
     private final AdminProblemMapper mapper;
     private final CurrentUserProvider currentUserProvider;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ProblemAdministrationService dubboProvider;
 

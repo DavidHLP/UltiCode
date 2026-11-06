@@ -36,7 +36,7 @@ require_dev_admin_password
 [[ "${DEV_SEED_ADMIN_PASSWORD+x}" == "$before_set" ]]
 ''', "bootstrap-contract", str(policy)], env=environment, text=True, capture_output=True)
         self.assertEqual(result.stdout, "")
-        if password:
+        if password and password.strip():
             self.assertNotIn(password, result.stderr)
         return result
 
@@ -48,8 +48,35 @@ require_dev_admin_password
     def test_enabled_bootstrap_rejects_empty_password(self):
         self.assertNotEqual(self.run_policy("").returncode, 0)
 
+    def test_enabled_bootstrap_rejects_whitespace_only_password(self):
+        for value in (" ", "\t", "\n", "\r\n", " \t\r\n "):
+            with self.subTest(kind=repr(value)):
+                self.assertNotEqual(self.run_policy(value).returncode, 0)
+
+    def test_java_unicode_whitespace_only_password_is_rejected(self):
+        codepoints = (
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x1C, 0x1D, 0x1E, 0x1F, 0x20,
+            0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005,
+            0x2006, 0x2008, 0x2009, 0x200A, 0x2028, 0x2029, 0x205F, 0x3000,
+        )
+        values = [chr(codepoint) for codepoint in codepoints]
+        for locale in ("C", "C.UTF-8"):
+            for value in values + ["".join(values)]:
+                with self.subTest(locale=locale, codepoints=[hex(ord(char)) for char in value]):
+                    self.assertNotEqual(self.run_policy(value, LC_ALL=locale).returncode, 0)
+
+    def test_java_nonbreaking_spaces_are_preserved_as_nonblank(self):
+        for locale in ("C", "C.UTF-8"):
+            for value in ("\u00a0", "\u2007", "\u202f", "测试用非ASCII值", " \u1680有效值\u3000 "):
+                with self.subTest(locale=locale, codepoints=[hex(ord(char)) for char in value]):
+                    result = self.run_policy(value, LC_ALL=locale)
+                    self.assertEqual(result.returncode, 0)
+                    self.assertEqual(result.stderr, "")
+
     def test_explicit_password_is_preserved_without_printing(self):
-        self.assertEqual(self.run_policy("test-only-explicit-value=$with punctuation").returncode, 0)
+        for value in ("test-only-explicit-value=$with punctuation", "  test-only-value \t"):
+            with self.subTest():
+                self.assertEqual(self.run_policy(value).returncode, 0)
 
     def test_skip_bootstrap_allows_missing_password(self):
         self.assertEqual(self.run_policy(SKIP_BOOTSTRAP="true").returncode, 0)

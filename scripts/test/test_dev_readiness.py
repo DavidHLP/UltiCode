@@ -6,12 +6,14 @@ import io
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'scripts/ci'))
 def load(name, path):
     spec = importlib.util.spec_from_file_location(name, ROOT / path)
     module = importlib.util.module_from_spec(spec)
@@ -76,6 +78,40 @@ SELECTED_READINESS=('ulticode-app|unknown|0|')
 if check_selected_readiness; then exit 1; fi
 [[ "${READINESS_RESULTS[ulticode-app]}" == 'failed unknown_probe_kind' ]]
 ''')
+
+    def test_acceptance_snapshot_maps_each_completed_cycle(self):
+        self.shell(''' 
+ACCEPTANCE_DISPOSABLE=true
+declare -A ACCEPTANCE_LAST_READINESS=()
+SELECTED_READINESS=('ulticode-app|http|9103|/fixed' 'ulticode-submission|pm2|0|')
+check_port() { READINESS_DETAIL=http_503/http_503; return 1; }
+check_pm2_online() { READINESS_DETAIL=pm2_banner_observed; return 0; }
+if check_selected_readiness; then exit 1; fi
+[[ "${ACCEPTANCE_LAST_READINESS[ulticode-app]}" == not_ready ]]
+[[ "${ACCEPTANCE_LAST_READINESS[ulticode-submission]}" == ready ]]
+check_port() { READINESS_DETAIL=http_200; return 0; }
+check_selected_readiness
+[[ "${ACCEPTANCE_LAST_READINESS[ulticode-app]}" == ready ]]
+SELECTED_READINESS=('ulticode-submission|unknown|0|')
+if check_selected_readiness; then exit 1; fi
+[[ "${ACCEPTANCE_LAST_READINESS[ulticode-submission]}" == not_ready ]]
+''')
+
+    def test_regular_readiness_does_not_require_acceptance_state(self):
+        self.shell('''
+unset ACCEPTANCE_DISPOSABLE ACCEPTANCE_LAST_READINESS
+SELECTED_READINESS=('ulticode-app|http|9103|/fixed')
+check_port() { READINESS_DETAIL=http_200; return 0; }
+check_selected_readiness
+! declare -p ACCEPTANCE_LAST_READINESS >/dev/null 2>&1
+''')
+
+    def test_diagnostics_remain_after_success_exit_and_keep_snapshot_hook(self):
+        self.assertEqual(SOURCE.count('trap acceptance_launch_snapshot EXIT'), 1)
+        self.assertEqual(SOURCE.count('timeout --kill-after=2s 25s python3 -u'), 1)
+        tail = SOURCE[SOURCE.index('check_url() {'):]
+        self.assertLess(tail.index('    exit 0'), tail.index('\nemit_final_readiness\n'))
+        self.assertTrue(tail.rstrip().endswith('exit 1'))
 
     def test_hung_diagnostic_is_killed_without_changing_failure_exit(self):
         # Exercise the production TERM/KILL wrapper with shorter test durations.

@@ -20,7 +20,7 @@ import java.util.List;
 @Component
 public class DubboSubmissionActivityAnalyticsAdapter implements SubmissionActivityAnalyticsPort {
 
-    @DubboReference(group = "backend-submission", version = "1.0.0",
+    @DubboReference(group = "backend-submission", providedBy = "${ulticode.rpc.providers.submission:backend-submission}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionActivityAnalyticsPort submissionActivityAnalyticsPort;
 

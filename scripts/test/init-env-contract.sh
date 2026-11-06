@@ -9,8 +9,8 @@ cp -R "$ROOT_DIR/scripts/dev" "$FIXTURE/scripts/"
 cp -R "$ROOT_DIR/docker/redis" "$FIXTURE/docker/"
 chmod +x "$FIXTURE/docker/redis/generate-users-acl.sh"
 GENERATOR="$FIXTURE/scripts/dev/init-env.sh"
-bash "$GENERATOR" --output "$FIXTURE/first.env" >"$FIXTURE/first.log"
-bash "$GENERATOR" --output "$FIXTURE/second.env" >"$FIXTURE/second.log"
+bash "$GENERATOR" --output "$FIXTURE/first.env" >"$FIXTURE/first.log" 2>&1
+bash "$GENERATOR" --output "$FIXTURE/second.env" >"$FIXTURE/second.log" 2>&1
 python3 - "$FIXTURE" <<'PY'
 import pathlib, stat, sys
 root = pathlib.Path(sys.argv[1])
@@ -30,9 +30,9 @@ for log in root.glob('*.log'):
         assert env['DEV_SEED_ADMIN_PASSWORD'] not in log.read_text(), 'Password leaked to output'
 PY
 cp "$FIXTURE/first.env" "$FIXTURE/saved.env"
-bash "$GENERATOR" --output "$FIXTURE/first.env" >"$FIXTURE/preserve.log"
+bash "$GENERATOR" --output "$FIXTURE/first.env" >"$FIXTURE/preserve.log" 2>&1
 cmp -s "$FIXTURE/saved.env" "$FIXTURE/first.env" || { echo 'Existing environment changed without --force' >&2; exit 1; }
-bash "$GENERATOR" --output "$FIXTURE/first.env" --force >"$FIXTURE/force.log"
+bash "$GENERATOR" --output "$FIXTURE/first.env" --force >"$FIXTURE/force.log" 2>&1
 python3 - "$FIXTURE" <<'PY'
 import pathlib, stat, sys
 root=pathlib.Path(sys.argv[1])

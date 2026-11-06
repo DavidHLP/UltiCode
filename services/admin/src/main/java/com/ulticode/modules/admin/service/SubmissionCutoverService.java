@@ -32,7 +32,7 @@ public class SubmissionCutoverService {
 
     private final CurrentUserProvider currentUserProvider;
 
-    @DubboReference(group = "backend-submission", version = "1.0.0",
+    @DubboReference(group = "backend-submission", providedBy = "${ulticode.rpc.providers.submission:backend-submission}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private SubmissionAdministrationService dubboProvider;
 

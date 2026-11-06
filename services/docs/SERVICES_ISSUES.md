@@ -1,6 +1,6 @@
 # `services/` 问题清单
 
-更新时间：2026-09-06
+更新时间：2026-11-06
 
 本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与可选外部运行触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
 
@@ -32,8 +32,25 @@ App interface locality 已闭环；Core 的边界与验证范围见 SVC-025。
 
 ## OPEN
 
-本文件当前无 OPEN 项；Core Auth/Admin bounded testbed 已取得 local Adapter
-parity 和真实 HTTP disposable journey 证据，不得切换默认拓扑。
+### SVC-029 Nacos registry server protobuf generated code（OPEN）
+
+Base Compose 的 `nacos/nacos-server:v2.3.2` 与 prod/HA 固定的
+`sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8`
+指向同一镜像。该镜像包含 `nacos-api:2.3.2`、`protobuf-java:3.22.3`，
+并在 `nacos-client:2.3.2` 内再次包含协议类。上游同版本的 Metadata/Payload
+仍使用旧生成解析器；[GHSA-h4h5-3hr4-j3g2](https://github.com/protocolbuffers/protobuf/security/advisories/GHSA-h4h5-3hr4-j3g2)
+不能仅靠更新 protobuf runtime 修复。Owner/Worker 的 patched API 只作用于应用
+依赖，不修改这个独立的注册中心镜像。
+
+Nacos gRPC 在连接有效性与请求鉴权之前解析 Payload，不能把开启认证当作
+解析器修复。base/prod 不发布 Nacos 端口，dev 只绑定 loopback，缩小了入口，
+但不能排除同网络服务或本机进程。提取依赖的有界本地解析已观察到资源放大；
+这不是镜像 JDK 或运行中服务器的完整验证。替换镜像尚未验收；后续修复须
+检查所有协议类来源，并验证数据、认证、SDK/集群连接与重连兼容性。不得通过
+静音旧生成代码警告、取消认证或放宽门禁关闭本项。
+
+Core Auth/Admin bounded testbed 已取得 local Adapter parity 和真实 HTTP
+disposable journey 证据；本项不改变默认拓扑或 SVC-025 的状态。
 
 ## CLOSED
 

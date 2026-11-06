@@ -671,6 +671,25 @@ CI/CD 契约的 provenance 测试数据必须由测试在临时目录生成或�
 
 这些检查验证流水线实现与离线失败路径，不代表已运行远程 GitHub Actions、签名发布或真实环境部署。Environment 审批、分支保护和部署凭据的启用要求见 [`OPERATIONS.md`](OPERATIONS.md#cicd-入口)。
 
+### Nacos 客户端协议构建与兼容验证
+
+`services/platform/nacos-api-patched` 以独立的 `com.ulticode:nacos-api-patched` 坐标构建客户端 API 衍生包，不发布到上游坐标或覆盖上游 artifact。构建校验锁定的原始 JAR、POM、协议和生成源码 SHA-256，仅替换 protobuf 生成类，保留其他上游字节；包内保留原始来源、许可证和 CycloneDX 血缘；CI 额外扫描上游普通组件并核对 Trivy 实际识别结果，不能因为改用自有坐标而丢失扫描覆盖。普通构建编译已提交的生成源码，不需要本机 protoc。更改协议或工具链时必须同时更新来源、生成结果和校验值，不得把不匹配改为警告。
+
+```bash
+# Linux x86_64 上再生成并逐字节校验；其他已锁定平台用 nacos.protoc.classifier 选择。
+(cd services && ./mvnw -B -pl platform/nacos-api-patched -Pverify-nacos-generation verify)
+# 严格解析与类来源单测；不启动基础设施。
+(cd services && ./mvnw -B -pl platform/rpc-resilience -am -Punit verify)
+# Docker Compose 本机隔离集成；无需已有 .env，不访问现有实例。
+bash scripts/test/nacos-client-integration.sh
+# 编排失败与清理路径的零基础设施回归。
+python3 scripts/test/test_nacos_client_integration.py
+```
+
+再生成使用锁定的 protoc 版本，避免破坏已编译 Nacos/gRPC 调用者的方法签名；不能只按运行时版本号选择最新生成器。单测与真实客户端均启用 `com.google.protobuf.error_on_unsafe_pre22_gencode`，禁止用 `use_unsafe_pre22_gencode` 隐藏旧代码。集成脚本生成临时凭据、独立 Compose project 与 loopback 端口，验证注册、发现、配置/元数据回调、错误及缺失凭据拒绝、断线检测与自动重连/重订阅，并清理所属容器、卷和私有日志。它拒绝远端 Docker daemon；容器或工具不可用时失败，不跳过。后端 CI 同时要求再生成校验和真实注册中心集成通过。
+
+此补丁只覆盖应用进程加载的 Nacos 客户端 API，不改变独立 Nacos 服务端镜像。服务端残余风险和后续验收范围见 [SVC-029](../services/docs/SERVICES_ISSUES.md)。
+
 ### Core 与 distributed 验证边界
 
 | 层级 | 环境/副作用 | 能证明什么 | 明确不能证明 |

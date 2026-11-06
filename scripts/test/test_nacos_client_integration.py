@@ -5,6 +5,7 @@ Doubles test the launcher only; they are not real Nacos integration evidence.
 """
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -91,8 +92,11 @@ assert not any('use_unsafe' in arg for arg in sys.argv)
 assert os.environ['HOME'] != os.environ['ORIGINAL_HOME']
 control = pathlib.Path(os.environ['NACOS_FIXTURE_CONTROL'])
 print(os.environ['AUTH_NACOS_PASSWORD'])  # must remain in private log
-if os.environ['FAILURE'] == 'client':
-    (control / 'failure').write_text('phase=wrong-auth-rejection\\nexception=java.lang.AssertionError\\nline=123\\n' + os.environ['AUTH_NACOS_PASSWORD'])
+if os.environ['FAILURE'] in ('client', 'transport'):
+    code, classification = (-401, 'client-disconnected') if os.environ['FAILURE'] == 'transport' else (403, 'authorization-rejected')
+    (control / 'failure').write_text('phase=wrong-auth-rejection\\nexception=java.lang.AssertionError\\nline=123\\n'
+        + f'nacos-error-code={code}\\nclassification={classification}\\n'
+        + 'classification=' + os.environ['AUTH_NACOS_PASSWORD'] + '\\n' + os.environ['AUTH_NACOS_PASSWORD'])
     sys.exit(37)
 (control / 'ready-for-outage').touch()
 for requested, observed in [('server-stopped', 'observed-disconnect'), ('server-restarted', 'finished')]:
@@ -115,6 +119,30 @@ for requested, observed in [('server-stopped', 'observed-disconnect'), ('server-
             self.assertNotIn("dependencies.jar", result.stdout + result.stderr)
             return result, events
 
+    def test_fixture_supports_host_clients_without_exposing_mysql(self):
+        # This small fixture deliberately has one project-local bridge. Docker's
+        # internal bridge does not support this host-published topology (same
+        # constraint as docker-compose.dev.yml); pin that contract without a
+        # Docker/PyYAML dependency in this infrastructure-free regression.
+        compose = (ROOT / "scripts/test/fixtures/nacos-client.compose.yml").read_text()
+        services, networks = compose.split("\nnetworks:\n", 1)
+        network_settings = [line.strip() for line in networks.splitlines()
+                            if line.strip() and not line.lstrip().startswith("#")]
+        self.assertEqual(network_settings, ["fixture:", "internal: false"])
+        mysql, nacos = services.split("\n  nacos:\n", 1)
+        self.assertNotIn("ports:", mysql)
+        self.assertEqual(services.count("networks: [fixture]"), 2)
+        ports = re.search(r"(?ms)^    ports:\n(.*?)(?=^    \S|\Z)", nacos)
+        self.assertIsNotNone(ports)
+        publications = [line.strip() for line in ports.group(1).splitlines()
+                        if line.strip() and not line.lstrip().startswith("#")]
+        self.assertEqual(publications, [
+            '- "127.0.0.1:${NACOS_FIXTURE_HTTP_PORT:?loopback port required}:8848"',
+            '- "127.0.0.1:${NACOS_FIXTURE_GRPC_PORT:?loopback port required}:9848"',
+        ])
+        self.assertNotIn("network_mode:", compose)
+        self.assertNotIn("external:", compose)
+
     def test_success_restarts_only_owned_fixture_and_cleans(self):
         result, events = self.run_fixture()
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -125,16 +153,19 @@ for requested, observed in [('server-stopped', 'observed-disconnect'), ('server-
         self.assertEqual(len(projects), 1)
 
     def test_failures_are_not_skips_or_success(self):
-        for failure in ("build", "start", "client", "cleanup"):
+        for failure in ("build", "start", "client", "transport", "cleanup"):
             with self.subTest(failure=failure):
                 result, events = self.run_fixture(failure)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn("PASS:", result.stdout)
                 self.assertIn("down", events[-1])
-                if failure == "client":
+                if failure in ("client", "transport"):
                     self.assertIn("Client diagnostic: phase=wrong-auth-rejection", result.stderr)
                     self.assertIn("Client diagnostic: exception=java.lang.AssertionError", result.stderr)
-                if failure in ("build", "start", "client"):
+                    code, classification = (-401, "client-disconnected") if failure == "transport" else (403, "authorization-rejected")
+                    self.assertIn(f"Client diagnostic: nacos-error-code={code}", result.stderr)
+                    self.assertIn(f"Client diagnostic: classification={classification}", result.stderr)
+                if failure in ("build", "start", "client", "transport"):
                     self.assertFalse(any("stop" in event for event in events))
 
     def test_remote_context_is_rejected_before_mutation(self):

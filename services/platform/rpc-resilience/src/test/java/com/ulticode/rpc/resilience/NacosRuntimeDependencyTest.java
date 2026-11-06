@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.alibaba.nacos.api.NacosFactory;
+import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.grpc.auto.BiRequestStreamGrpc;
 import com.alibaba.nacos.api.grpc.auto.Metadata;
 import com.alibaba.nacos.api.grpc.auto.Payload;
@@ -31,11 +32,14 @@ import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -93,6 +97,46 @@ class NacosRuntimeDependencyTest {
             assertThat(identity.getProperty("groupId")).isEqualTo("com.ulticode");
             assertThat(identity.getProperty("artifactId")).isEqualTo("nacos-api-patched");
             assertThat(identity.getProperty("version")).isEqualTo("2.5.1-ulticode-1");
+        }
+    }
+
+    @Test
+    void fixtureWaitsForEveryTransportBeforeSendingBusinessRequests() throws Exception {
+        AtomicInteger consumerPolls = new AtomicInteger();
+        AtomicInteger configPolls = new AtomicInteger();
+        NacosRegistryIT.awaitConnected(() -> "UP",
+                () -> consumerPolls.incrementAndGet() == 1 ? "DOWN" : "UP",
+                () -> { configPolls.incrementAndGet(); return "UP"; });
+        assertThat(consumerPolls.get()).isEqualTo(2);
+        assertThat(configPolls.get()).isEqualTo(1);
+    }
+
+    @Test
+    void fixtureReadinessFailsClosedWithoutSwallowingRequestErrors() {
+        assertThatThrownBy(() -> NacosRegistryIT.await("disconnected fixture", () -> false, Duration.ZERO))
+                .isInstanceOf(AssertionError.class).hasMessageContaining("disconnected fixture");
+        NacosException forbidden = new NacosException(NacosException.NO_RIGHT, "must not be retried");
+        AtomicInteger attempts = new AtomicInteger();
+        assertThatThrownBy(() -> NacosRegistryIT.await("forbidden", () -> {
+            attempts.incrementAndGet();
+            throw forbidden;
+        }, Duration.ofSeconds(60))).isSameAs(forbidden);
+        assertThat(attempts.get()).isEqualTo(1);
+    }
+
+    @Test
+    void fixtureDiagnosticsDistinguishTransportAndAuthWithoutExposingMessages() {
+        for (Map.Entry<Integer, String> error : Map.of(
+                NacosException.CLIENT_DISCONNECT, "client-disconnected",
+                NacosException.NO_RIGHT, "authorization-rejected",
+                NacosException.INVALID_SERVER_STATUS, "server-not-ready",
+                NacosException.NOT_FOUND, "resource-not-found",
+                NacosException.SERVER_ERROR, "nacos-request-failed").entrySet()) {
+            String privateValue = java.util.UUID.randomUUID().toString();
+            String diagnostic = NacosRegistryIT.failureDiagnostic(new IllegalStateException(privateValue,
+                    new NacosException(error.getKey(), privateValue)));
+            assertThat(diagnostic).contains("nacos-error-code=" + error.getKey() + "\n",
+                    "classification=" + error.getValue() + "\n").doesNotContain(privateValue);
         }
     }
 

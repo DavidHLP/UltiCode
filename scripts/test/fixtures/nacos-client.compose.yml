@@ -49,4 +49,7 @@ services:
 
 networks:
   fixture:
-    internal: true
+    # The Java client runs on the host. Like docker-compose.dev.yml, published
+    # loopback ports require a non-internal bridge. This network belongs only
+    # to the random disposable project; MySQL still publishes no host port.
+    internal: false

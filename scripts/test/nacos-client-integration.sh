@@ -49,7 +49,7 @@ from pathlib import Path
 import re
 import sys
 for line in Path(sys.argv[1]).read_text().splitlines():
-    if re.fullmatch(r'(?:phase=[a-z-]+|exception=[A-Za-z0-9_.$]+|line=[0-9]+)', line):
+    if re.fullmatch(r'(?:phase=[a-z-]+|exception=[A-Za-z0-9_.$]+|line=[0-9]+|nacos-error-code=-?[0-9]+|classification=(?:client-disconnected|authorization-rejected|server-not-ready|resource-not-found|nacos-request-failed))', line):
         print('Client diagnostic: ' + line, file=sys.stderr)
 PY_DIAGNOSTIC
     fi

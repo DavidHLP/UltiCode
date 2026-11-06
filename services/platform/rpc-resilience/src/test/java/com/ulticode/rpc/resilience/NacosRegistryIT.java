@@ -25,6 +25,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
 /** Run only through scripts/test/nacos-client-integration.sh, never against an existing registry. */
@@ -44,18 +45,7 @@ class NacosRegistryIT {
         try {
             new NacosRegistryIT().authenticatedRegistrySurvivesServerRestart();
         } catch (Throwable failure) {
-            // Export only static phase, exception type and this source's line
-            // numbers. SDK exception messages/logs may contain credentials.
-            StringBuilder diagnostic = new StringBuilder("phase=" + phase + "\n");
-            for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-                diagnostic.append("exception=").append(cause.getClass().getName()).append('\n');
-                for (StackTraceElement frame : cause.getStackTrace()) {
-                    if (frame.getClassName().equals(NacosRegistryIT.class.getName())) {
-                        diagnostic.append("line=").append(frame.getLineNumber()).append('\n');
-                    }
-                }
-            }
-            Files.writeString(Path.of(required("NACOS_FIXTURE_CONTROL"), "failure"), diagnostic);
+            Files.writeString(Path.of(required("NACOS_FIXTURE_CONTROL"), "failure"), failureDiagnostic(failure));
             throw failure;
         }
         System.out.println("PASS: authenticated naming/config, auth rejection, reconnect/resubscribe and shutdown");
@@ -75,10 +65,15 @@ class NacosRegistryIT {
             public Executor getExecutor() { return null; }
             public void receiveConfigInfo(String value) { configEvents.add(value); }
         };
+        phase = "initial-transport";
         try (Clients clients = new Clients()) {
             NamingService producer = clients.naming(properties(true, false));
             NamingService consumer = clients.naming(properties(true, false));
             ConfigService config = clients.config(properties(true, false));
+            // RpcClient.start() may return while asynchronous connection setup
+            // continues. HTTP container health does not prove client transport
+            // readiness; never reinterpret a disconnected call as an auth result.
+            awaitConnected(producer::getServerStatus, consumer::getServerStatus, config::getServerStatus);
             phase = "authenticated-naming";
             consumer.subscribe(SERVICE, GROUP, namingListener);
             Instance initial = instance(20880, "before-restart");
@@ -142,17 +137,58 @@ class NacosRegistryIT {
         // is NOT evidence of authentication enforcement. Require Nacos NO_RIGHT.
         assertThatThrownBy(() -> {
             try (Clients clients = new Clients()) {
-                clients.naming(properties(authenticated, wrongPassword))
-                        .registerInstance(SERVICE, GROUP, instance(20882, "must-be-rejected"));
+                NamingService naming = clients.naming(properties(authenticated, wrongPassword));
+                awaitConnected(naming::getServerStatus);
+                naming.registerInstance(SERVICE, GROUP, instance(20882, "must-be-rejected"));
             }
         }).isInstanceOfSatisfying(NacosException.class,
                 failure -> assertThat(failure.getErrCode()).isEqualTo(NacosException.NO_RIGHT));
         assertThatThrownBy(() -> {
             try (Clients clients = new Clients()) {
-                clients.config(properties(authenticated, wrongPassword)).getConfig(DATA_ID, CONFIG_GROUP, 5000);
+                ConfigService config = clients.config(properties(authenticated, wrongPassword));
+                awaitConnected(config::getServerStatus);
+                config.getConfig(DATA_ID, CONFIG_GROUP, 5000);
             }
         }).isInstanceOfSatisfying(NacosException.class,
                 failure -> assertThat(failure.getErrCode()).isEqualTo(NacosException.NO_RIGHT));
+    }
+
+    static String failureDiagnostic(Throwable failure) {
+        // Never export SDK exception messages or request values. Those can
+        // contain credentials; numeric codes and these fixed labels are safe.
+        StringBuilder diagnostic = new StringBuilder("phase=" + phase + "\n");
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            diagnostic.append("exception=").append(cause.getClass().getName()).append('\n');
+            if (cause instanceof NacosException nacos) {
+                diagnostic.append("nacos-error-code=").append(nacos.getErrCode()).append('\n');
+                String classification = switch (nacos.getErrCode()) {
+                    case NacosException.CLIENT_DISCONNECT -> "client-disconnected";
+                    case NacosException.NO_RIGHT -> "authorization-rejected";
+                    case NacosException.INVALID_SERVER_STATUS -> "server-not-ready";
+                    case NacosException.NOT_FOUND, NacosException.RESOURCE_NOT_FOUND -> "resource-not-found";
+                    default -> "nacos-request-failed";
+                };
+                diagnostic.append("classification=").append(classification).append('\n');
+            }
+            for (StackTraceElement frame : cause.getStackTrace()) {
+                if (frame.getClassName().equals(NacosRegistryIT.class.getName())) {
+                    diagnostic.append("line=").append(frame.getLineNumber()).append('\n');
+                }
+            }
+        }
+        return diagnostic.toString();
+    }
+
+    @SafeVarargs
+    static void awaitConnected(Supplier<String>... statuses) throws Exception {
+        await("client transport readiness", () -> {
+            for (Supplier<String> status : statuses) {
+                if (!"UP".equals(status.get())) {
+                    return false;
+                }
+            }
+            return true;
+        });
     }
 
     private static Properties properties(boolean authenticated, boolean wrongPassword) {
@@ -200,7 +236,11 @@ class NacosRegistryIT {
     }
 
     private static void await(String label, CheckedCondition condition) throws Exception {
-        long deadline = System.nanoTime() + WAIT.toNanos();
+        await(label, condition, WAIT);
+    }
+
+    static void await(String label, CheckedCondition condition, Duration timeout) throws Exception {
+        long deadline = System.nanoTime() + timeout.toNanos();
         while (System.nanoTime() < deadline) {
             if (condition.matches()) {
                 return;
@@ -211,7 +251,7 @@ class NacosRegistryIT {
     }
 
     @FunctionalInterface
-    private interface CheckedCondition {
+    interface CheckedCondition {
         boolean matches() throws Exception;
     }
 

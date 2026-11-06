@@ -11,7 +11,9 @@ import org.springframework.stereotype.Component;
 @Primary
 public class RemoteSubmissionFencePort implements SubmissionFencePort {
 
-    @DubboReference(group = "backend-submission", version = "1.1.0", timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
+    @DubboReference(group = "backend-submission", version = "1.1.0",
+            providedBy = "${ulticode.rpc.providers.submission:backend-submission}",
+            timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private SubmissionFencePort submissionFencePort;
 
     @Override

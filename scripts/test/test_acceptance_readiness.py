@@ -18,6 +18,52 @@ PROJECT = 'ulticode-acceptance-123-456'
 
 
 class ReadinessTests(unittest.TestCase):
+    def test_submission_first_start_requires_ready_without_any_restart(self):
+        good = module.capture('ulticode-submission', ['ulticode-submission=ready'],
+            'ok', [{'name': 'ulticode-submission', 'pm2_env': {
+                'status': 'online', 'restart_time': 0, 'pm_uptime': 1000}}], 7000)
+        self.assertTrue(module.submission_first_start(good))
+        for field, values in {
+            'restart_count': (1, None, True),
+            'status': ('errored', 'unknown'),
+            'last_readiness': ('not_ready', 'not_checked'),
+            'pm2_collection': ('failed', 'missing', 'invalid'),
+        }.items():
+            for value in values:
+                with self.subTest(field=field, value=value):
+                    bad = json.loads(json.dumps(good))
+                    bad['services']['ulticode-submission'][field] = value
+                    self.assertFalse(module.submission_first_start(bad))
+        for collection in ('missing', 'invalid', 'failed'):
+            self.assertFalse(module.submission_first_start(good | {'collection': collection}))
+        self.assertFalse(module.submission_first_start(module.empty('ok')))
+
+    def test_first_start_command_rejects_restart_missing_and_stale_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parent = root / '.local/acceptance'
+            parent.mkdir(parents=True)
+            good = module.capture('ulticode-submission', ['ulticode-submission=ready'],
+                'ok', [{'name': 'ulticode-submission', 'pm2_env': {
+                    'status': 'online', 'restart_time': 0, 'pm_uptime': 1000}}], 7000)
+            target = parent / module.FILE
+            environment = dict(os.environ, COMPOSE_PROJECT_NAME=PROJECT, ACCEPTANCE_DISPOSABLE='true')
+            command = [sys.executable, str(ROOT / 'scripts/ci/acceptance_readiness.py'),
+                       '--require-submission-first-start', directory]
+            for restart, project, expected in ((0, PROJECT, 0), (1, PROJECT, 1),
+                                               (0, PROJECT + '1', 1)):
+                good['services']['ulticode-submission']['restart_count'] = restart
+                target.write_text(json.dumps(good | {'run_project': project}))
+                run = subprocess.run(command, env=environment, capture_output=True)
+                self.assertEqual(run.returncode, expected, run.stderr.decode())
+            target.unlink()
+            self.assertEqual(subprocess.run(command, env=environment, capture_output=True).returncode, 1)
+            environment['ACCEPTANCE_DISPOSABLE'] = 'false'
+            self.assertEqual(subprocess.run(command, env=environment, capture_output=True).returncode, 1)
+        source = (ROOT / 'scripts/ci/business-acceptance.sh').read_text()
+        self.assertLess(source.index('--rebuild >'), source.index('--require-submission-first-start'))
+        self.assertLess(source.index('--require-submission-first-start'), source.index('phase=auth-environment'))
+
     def test_all_services_and_last_observation_are_independent_of_pm2(self):
         result = module.capture(','.join(module.SERVICES),
             ['ulticode-app=not_ready', 'ulticode-app=ready', 'ulticode-search=not_ready'],

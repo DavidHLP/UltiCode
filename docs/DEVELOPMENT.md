@@ -175,6 +175,12 @@ Submission 门禁另外按固定接口别名记录最终诊断，仅含固定状
 此类观测，以及 launcher 最后一次 readiness/PM2 快照，不上传原始日志或环境。
 这些历史观测没有按进程代次关联，也不能证明 App 与 Submission 启动的因果顺序；
 自动重启后 ready 不能作为首次启动失败已修复的证据。
+真实安装验收在 launcher 返回后要求本次隔离 PM2 home 内的 Submission 已 ready、online、
+restart count 为 0；缺失、无效或其他运行的快照也会失败，不能靠自动重启通过。
+Submission 使用 `dubbo.application.migration.step=FORCE_APPLICATION`，与 App 的
+`register-mode: instance` 一致，直接等待应用级服务发现，不选择没有接口级 provider 的
+兼容目录。此配置不跳过原有 120 秒发现门禁或业务验收，不增加写入重试；部署目标必须提供
+应用级实例注册与接口到应用映射，不能回退到仅支持接口级注册的旧 provider。
 
 
 测试账号仅由 disposable dev bootstrap 与 Auth registration 创建。Manager 的直接权限

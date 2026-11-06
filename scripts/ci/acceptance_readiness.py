@@ -130,7 +130,25 @@ def capture(selected, observations, collection, records, now_ms):
     return sanitize(result)
 
 
+def submission_first_start(snapshot):
+    """A fresh, isolated Submission launch must not rely on PM2 recovery."""
+    snapshot = sanitize(snapshot)
+    item = snapshot['services'].get('ulticode-submission', {})
+    return (snapshot['collection'] == 'ok'
+            and item.get('pm2_collection') == 'ok'
+            and item.get('last_readiness') == 'ready'
+            and item.get('status') == 'online'
+            and item.get('restart_count') == 0)
+
+
 def main():
+    if sys.argv[1:2] == ['--require-submission-first-start']:
+        if os.environ.get('ACCEPTANCE_DISPOSABLE') != 'true' or len(sys.argv) != 3:
+            return 1
+        snapshot = read_snapshot(Path(sys.argv[2]), os.environ.get('COMPOSE_PROJECT_NAME', ''))
+        passed = submission_first_start(snapshot)
+        print('Submission first start without restart: ' + ('PASS' if passed else 'FAIL'))
+        return 0 if passed else 1
     if os.environ.get('ACCEPTANCE_DISPOSABLE') != 'true':
         return 0
     try:

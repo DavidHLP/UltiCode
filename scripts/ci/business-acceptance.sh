@@ -99,6 +99,7 @@ phase=launch
 # Follow the documented second startup: migrations are idempotent, and the
 # supported DEV-LOCAL App seed adapter runs only when migrations are enabled.
 ./scripts/dev/up.sh --scope full-stack --skip-infra --skip-install --rebuild > .local/acceptance/private-launch.log 2>&1
+python3 scripts/ci/acceptance_readiness.py --require-submission-first-start "$ROOT"
 phase=auth-environment
 node --input-type=module <<'JS'
 import { execFileSync } from 'node:child_process'

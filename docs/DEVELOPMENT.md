@@ -177,6 +177,10 @@ Submission 门禁另外按固定接口别名记录最终诊断，仅含固定状
 自动重启后 ready 不能作为首次启动失败已修复的证据。
 真实安装验收在 launcher 返回后要求本次隔离 PM2 home 内的 Submission 已 ready、online、
 restart count 为 0；缺失、无效或其他运行的快照也会失败，不能靠自动重启通过。
+App readiness 另外读取 `SubmissionUserQueryPort` 与 `AccountQueryService` 的相同目录元数据，
+仅在两种固定接口别名的观测变化时记录，不调用 availability、业务 RPC 或读取 URL，也不改变
+原有 HTTP readiness 判定。安装报告独立保留 App 日志尾部最多 16 条此类观测；它们不是跨进程
+调用链，不能把历史 Auth 查询异常自动归因为另一次 Submission 请求的失败。
 
 
 测试账号仅由 disposable dev bootstrap 与 Auth registration 创建。Manager 的直接权限

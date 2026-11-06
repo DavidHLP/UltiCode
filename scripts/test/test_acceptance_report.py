@@ -110,6 +110,69 @@ class RedactionTests(unittest.TestCase):
             log.write_text("x" * module.LIMIT + payload)
             self.assertEqual(module.discovery_observations(root), [])
 
+    def test_app_discovery_is_strict_bounded_and_redacted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "logs").mkdir()
+            log = root / "logs/backend-app.out.log"
+            payload = ("AppDiscoveryObservation interface=submission_user_query "
+                       "state=INVOKER_PRESENT invoker_kind=MIGRATION directory_kind=SERVICE_DISCOVERY "
+                       "destroyed=FALSE all=1 valid=1 reconnect=0 disabled=0")
+            invalid = [payload + " password=secret-canary", payload + " " + payload,
+                       payload.replace("interface=submission_user_query", "interface=secret-canary"),
+                       payload.replace("state=INVOKER_PRESENT", "state=AVAILABLE"),
+                       payload.replace("invoker_kind=MIGRATION", "invoker_kind=secret-canary"),
+                       payload.replace("directory_kind=SERVICE_DISCOVERY", "directory_kind=secret-canary"),
+                       payload.replace("destroyed=FALSE", "destroyed=secret-canary"),
+                       payload.replace("all=1", "all=10001"), payload.replace("all=1", "all=00"),
+                       payload.replace("valid=1", "valid=-1"), payload.replace("reconnect=0", "reconnect=1e5"),
+                       payload.replace("disabled=0", "disabled=https://secret-canary"),
+                       payload.replace("interface=", "outcome=ready elapsed_ms=1 interface="),
+                       payload.replace("AppDiscoveryObservation", "SubmissionDiscoveryObservation")]
+            log.write_text("\n".join(invalid))
+            self.assertEqual(module.app_discovery_observations(root), [])
+            valid = [payload.replace("all=1", f"all={index}") for index in range(20)]
+            log.write_text("\n".join(invalid + ["private-prefix-canary " + item for item in valid]))
+            report = module.build_report(root, "browser-base", 1, "ulticode-acceptance-123-456")
+            entries = report["app_discovery_observations"]
+            self.assertEqual(len(entries), 16)
+            self.assertEqual([item["all"] for item in entries], list(range(4, 20)))
+            self.assertEqual(entries[0], {"interface": "submission_user_query", "state": "INVOKER_PRESENT",
+                                         "invoker_kind": "MIGRATION", "directory_kind": "SERVICE_DISCOVERY",
+                                         "destroyed": "FALSE", "all": 4, "valid": 1, "reconnect": 0, "disabled": 0})
+            self.assertEqual(report["app_discovery_scope"], "historical-bounded-tail-not-process-correlated")
+            self.assertEqual(report["submission_discovery_observations"], [])
+            self.assertNotIn("canary", json.dumps(report))
+            self.assertNotIn("https://", json.dumps(report))
+
+    def test_app_discovery_excludes_symlinks_missing_and_truncated_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "logs").mkdir()
+            self.assertEqual(module.app_discovery_observations(root), [])
+            outside = root / "private-input"
+            payload = ("AppDiscoveryObservation interface=auth_account_query "
+                       "state=INVOKER_PRESENT invoker_kind=CLUSTER directory_kind=DYNAMIC "
+                       "destroyed=TRUE all=10000 valid=UNKNOWN reconnect=OVERFLOW disabled=ERROR")
+            outside.write_text(payload)
+            log = root / "logs/backend-app.out.log"
+            log.symlink_to(outside)
+            self.assertEqual(module.app_discovery_observations(root), [])
+            log.unlink()
+            log.write_text(payload)
+            item = module.app_discovery_observations(root)[0]
+            self.assertEqual(item["interface"], "auth_account_query")
+            self.assertEqual(item["all"], 10000)
+            self.assertEqual(item["valid"], "UNKNOWN")
+            self.assertEqual(item["reconnect"], "OVERFLOW")
+            self.assertEqual(item["disabled"], "ERROR")
+            log.write_text("x" * module.LIMIT + payload)
+            self.assertEqual(module.app_discovery_observations(root), [])
+            log.write_text("x" * module.LIMIT + "\n" + payload + "\n" + payload[:-5])
+            self.assertEqual(module.app_discovery_observations(root), [item])
+            log.write_text(payload.replace("all=10000", "all=1000" + "\ufffd"))
+            self.assertEqual(module.app_discovery_observations(root), [])
+
 
 if __name__ == "__main__":
     unittest.main()

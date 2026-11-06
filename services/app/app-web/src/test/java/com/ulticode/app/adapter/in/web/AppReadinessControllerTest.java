@@ -1,8 +1,21 @@
 package com.ulticode.app.adapter.in.web;
 
+import com.ulticode.auth.api.service.AccountQueryService;
 import com.ulticode.common.storage.StorageReadiness;
+import com.ulticode.submission.api.service.SubmissionUserQueryPort;
+import java.util.List;
+import java.util.Set;
+import org.apache.dubbo.config.ReferenceConfig;
+import org.apache.dubbo.config.spring.ReferenceBean;
+import org.apache.dubbo.config.spring.reference.ReferenceBeanManager;
+import org.apache.dubbo.registry.client.ServiceDiscoveryRegistryDirectory;
+import org.apache.dubbo.registry.client.migration.MigrationInvoker;
+import org.apache.dubbo.rpc.cluster.router.state.BitList;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -18,6 +31,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * Readiness gate for the App owner.
@@ -26,7 +42,60 @@ import static org.mockito.Mockito.when;
  * never look ready, while contexts without the shared module keep their previous behaviour.
  */
 @DisplayName("AppReadinessController")
+@ExtendWith(OutputCaptureExtension.class)
 class AppReadinessControllerTest {
+
+    @SuppressWarnings("unchecked")
+    private static ObjectProvider<ReferenceBeanManager> referenceProvider(ReferenceBeanManager references) {
+        ObjectProvider<ReferenceBeanManager> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(references);
+        return provider;
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void discoveryDiagnosticsDoNotProbeOrChangeReadinessAndOnlyLogChanges(CapturedOutput output) throws Exception {
+        ReferenceBeanManager manager = mock(ReferenceBeanManager.class);
+        ReferenceBean reference = mock(ReferenceBean.class);
+        ReferenceConfig config = mock(ReferenceConfig.class);
+        MigrationInvoker invoker = mock(MigrationInvoker.class);
+        ServiceDiscoveryRegistryDirectory directory = mock(ServiceDiscoveryRegistryDirectory.class);
+        when(reference.getServiceInterface()).thenReturn(SubmissionUserQueryPort.class.getName());
+        when(reference.getReferenceConfig()).thenReturn(config);
+        when(config.getInvoker()).thenReturn(invoker);
+        when(invoker.getDirectory()).thenReturn(directory);
+        when(directory.getAllInvokers()).thenReturn(List.of());
+        when(directory.getValidInvokers()).thenReturn(new BitList(List.of()));
+        when(directory.getInvokersToReconnect()).thenReturn(List.of());
+        when(directory.getDisabledInvokers()).thenReturn(Set.of());
+        ReferenceBean authReference = mock(ReferenceBean.class);
+        when(authReference.getServiceInterface()).thenReturn(AccountQueryService.class.getName());
+        when(authReference.getReferenceConfig()).thenReturn(config);
+        when(manager.getReferences()).thenReturn(List.of(reference, authReference));
+        doThrow(new AssertionError("must not probe")).when(invoker).isAvailable();
+        doThrow(new AssertionError("must not read URLs")).when(invoker).getUrl();
+        doThrow(new AssertionError("must not invoke RPC")).when(invoker).invoke(any());
+        doThrow(new AssertionError("must not probe directory")).when(directory).isAvailable();
+        AppReadinessController controller = new AppReadinessController(
+                dataSourceProvider(), pingingRedis(), readinessProvider(null), referenceProvider(manager));
+
+        assertThat(controller.ready().getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(controller.ready().getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(output.getAll()).contains("AppDiscoveryObservation interface=submission_user_query state=INVOKER_PRESENT invoker_kind=MIGRATION directory_kind=SERVICE_DISCOVERY destroyed=FALSE all=0 valid=0 reconnect=0 disabled=0");
+        assertThat(output.getAll().split("AppDiscoveryObservation interface=submission_user_query", -1)).hasSize(2);
+        assertThat(output.getAll()).contains("AppDiscoveryObservation interface=auth_account_query state=INVOKER_PRESENT");
+        assertThat(output.getAll().split("AppDiscoveryObservation interface=auth_account_query", -1)).hasSize(2);
+        when(manager.getReferences()).thenThrow(new IllegalStateException("credential-canary"));
+        assertThat(controller.ready().getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(output.getAll()).contains("interface=submission_user_query state=INSPECTION_ERROR")
+                .doesNotContain("credential-canary");
+        verify(invoker, never()).isAvailable();
+        verify(invoker, never()).getUrl();
+        verify(invoker, never()).invoke(any());
+        verify(directory, never()).isAvailable();
+        verify(reference, never()).getObject();
+        verify(authReference, never()).getObject();
+    }
 
     @SuppressWarnings("unchecked")
     private static ObjectProvider<DataSource> dataSourceProvider() throws Exception {
@@ -64,7 +133,7 @@ class AppReadinessControllerTest {
         StorageReadiness readiness = new StorageReadiness();
         readiness.markReady();
         AppReadinessController controller = new AppReadinessController(
-                dataSourceProvider(), pingingRedis(), readinessProvider(readiness));
+                dataSourceProvider(), pingingRedis(), readinessProvider(readiness), referenceProvider(null));
 
         ResponseEntity<Map<String, Object>> response = controller.ready();
 
@@ -78,7 +147,7 @@ class AppReadinessControllerTest {
         StorageReadiness readiness = new StorageReadiness();
         readiness.markFailed("runtime outage");
         AppReadinessController controller = new AppReadinessController(
-                dataSourceProvider(), pingingRedis(), readinessProvider(readiness));
+                dataSourceProvider(), pingingRedis(), readinessProvider(readiness), referenceProvider(null));
 
         ResponseEntity<Map<String, Object>> failedResponse = controller.ready();
 
@@ -98,7 +167,7 @@ class AppReadinessControllerTest {
     @DisplayName("a context without the shared storage module keeps db/redis semantics")
     void absentStorageModuleIsNotReportedDown() throws Exception {
         AppReadinessController controller = new AppReadinessController(
-                dataSourceProvider(), pingingRedis(), readinessProvider(null));
+                dataSourceProvider(), pingingRedis(), readinessProvider(null), referenceProvider(null));
 
         ResponseEntity<Map<String, Object>> response = controller.ready();
 

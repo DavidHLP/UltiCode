@@ -2,9 +2,13 @@ package com.ulticode.app.adapter.in.web;
 
 import com.ulticode.common.health.ReadinessChecks;
 import com.ulticode.common.storage.StorageReadiness;
+import com.ulticode.auth.api.service.AccountQueryService;
+import com.ulticode.submission.api.service.SubmissionUserQueryPort;
+import com.ulticode.rpc.resilience.DubboDiscoveryReadiness;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.sql.DataSource;
+import org.apache.dubbo.config.spring.reference.ReferenceBeanManager;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -24,11 +28,14 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/app")
+@lombok.extern.slf4j.Slf4j
 public class AppReadinessController {
 
     private final DataSource dataSource;
     private final StringRedisTemplate redisTemplate;
     private final StorageReadiness storageReadiness;
+    private final ReferenceBeanManager references;
+    private final Map<String, DubboDiscoveryReadiness.Observation> lastDiscovery = new LinkedHashMap<>();
 
     /**
      * The DataSource is resolved through {@link ObjectProvider} so contexts
@@ -38,11 +45,13 @@ public class AppReadinessController {
      */
     public AppReadinessController(org.springframework.beans.factory.ObjectProvider<DataSource> dataSourceProvider,
                                   StringRedisTemplate redisTemplate,
-                                  org.springframework.beans.factory.ObjectProvider<StorageReadiness> storageReadinessProvider) {
+                                  org.springframework.beans.factory.ObjectProvider<StorageReadiness> storageReadinessProvider,
+                                  org.springframework.beans.factory.ObjectProvider<ReferenceBeanManager> referenceProvider) {
         this.dataSource = dataSourceProvider.getIfAvailable();
         this.redisTemplate = redisTemplate;
         // Absent only in contexts that do not carry the shared storage module.
         this.storageReadiness = storageReadinessProvider.getIfAvailable();
+        this.references = referenceProvider.getIfAvailable();
     }
 
     @GetMapping("/health/ready")
@@ -55,10 +64,30 @@ public class AppReadinessController {
             storageReadiness.probeIfFailed();
         }
         components.put("storage", storageReadiness == null || storageReadiness.isReady());
+        observeDiscovery();
         boolean allUp = components.values().stream().allMatch(Boolean::booleanValue);
         return ResponseEntity
                 .status(allUp ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ReadinessChecks.report(components));
+    }
+
+    private synchronized void observeDiscovery() {
+        try {
+            observeInterface("submission_user_query", SubmissionUserQueryPort.class.getName());
+            observeInterface("auth_account_query", AccountQueryService.class.getName());
+        } catch (RuntimeException ignored) {
+            // Diagnostic failures never affect HTTP readiness or invoke business RPC.
+        }
+    }
+
+    private void observeInterface(String alias, String interfaceName) {
+        var observation = DubboDiscoveryReadiness.inspect(references, interfaceName);
+        if (observation.equals(lastDiscovery.put(alias, observation))) return;
+        // Two fixed aliases, metadata only, logged on change rather than on every probe.
+        log.info("AppDiscoveryObservation interface={} state={} invoker_kind={} directory_kind={} destroyed={} all={} valid={} reconnect={} disabled={}",
+                alias, observation.state(), observation.invokerKind(), observation.directoryKind(),
+                observation.destroyed(), observation.all().token(), observation.valid().token(),
+                observation.reconnect().token(), observation.disabled().token());
     }
 
     private boolean redisUp() {

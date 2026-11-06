@@ -27,10 +27,29 @@ DISCOVERY = re.compile(
     + r"$"
 )
 
+APP_DISCOVERY = re.compile(
+    r"^AppDiscoveryObservation interface=(?P<interface>submission_user_query|auth_account_query) "
+    r"state=(?P<state>MANAGER_MISSING|REFERENCE_MISSING|CONFIG_MISSING|INVOKER_MISSING|INVOKER_PRESENT|UNSUPPORTED|INSPECTION_ERROR) "
+    r"invoker_kind=(?P<invoker_kind>SERVICE_DISCOVERY_MIGRATION|MIGRATION|CLUSTER|OTHER|MISSING) "
+    r"directory_kind=(?P<directory_kind>SERVICE_DISCOVERY|DYNAMIC|OTHER|MISSING) "
+    r"destroyed=(?P<destroyed>TRUE|FALSE|UNKNOWN|ERROR) "
+    + " ".join(rf"{name}=(?P<{name}>{COUNT_TOKEN})" for name in ("all", "valid", "reconnect", "disabled"))
+    + r"$"
+)
+
 
 def discovery_observations(root):
+    return _discovery_observations(root / "logs/backend-submission.out.log",
+                                   "SubmissionDiscoveryObservation ", DISCOVERY)
+
+
+def app_discovery_observations(root):
+    return _discovery_observations(root / "logs/backend-app.out.log",
+                                   "AppDiscoveryObservation ", APP_DISCOVERY)
+
+
+def _discovery_observations(path, marker, pattern):
     # Historical bounded log tail, not a same-process timeline or root-cause claim.
-    path = root / "logs/backend-submission.out.log"
     if path.is_symlink() or not path.is_file():
         return []
     try:
@@ -45,15 +64,17 @@ def discovery_observations(root):
     observations = []
     for line in text.splitlines():
         # Logger prefixes are discarded, not trusted. Require one complete fixed payload.
-        marker = "SubmissionDiscoveryObservation "
         if line.count(marker) != 1:
             continue
         payload = marker + line.partition(marker)[2]
-        match = DISCOVERY.fullmatch(payload)
-        if not match or int(match["elapsed_ms"]) > 86_400_000:
+        match = pattern.fullmatch(payload)
+        if not match:
             continue
         item = match.groupdict()
-        item["elapsed_ms"] = int(item["elapsed_ms"])
+        if "elapsed_ms" in item:
+            item["elapsed_ms"] = int(item["elapsed_ms"])
+            if item["elapsed_ms"] > 86_400_000:
+                continue
         for name in ("all", "valid", "reconnect", "disabled"):
             if item[name].isdigit():
                 item[name] = int(item[name])
@@ -117,6 +138,8 @@ def build_report(root, phase, exit_code, project):
         "launch_readiness": read_snapshot(root, project),
         "submission_discovery_observations": discovery_observations(root),
         "submission_discovery_scope": "historical-bounded-tail-not-process-correlated",
+        "app_discovery_observations": app_discovery_observations(root),
+        "app_discovery_scope": "historical-bounded-tail-not-process-correlated",
     }
 
 

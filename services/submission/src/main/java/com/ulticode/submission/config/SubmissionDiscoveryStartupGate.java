@@ -34,12 +34,34 @@ public class SubmissionDiscoveryStartupGate implements ApplicationRunner {
     }
 
     void await(Duration timeout) throws InterruptedException {
-        long deadline = System.nanoTime() + timeout.toNanos();
+        long started = System.nanoTime();
+        long deadline = started + timeout.toNanos();
         while (!ready()) {
             if (System.nanoTime() >= deadline) {
+                observe("deadline", started);
                 throw new IllegalStateException("Submission projection providers were not discovered before readiness deadline");
             }
             Thread.sleep(250);
         }
+        observe("ready", started);
+    }
+
+    private void observe(String outcome, long started) {
+        // Separate observations may race with discovery; they never determine the outcome.
+        try {
+            long elapsed = Math.min(86_400_000L, Math.max(0L, (System.nanoTime() - started) / 1_000_000L));
+            observeInterface(outcome, elapsed, "problem_facts", ProblemFactsPort.class.getName());
+            observeInterface(outcome, elapsed, "user_read", SubmissionUserReadPort.class.getName());
+        } catch (RuntimeException ignored) {
+            // Diagnostics must not change startup success/failure, including logging failures.
+        }
+    }
+
+    private void observeInterface(String outcome, long elapsed, String alias, String interfaceName) {
+        var observation = DubboDiscoveryReadiness.inspect(references, interfaceName);
+        log.info("SubmissionDiscoveryObservation outcome={} elapsed_ms={} interface={} state={} invoker_kind={} directory_kind={} destroyed={} all={} valid={} reconnect={} disabled={}",
+                outcome, elapsed, alias, observation.state(), observation.invokerKind(), observation.directoryKind(),
+                observation.destroyed(), observation.all().token(), observation.valid().token(),
+                observation.reconnect().token(), observation.disabled().token());
     }
 }

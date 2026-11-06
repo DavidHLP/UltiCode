@@ -31,11 +31,11 @@ import java.util.Map;
 @Component
 public class DubboAdminForumReadAdapter implements AdminForumReadPort {
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private AdminForumReadPort forumReadPort;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ForumPostVoteCountReadPort voteCountReadPort;
 

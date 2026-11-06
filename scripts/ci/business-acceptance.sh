@@ -31,12 +31,16 @@ unset MIGRATION_MYSQL_CONTAINER MIGRATION_MYSQL_CONTAINER_PORT MYSQL_CONTAINER \
   DEV_LOCAL_OWNER_BASELINE_CONFIRM 2>/dev/null || true
 phase=environment
 prepared=false
+launch_started=false
 finish() {
   status=$?
   trap - EXIT
   # Report generation must never prevent cleanup of our disposable processes.
   set +e
   export ACCEPTANCE_PHASE="$phase" ACCEPTANCE_EXIT="$status"
+  if [[ "$launch_started" == true ]]; then
+    python3 scripts/ci/acceptance_report.py --capture-admin-readiness >/dev/null 2>&1 || true
+  fi
   python3 scripts/ci/acceptance_report.py
   report_status=$?
   if [[ "$status" == 0 && "$report_status" != 0 ]]; then status="$report_status"; fi
@@ -96,9 +100,11 @@ SUBMISSION_CUTOVER_CONFIRM=I_UNDERSTAND_SUBMISSION_CUTOVER \
 ./scripts/runbooks/submission-schema-cutover.sh verify >> .local/acceptance/private-cutover.log 2>&1
 export SUBMISSION_CUTOVER_COMPLETE=true
 phase=launch
+launch_started=true
 # Follow the documented second startup: migrations are idempotent, and the
 # supported DEV-LOCAL App seed adapter runs only when migrations are enabled.
 ./scripts/dev/up.sh --scope full-stack --skip-infra --skip-install --rebuild > .local/acceptance/private-launch.log 2>&1
+python3 scripts/ci/acceptance_readiness.py --require-submission-first-start "$ROOT"
 phase=auth-environment
 node --input-type=module <<'JS'
 import { execFileSync } from 'node:child_process'

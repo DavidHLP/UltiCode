@@ -688,7 +688,9 @@ python3 scripts/test/test_nacos_client_integration.py
 
 再生成使用锁定的 protoc 版本，避免破坏已编译 Nacos/gRPC 调用者的方法签名；不能只按运行时版本号选择最新生成器。单测与真实客户端均启用 `com.google.protobuf.error_on_unsafe_pre22_gencode`，禁止用 `use_unsafe_pre22_gencode` 隐藏旧代码。集成脚本生成临时凭据、独立 Compose project 与 loopback 端口，验证注册、发现、配置/元数据回调、错误及缺失凭据拒绝、断线检测与自动重连/重订阅，并清理所属容器、卷和私有日志。它拒绝远端 Docker daemon；容器或工具不可用时失败，不跳过。后端 CI 同时要求再生成校验和真实注册中心集成通过。
 
-此补丁只覆盖应用进程加载的 Nacos 客户端 API，不改变独立 Nacos 服务端镜像。服务端残余风险和后续验收范围见 [SVC-029](../services/docs/SERVICES_ISSUES.md)。
+配置监听验证分为两个不可替代的对照：原 AUTH workload ACL 不变，继续验证 naming 与直接配置读写，并要求其标准批量监听请求明确返回 403；另一个随机凭据的测试账号只在独占、仅含合成数据的 namespace 内拥有配置读取权限和固定 dataId 写权限，使用普通 SDK listener 验证变更回调与重连。该读取权限覆盖测试 namespace 的所有 group，不是“仅监听”权限；不得复制到生产。跨 namespace 的直接读取和范围外写入仍须拒绝，测试账号、数据与资源随 Compose project 销毁。
+
+此补丁只覆盖应用进程加载的 Nacos 客户端 API，不改变独立 Nacos 服务端镜像或生产 workload ACL。测试专用授权下的回调通过不代表原生产角色的监听兼容；服务端解析器风险与生产监听限制分别见 [SVC-029 / SVC-030](../services/docs/SERVICES_ISSUES.md)。
 
 ### Core 与 distributed 验证边界
 

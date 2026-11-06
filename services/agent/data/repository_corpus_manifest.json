@@ -15,8 +15,8 @@
   },
   {
     "doc_id": "repository-architecture",
-    "version": "sha256-a66550200ae39f724bd255818c461f453c0ab4a0cb6a9d2b5d81bd967e0990bf",
-    "chunk_id": "repository-architecture:sha256-a66550200ae39f724bd255818c461f453c0ab4a0cb6a9d2b5d81bd967e0990bf:1",
+    "version": "sha256-6f3f89a3cf140ab093fb8d87e5a1843c936ffeebd3f367e5a760171b4041cb08",
+    "chunk_id": "repository-architecture:sha256-6f3f89a3cf140ab093fb8d87e5a1843c936ffeebd3f367e5a760171b4041cb08:1",
     "source_path": "docs/ARCHITECTURE.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
@@ -29,8 +29,8 @@
   },
   {
     "doc_id": "repository-development",
-    "version": "sha256-ec500b2a2b50d3d0ea8ace21c7ffd629199ba688fd6721ad0a2dfe9105e182ba",
-    "chunk_id": "repository-development:sha256-ec500b2a2b50d3d0ea8ace21c7ffd629199ba688fd6721ad0a2dfe9105e182ba:1",
+    "version": "sha256-6cef4f9d20fe22ec0e834dd359ec238a833acc71a1e7c39d17b64b6d43b970d4",
+    "chunk_id": "repository-development:sha256-6cef4f9d20fe22ec0e834dd359ec238a833acc71a1e7c39d17b64b6d43b970d4:1",
     "source_path": "docs/DEVELOPMENT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",

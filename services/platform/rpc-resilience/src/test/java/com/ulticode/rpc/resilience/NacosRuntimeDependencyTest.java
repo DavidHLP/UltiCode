@@ -4,12 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.alibaba.nacos.api.NacosFactory;
+import com.alibaba.nacos.api.config.remote.response.ConfigChangeBatchListenResponse;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.grpc.auto.BiRequestStreamGrpc;
 import com.alibaba.nacos.api.grpc.auto.Metadata;
 import com.alibaba.nacos.api.grpc.auto.Payload;
 import com.alibaba.nacos.api.grpc.auto.RequestGrpc;
+import com.alibaba.nacos.api.remote.request.Request;
+import com.alibaba.nacos.api.remote.response.Response;
+import com.alibaba.nacos.client.config.NacosConfigService;
+import com.alibaba.nacos.client.config.impl.ClientWorker;
 import com.alibaba.nacos.client.naming.NacosNamingService;
+import com.alibaba.nacos.common.remote.client.RpcClient;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedOutputStream;
@@ -138,6 +144,66 @@ class NacosRuntimeDependencyTest {
             assertThat(diagnostic).contains("nacos-error-code=" + error.getKey() + "\n",
                     "classification=" + error.getValue() + "\n").doesNotContain(privateValue);
         }
+    }
+
+    @Test
+    void fixtureBatchNegativeControlRequiresAnActual403Response() throws Exception {
+        var request = NacosRegistryIT.workloadBatchRequest("protobuf-fixture");
+        assertThat(request.isListen()).isTrue();
+        assertThat(request.getConfigListenContexts()).singleElement().satisfies(context -> {
+            assertThat(context.getTenant()).isEqualTo("protobuf-fixture");
+            assertThat(context.getGroup()).isEqualTo("mapping");
+            assertThat(context.getDataId()).isEqualTo("com.ulticode.auth.ProtobufFixture");
+            assertThat(context.getMd5()).matches("[a-f0-9]{32}");
+        });
+        assertThatThrownBy(() -> NacosRegistryIT.workloadBatchRequest("another-namespace"))
+                .isInstanceOf(AssertionError.class);
+        String privateValue = java.util.UUID.randomUUID().toString();
+        ConfigChangeBatchListenResponse denied = new ConfigChangeBatchListenResponse();
+        denied.setErrorInfo(NacosException.NO_RIGHT, privateValue);
+        NacosRegistryIT.requireNoRightResponse(denied);
+        assertThat(NacosRegistryIT.batchResponseDiagnostic(denied))
+                .isEqualTo("workload-batch-result-code=500\nworkload-batch-error-code=403\n")
+                .doesNotContain(privateValue);
+        for (int error : List.of(NacosException.CLIENT_DISCONNECT, NacosException.SERVER_ERROR)) {
+            ConfigChangeBatchListenResponse otherFailure = new ConfigChangeBatchListenResponse();
+            otherFailure.setErrorInfo(error, privateValue);
+            assertThatThrownBy(() -> NacosRegistryIT.requireNoRightResponse(otherFailure))
+                    .isInstanceOf(AssertionError.class);
+        }
+        assertThatThrownBy(() -> NacosRegistryIT.requireNoRightResponse(new ConfigChangeBatchListenResponse()))
+                .isInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> NacosRegistryIT.requireNoRightResponse(null)).isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    void fixtureProbeMatchesThePinnedClientPrivateTransportContract() throws Exception {
+        assertThat(NacosConfigService.class.getDeclaredField("worker").getType()).isEqualTo(ClientWorker.class);
+        Class<?> transport = Class.forName("com.alibaba.nacos.client.config.impl.ClientWorker$ConfigRpcTransportClient",
+                false, getClass().getClassLoader());
+        assertThat(transport.getDeclaredMethod("ensureRpcClient", String.class).getReturnType()).isEqualTo(RpcClient.class);
+        assertThat(transport.getDeclaredMethod("requestProxy", RpcClient.class, Request.class, long.class).getReturnType())
+                .isEqualTo(Response.class);
+    }
+
+    @Test
+    void fixtureReadbackNeverReplacesAnActualCallback() throws Exception {
+        AssertionError timeout = new AssertionError("callback absent");
+        AtomicInteger probes = new AtomicInteger();
+        NacosRegistryIT.verifyCallback(() -> {}, () -> { probes.incrementAndGet(); return true; });
+        assertThat(probes.get()).isZero();
+        for (boolean matches : List.of(true, false)) {
+            assertThatThrownBy(() -> NacosRegistryIT.verifyCallback(() -> { throw timeout; },
+                    () -> { probes.incrementAndGet(); return matches; })).isSameAs(timeout);
+            assertThat(NacosRegistryIT.failureDiagnostic(timeout))
+                    .contains("callback-server-readback=" + (matches ? "matches" : "differs") + "\n");
+        }
+        assertThat(probes.get()).isEqualTo(2);
+        assertThatThrownBy(() -> NacosRegistryIT.verifyCallback(() -> { throw timeout; },
+                () -> { throw new NacosException(NacosException.CLIENT_DISCONNECT, "private-request-message"); }))
+                .isSameAs(timeout);
+        assertThat(NacosRegistryIT.failureDiagnostic(timeout))
+                .contains("callback-server-readback=request-failed\n").doesNotContain("private-request-message");
     }
 
     @Test

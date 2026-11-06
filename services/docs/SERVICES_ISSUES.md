@@ -30,6 +30,9 @@ App interface locality 已闭环；Core 的边界与验证范围见 SVC-025。
 
 当前拓扑与 Contract 边界以 [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)、源码、配置和门禁为准。本文件是当前 issue 状态和 SVC-025 关闭条件的唯一入口；已完成的执行计划、台账和检查点不作为当前证据。
 
+Core Auth/Admin bounded testbed 已取得 local Adapter parity 和真实 HTTP
+disposable journey 证据；本项不改变默认拓扑或 SVC-025 的状态。
+
 ## OPEN
 
 ### SVC-029 Nacos registry server protobuf generated code（OPEN）
@@ -49,8 +52,27 @@ Nacos gRPC 在连接有效性与请求鉴权之前解析 Payload，不能把开�
 检查所有协议类来源，并验证数据、认证、SDK/集群连接与重连兼容性。不得通过
 静音旧生成代码警告、取消认证或放宽门禁关闭本项。
 
-Core Auth/Admin bounded testbed 已取得 local Adapter parity 和真实 HTTP
-disposable journey 证据；本项不改变默认拓扑或 SVC-025 的状态。
+### SVC-030 Nacos 批量配置监听与 workload ACL（OPEN）
+
+现有 bootstrap 按 namespace、明确的 group 和数据范围授予 workload 配置权限。
+Nacos 2.3.2 对标准 SDK 的批量监听请求使用 namespace 级配置读取权限；空 group/name
+会形成 `<namespace>:*:config/*`，而不是逐个匹配请求中的配置条目。
+[资源解析](https://github.com/alibaba/nacos/blob/2.3.2/auth/src/main/java/com/alibaba/nacos/auth/parser/grpc/ConfigGrpcResourceParser.java#L34-L72)
+与[权限键拼接](https://github.com/alibaba/nacos/blob/2.3.2/plugin-default-impl/nacos-default-auth-plugin/src/main/java/com/alibaba/nacos/plugin/auth/impl/roles/NacosRoleServiceImpl.java#L263-L288)、
+[权限匹配](https://github.com/alibaba/nacos/blob/2.3.2/plugin-default-impl/nacos-default-auth-plugin/src/main/java/com/alibaba/nacos/plugin/auth/impl/roles/NacosRoleServiceImpl.java#L146-L160)
+使现有 group 级读取权限不足以允许该批量请求。直接配置读写成功不能证明监听回调可用。
+所核对的 2.5.5、3.3.0 同一路径也未提供逐配置授权，不能仅以升级版本关闭本项。
+
+客户端协议门禁保留原 AUTH workload ACL，明确要求其批量监听请求返回 403；
+正向配置回调使用另外的测试账号和独占、仅含合成数据的测试 namespace。
+该测试账号拥有整个测试 namespace 的配置读取权限、仅固定 dataId 的写权限，
+没有管理员角色，随独立测试环境销毁。此权限宽度只用于客户端协议、回调和重连
+兼容验证，不证明原 workload ACL 的生产监听兼容性。不得把该 namespace 全读
+权限加入生产 bootstrap、使用管理员账号替代 workload，或把回调超时当成鉴权通过。
+
+本项需独立解决服务端批量请求的逐配置授权与隔离边界，并重新验收真实角色的
+订阅和恢复行为。客户端 protobuf 修复与扩大测试授权范围均不能关闭本项；
+现有生产 profile、bootstrap 权限和已有凭据保持不变。
 
 ## CLOSED
 

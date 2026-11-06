@@ -34,6 +34,12 @@ set -euo pipefail
 [[ ${#AUTH_NACOS_PASSWORD} -ge 32 ]]
 [[ "$NACOS_PASSWORD" != "$AUTH_NACOS_PASSWORD" ]]
 [[ "$AUTH_NACOS_PASSWORD" != "$NACOS_FIXTURE_WRONG_PASSWORD" ]]
+[[ "$NACOS_FIXTURE_CONFIG_NAMESPACE" == protobuf-config-fixture ]]
+[[ "$NACOS_FIXTURE_CONFIG_USERNAME" == fixture-config-* ]]
+[[ "$NACOS_FIXTURE_CONFIG_PASSWORD" != "$AUTH_NACOS_PASSWORD" ]]
+[[ "$NACOS_FIXTURE_CONFIG_PASSWORD" != "$NACOS_PASSWORD" ]]
+[[ "$NACOS_FIXTURE_CONFIG_PASSWORD" != "$NACOS_FIXTURE_WRONG_PASSWORD" ]]
+[[ ${#NACOS_FIXTURE_CONFIG_PASSWORD} -eq 64 ]]
 ''')
             maven = repo / "services/mvnw"
             maven.write_text('''#!/usr/bin/env bash
@@ -49,7 +55,7 @@ done
             maven.chmod(0o755)
             docker = repo / "bin/docker"
             docker.write_text('''#!/usr/bin/env python3
-import json, os, pathlib, sys
+import json, os, pathlib, re, sys
 args = sys.argv[1:]
 with open(os.environ['CALLS'], 'a') as output:
     output.write(json.dumps(args) + '\\n')
@@ -76,10 +82,33 @@ elif args[0] == 'compose':
         if os.environ['FAILURE'] == 'cleanup': sys.exit(31)
     else:
         raise SystemExit('Unexpected compose action')
+elif args[0] == 'run':
+    assert args[1:5] == ['--rm', '--network', 'none', '-i']
+    assert args[5] == 'httpd@sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567'
+    assert args[6:9] == ['htpasswd', '-niBC', '12']
+    assert args[9:] == [os.environ['NACOS_FIXTURE_CONFIG_USERNAME']]
+    assert sys.stdin.read().strip() == os.environ['NACOS_FIXTURE_CONFIG_PASSWORD']
+    password_hash = 'invalid' if os.environ['FAILURE'] == 'config-hash' else '$2y$12$' + 'A' * 53
+    print(args[9] + ':' + password_hash)
 elif args[:3] == ['exec', '-i', 'fixture-mysql']:
     lines = sys.stdin.read().splitlines()
     assert lines[0] == os.environ['MYSQL_ROOT_PASSWORD']
-    assert 'INSERT INTO tenant_info' in lines[1]
+    sql = '\\n'.join(lines[1:])
+    assert sql.startswith('START TRANSACTION;') and sql.endswith('COMMIT;')
+    assert "('1','protobuf-fixture','protobuf-fixture'," in sql
+    assert "('1','protobuf-config-fixture','protobuf-config-fixture'," in sql
+    assert os.environ['NACOS_FIXTURE_CONFIG_USERNAME'] in sql
+    assert '$2y$12$' + 'A' * 53 in sql
+    assert os.environ['NACOS_FIXTURE_CONFIG_PASSWORD'] not in sql
+    assert 'ROLE_ADMIN' not in sql and 'ROLE_ULTICODE_' not in sql
+    grants = re.findall(r"\\('ROLE_PROTOBUF_CONFIG_FIXTURE','([^']+)','([rw])'\\)", sql)
+    assert grants == [
+        ('protobuf-config-fixture:*:config/*', 'r'),
+        ('protobuf-config-fixture:FIXTURE_CONFIG:config/protobuf-fixture-metadata', 'w'),
+    ], grants
+    assert sql.count('INSERT INTO users') == 1 and sql.count('INSERT INTO roles') == 1
+    assert sql.count('INSERT INTO permissions') == 1
+    if os.environ['FAILURE'] == 'fixture-sql': sys.exit(38)
 else:
     raise SystemExit('Unexpected Docker command')
 ''')
@@ -92,10 +121,14 @@ assert not any('use_unsafe' in arg for arg in sys.argv)
 assert os.environ['HOME'] != os.environ['ORIGINAL_HOME']
 control = pathlib.Path(os.environ['NACOS_FIXTURE_CONTROL'])
 print(os.environ['AUTH_NACOS_PASSWORD'])  # must remain in private log
+print(os.environ['NACOS_FIXTURE_CONFIG_PASSWORD'])
+(control / 'evidence').write_text('workload-batch-result-code=500\\nworkload-batch-error-code=403\\n'
+    + 'workload-batch-error-code=' + os.environ['NACOS_FIXTURE_CONFIG_PASSWORD'] + '\\n')
 if os.environ['FAILURE'] in ('client', 'transport'):
     code, classification = (-401, 'client-disconnected') if os.environ['FAILURE'] == 'transport' else (403, 'authorization-rejected')
     (control / 'failure').write_text('phase=wrong-auth-rejection\\nexception=java.lang.AssertionError\\nline=123\\n'
         + f'nacos-error-code={code}\\nclassification={classification}\\n'
+        + 'callback-server-readback=matches\\ncallback-server-readback=' + os.environ['NACOS_FIXTURE_CONFIG_PASSWORD'] + '\\n'
         + 'classification=' + os.environ['AUTH_NACOS_PASSWORD'] + '\\n' + os.environ['AUTH_NACOS_PASSWORD'])
     sys.exit(37)
 (control / 'ready-for-outage').touch()
@@ -147,13 +180,15 @@ for requested, observed in [('server-stopped', 'observed-disconnect'), ('server-
         result, events = self.run_fixture()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("PASS:", result.stdout)
+        self.assertIn("original workload batch-listen remains denied (403), unresolved", result.stdout)
+        self.assertIn("Client diagnostic: workload-batch-error-code=403", result.stderr)
         self.assertEqual(sum("stop" in event for event in events), 1)
         self.assertIn("down", events[-1])
         projects = {event[event.index('--project-name') + 1] for event in events if '--project-name' in event}
         self.assertEqual(len(projects), 1)
 
     def test_failures_are_not_skips_or_success(self):
-        for failure in ("build", "start", "client", "transport", "cleanup"):
+        for failure in ("build", "start", "config-hash", "fixture-sql", "client", "transport", "cleanup"):
             with self.subTest(failure=failure):
                 result, events = self.run_fixture(failure)
                 self.assertNotEqual(result.returncode, 0)
@@ -165,7 +200,9 @@ for requested, observed in [('server-stopped', 'observed-disconnect'), ('server-
                     code, classification = (-401, "client-disconnected") if failure == "transport" else (403, "authorization-rejected")
                     self.assertIn(f"Client diagnostic: nacos-error-code={code}", result.stderr)
                     self.assertIn(f"Client diagnostic: classification={classification}", result.stderr)
-                if failure in ("build", "start", "client", "transport"):
+                    self.assertIn("Client diagnostic: callback-server-readback=matches", result.stderr)
+                    self.assertIn("Client diagnostic: workload-batch-error-code=403", result.stderr)
+                if failure in ("build", "start", "config-hash", "fixture-sql", "client", "transport"):
                     self.assertFalse(any("stop" in event for event in events))
 
     def test_remote_context_is_rejected_before_mutation(self):

@@ -43,20 +43,23 @@ cleanup() {
   if (( rc != 0 )); then
     # Never emit raw client/server/build logs: those can contain auth tokens.
     printf 'Nacos integration failed during %s (exit %s).\n' "$phase" "$rc" >&2
-    if [[ -f "$tmp/control/failure" ]]; then
-      python3 - "$tmp/control/failure" <<'PY_DIAGNOSTIC'
+  fi
+  # Only the typed numeric/static evidence is public, including on success.
+  for report in evidence failure; do
+    if [[ -f "$tmp/control/$report" ]]; then
+      python3 - "$tmp/control/$report" <<'PY_DIAGNOSTIC'
 from pathlib import Path
 import re
 import sys
 for line in Path(sys.argv[1]).read_text().splitlines():
-    if re.fullmatch(r'(?:phase=[a-z-]+|exception=[A-Za-z0-9_.$]+|line=[0-9]+|nacos-error-code=-?[0-9]+|classification=(?:client-disconnected|authorization-rejected|server-not-ready|resource-not-found|nacos-request-failed))', line):
+    if re.fullmatch(r'(?:phase=[a-z-]+|exception=[A-Za-z0-9_.$]+|line=[0-9]+|(?:nacos-error-code|workload-batch-result-code|workload-batch-error-code)=-?[0-9]+|callback-server-readback=(?:not-run|matches|differs|request-failed)|classification=(?:client-disconnected|authorization-rejected|server-not-ready|resource-not-found|nacos-request-failed))', line):
         print('Client diagnostic: ' + line, file=sys.stderr)
 PY_DIAGNOSTIC
     fi
-  fi
+  done
   if ! rm -rf -- "$tmp"; then rc=1; fi
   if (( rc == 0 )); then
-    echo 'PASS: authenticated Nacos client registration/discovery, config/metadata callbacks, auth rejection, disconnect/reconnect/resubscribe, clean shutdown and single patched API provenance'
+    echo 'PASS: isolated Nacos client compatibility, naming/discovery, dedicated-namespace config callbacks, auth/scope rejection, reconnect/resubscribe, shutdown and single patched API provenance; original workload batch-listen remains denied (403), unresolved'
   fi
   exit "$rc"
 }
@@ -76,6 +79,10 @@ export NACOS_USERNAME NACOS_PASSWORD NACOS_FIXTURE_WRONG_PASSWORD
 export DUBBO_NAMESPACE='protobuf-fixture'
 export NACOS_NAMESPACE="$DUBBO_NAMESPACE"
 export NACOS_FIXTURE_NAMESPACE="$DUBBO_NAMESPACE"
+export NACOS_FIXTURE_CONFIG_NAMESPACE='protobuf-config-fixture'
+NACOS_FIXTURE_CONFIG_USERNAME="fixture-config-$(openssl rand -hex 8)"
+NACOS_FIXTURE_CONFIG_PASSWORD="$(openssl rand -hex 32)"
+export NACOS_FIXTURE_CONFIG_USERNAME NACOS_FIXTURE_CONFIG_PASSWORD
 export NACOS_EXPECTED_DOCKER_PROJECT="$project"
 export NACOS_FIXTURE_SCHEMA="$ROOT_DIR/docker/initdb/01-nacos-init.sql"
 for prefix in AUTH ADMIN APP SUBMISSION NOTIFICATION JUDGE; do
@@ -141,9 +148,34 @@ phase='bootstrap disposable principals'
 # Reuse the production bootstrap's validated Compose ownership, password
 # hashing, disabled built-in user and per-service least-privilege ACLs.
 bash "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh" >"$tmp/bootstrap.log" 2>&1
+# Test-only principal, with the same pinned bcrypt tool as the unchanged
+# bootstrap. No password in argv/logs, and no global/admin or workload grants.
+config_password_hash="$(printf '%s\n' "$NACOS_FIXTURE_CONFIG_PASSWORD" \
+  | docker run --rm --network none -i \
+    httpd@sha256:1b766f17b84026429b7cb243317b142921b24432336e798bc881c43f45ed9567 \
+    htpasswd -niBC 12 "$NACOS_FIXTURE_CONFIG_USERNAME" 2>"$tmp/config-principal.log" \
+  | sed 's/^[^:]*://' | tr -d '\r\n')"
+[[ "$config_password_hash" =~ ^\$2[aby]\$12\$[./A-Za-z0-9]{53}$ ]] || {
+  echo 'Invalid fixture principal password hash' >&2
+  exit 1
+}
 {
   printf '%s\n' "$MYSQL_ROOT_PASSWORD"
-  printf "INSERT INTO tenant_info (kp,tenant_id,tenant_name,tenant_desc,create_source,gmt_create,gmt_modified) VALUES ('1','protobuf-fixture','protobuf-fixture','Disposable client compatibility fixture','test',0,0);\n"
+  # Server 2.3.2 batch auth requires namespace-wide config read. This new
+  # namespace contains synthetic fixture data only; this is NOT a production
+  # permission fix. The exact write identifiers contain no regex metacharacters.
+  cat <<SQL
+START TRANSACTION;
+INSERT INTO tenant_info (kp,tenant_id,tenant_name,tenant_desc,create_source,gmt_create,gmt_modified) VALUES
+  ('1','protobuf-fixture','protobuf-fixture','Disposable workload compatibility fixture','test',0,0),
+  ('1','$NACOS_FIXTURE_CONFIG_NAMESPACE','$NACOS_FIXTURE_CONFIG_NAMESPACE','Disposable config protocol fixture','test',0,0);
+INSERT INTO users (username,password,enabled) VALUES ('$NACOS_FIXTURE_CONFIG_USERNAME','$config_password_hash',TRUE);
+INSERT INTO roles (username,role) VALUES ('$NACOS_FIXTURE_CONFIG_USERNAME','ROLE_PROTOBUF_CONFIG_FIXTURE');
+INSERT INTO permissions (role,resource,action) VALUES
+  ('ROLE_PROTOBUF_CONFIG_FIXTURE','$NACOS_FIXTURE_CONFIG_NAMESPACE:*:config/*','r'),
+  ('ROLE_PROTOBUF_CONFIG_FIXTURE','$NACOS_FIXTURE_CONFIG_NAMESPACE:FIXTURE_CONFIG:config/protobuf-fixture-metadata','w');
+COMMIT;
+SQL
 } | docker exec -i "$MYSQL_CONTAINER" sh -c \
   'IFS= read -r MYSQL_PWD; export MYSQL_PWD; exec mysql -uroot nacos_config' >"$tmp/namespace.log" 2>&1
 phase='start authenticated registry'

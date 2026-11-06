@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (ROOT / 'scripts/dev/up.sh').read_text()
 STARTUP = SOURCE.split('# ===== 步骤 6: PM2 服务 =====', 1)[1].split('# ===== 步骤 7:', 1)[0]
 BOOTSTRAP = SOURCE.split('# ===== 步骤 4:', 1)[1].split('# ===== 步骤 5:', 1)[0]
-BOOTSTRAP = '# ===== 步骤 4:' + BOOTSTRAP
+POLICY = SOURCE.split('dev_admin_bootstrap_enabled() {', 1)[1].split('# ===== 参数解析 =====', 1)[0]
+POLICY = 'dev_admin_bootstrap_enabled() {' + POLICY
+BOOTSTRAP = POLICY + '# ===== 步骤 4:' + BOOTSTRAP
 CHECK = SOURCE.split('check_pm2_online() {', 1)[1].split('\nfor _ in ', 1)[0]
 CHECK = 'check_pm2_online() {' + CHECK
 
@@ -89,6 +91,7 @@ done
 '''
             bootstrap_setup = r'''
 DEV_SEED_USERS_ENABLED=true
+PREPARE_SUBMISSION_OWNER=false
 DEVSTACK_DUBBO_REGISTRATION_DELAY_SECONDS=0
 DEVSTACK_BOOTSTRAP_KILL_AFTER_SECONDS=1
 DEVSTACK_BOOTSTRAP_TIMEOUT_SECONDS=1

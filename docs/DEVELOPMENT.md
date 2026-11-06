@@ -195,6 +195,8 @@ App 还单独读取现有 application child 的目录，以及已有 listener �
 cookies、源码、PM2 state 或原始服务日志。退出时仅停止该测试 project/home，保留本机卷供
 诊断；GitHub hosted runner 生命周期负责回收其临时磁盘。
 
+启动失败报告仅输出固定诊断词表、固定源码帧白名单及受限覆盖计数，不回显异常原文或 URL。每个 Owner 保留日志缺失、读取失败和尾部截断信息；信号为 false 只表示在受限日志尾部未观察到，不能据此认定服务未启动。Spring context 启动与投影 providers discovered 分别记录；历史成功与失败信号可以同时出现，不代表当前健康或因果关系。源码帧白名单随相关代码位置维护。
+
 本机重现需在新 checkout 安装锁定依赖、PM2 与 Playwright Chromium，然后运行：
 
 ```bash
@@ -730,6 +732,8 @@ enabled-owner wiring 或业务 journey。
 
 `.env` 是本地部署密管输入，由 `./scripts/dev/init-env.sh` 生成并被 Git 忽略；`.env.example` 与 `.env.test.example` 是可提交模板，不包含可用凭据。实现配置以各服务 `application.yml`、Compose 和 `ecosystem.config.cjs` 为准。
 
+`.env.example` 的数据库、Redis ACL、Nacos、JWT、Meili 和开发用户凭据全部留空。首次本地初始化使用 `./scripts/dev/init-env.sh`，由初始化流程生成各角色独立的随机凭据并写入 ignored `.env`；开发管理员密码与 `VITE_TEST_PASSWORD` 使用同一份本次初始化值，验收入口继续从环境读取。启用开发管理员 bootstrap 且启动 Auth 时，`up.sh` 要求显式提供非空白 `DEV_SEED_ADMIN_PASSWORD`，缺失、空值或仅含 Java 空白字符的值会在基础设施变更前拒绝启动，不再回退到固定口令；`--skip-bootstrap`、`--prepare-submission-owner`、禁用开发用户或不启动 Auth 时不强求该密码。部署环境从密钥系统注入。不要直接使用模板启动，也不要重用曾提交到 Git 的默认密码。Redis ACL 生成器在任一角色密码缺失时拒绝生成配置；已部署凭据的撤销或轮换需要单独执行相应运维流程。 现有 `.env` 会原样保留，不自动更改或轮换已有密码。`init-env.sh --force` 会同时重新生成其他基础设施凭据，不能作为仅更改管理员口令的捷径。
+
 ### 常用变量
 
 | 变量 | 用途 | 规则 |
@@ -831,3 +835,7 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 - [部署与回滚](OPERATIONS.md#部署发布与回滚)
 - [Services 问题注册表](../services/docs/SERVICES_ISSUES.md)
 - [Worker SLO Runbook](../services/docs/WORKER_SLO_RUNBOOK.md)
+
+### 有界启动失败诊断
+
+启动超时不放宽就绪门禁。失败报告记录最后一轮所选服务的固定 readiness 结果（HTTP 状态枚举或 PM2/banner 分类），而不是用历史启动成功行判断当前状态。额外依赖诊断只读取固定 IPv4 loopback 健康端点，限制 8 KiB 响应、每 socket 5 秒，并以 25 秒总时限和 2 秒强制终止上限约束整个子进程；不跟随跳转、不传认证、不输出原始响应或地址。只发布固定 db/redis/storage/problemOwnerRpc 的 up/down/unknown 枚举。额外探测发生在最终门禁轮次之后，不代表同一时刻；缺失探测或未选服务保留 unknown，不能当作健康或失败。日志 startup_signals 仍只表示有界日志尾部曾观察到的信号，成功与失败可同时存在。

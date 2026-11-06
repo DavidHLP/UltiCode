@@ -133,7 +133,7 @@ class ReadinessTests(unittest.TestCase):
         source = (ROOT / 'scripts/dev/up.sh').read_text()
         hook = source.split('declare -A ACCEPTANCE_LAST_READINESS=()', 1)[1].split('resolve_mysql_container()', 1)[0]
         hook = 'declare -A ACCEPTANCE_LAST_READINESS=()' + hook
-        loop = source[source.rindex('for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do'):]
+        loop = source[source.index('declare -A READINESS_RESULTS=()'):]
         for failed, prepare, broken_writer in ((False, False, False), (True, False, False),
                                                 (True, True, False), (True, False, True)):
             with self.subTest(failed=failed, prepare=prepare, broken_writer=broken_writer), tempfile.TemporaryDirectory() as directory:
@@ -153,12 +153,13 @@ DEVSTACK_SERVICE_READINESS_ATTEMPTS=2
 DEVSTACK_READINESS_INTERVAL_SECONDS=0
 DEV_SCOPE=full-stack DEV_MODE=dev-full INFRA_TARGETS=''
 DEVSTACK_OWNER_MIGRATION_ORDER=() DEV_SEED_USERS_ENABLED=false
-check_port() { echo "$1" >> "$ROOT_DIR/probes"; [[ "$FAILED" != true || "$1" != 9002 ]]; }
-check_pm2_online() { echo search >> "$ROOT_DIR/probes"; ACCEPTANCE_PM2_JSON='[]'; ACCEPTANCE_PM2_COLLECTION=ok; }
+check_port() { echo "$1" >> "$ROOT_DIR/probes"; READINESS_DETAIL=http_200; if [[ "$FAILED" == true && "$1" == 9002 ]]; then READINESS_DETAIL=http_unreachable; return 1; fi; }
+check_pm2_online() { echo search >> "$ROOT_DIR/probes"; ACCEPTANCE_PM2_JSON='[]'; ACCEPTANCE_PM2_COLLECTION=ok; READINESS_DETAIL=pm2_banner_observed; }
 devstack_apps_csv() { :; }
 devstack_app_label() { :; }
 pm2() { :; }
 sleep() { :; }
+timeout() { :; }
 '''
                 if broken_writer:
                     setup += 'python3() { return 42; }\n'

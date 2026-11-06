@@ -640,6 +640,7 @@ if [[ "$REBUILD" == true && "$FRONTEND_ONLY" != true ]] && [[ ",$PM2_APPS," == *
 fi
 
 # ===== 步骤 4: dev-admin bootstrap (依赖 auth 的 Dubbo provider, 故先启动 auth) =====
+AUTH_STARTED_FOR_BOOTSTRAP=false
 if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" \
   && ",$PM2_APPS," == *,ulticode-auth,* ]]; then
   # UserProvisioningAdapter 通过 Dubbo RPC 调用 backend-auth 的
@@ -727,6 +728,7 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" \
   esac
   # The bootstrap key is handed only to the short-lived provisioning JVM;
   # no legacy symmetric bootstrap secret is exported by this launcher.
+  AUTH_STARTED_FOR_BOOTSTRAP=true
 else
   echo "Skipping dev-admin bootstrap (--skip-bootstrap / --quick / --frontend-only)."
 fi
@@ -852,11 +854,36 @@ echo "Starting PM2 services: $PM2_APPS"
       echo 0 > "$ROOT_DIR/logs/.submission-ready-offset"
     fi
   }
+  # Reuse Auth started with this invocation's configuration for bootstrap.
+  # Restarting it alongside App withdraws a provider while App subscribes.
+  auth_started="$AUTH_STARTED_FOR_BOOTSTRAP"
+  if [[ ",$PM2_APPS," == *",ulticode-app,"* && ",$PM2_APPS," == *",ulticode-auth,"* ]]; then
+    if [[ "$auth_started" != true ]]; then
+      pm2 startOrRestart ecosystem.config.cjs --only ulticode-auth --update-env
+      auth_started=true
+    fi
+    auth_ready=false
+    for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
+      if [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
+        http://127.0.0.1:9101/api/v1/auth/health/ready 2>/dev/null || true)" == "200" ]]; then
+        auth_ready=true
+        break
+      fi
+      sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
+    done
+    if [[ "$auth_ready" != true ]]; then
+      echo "backend-auth did not become healthy; not starting App or its deferred consumers. Fix Auth readiness and re-run up.sh." >&2
+      exit 1
+    fi
+  fi
   # Partition the exact selected set without adding dependencies to partial scopes.
   first=()
   deferred=()
   IFS=',' read -ra selected <<< "$PM2_APPS"
   for app in "${selected[@]}"; do
+    if [[ "$app" == ulticode-auth && "$auth_started" == true ]]; then
+      continue
+    fi
     if [[ ",$PM2_APPS," == *",ulticode-app,"* ]] \
       && [[ "$app" == ulticode-submission || "$app" == ulticode-judge ]]; then
       deferred+=("$app")
@@ -865,9 +892,11 @@ echo "Starting PM2 services: $PM2_APPS"
     fi
   done
   if [[ "${#deferred[@]}" -gt 0 ]]; then
-    pm2 startOrRestart ecosystem.config.cjs \
-      --only "$(devstack_apps_csv "${first[@]}")" \
-      --update-env
+    if [[ "${#first[@]}" -gt 0 ]]; then
+      pm2 startOrRestart ecosystem.config.cjs \
+        --only "$(devstack_apps_csv "${first[@]}")" \
+        --update-env
+    fi
     app_ready=false
     for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
       if [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
@@ -900,9 +929,11 @@ echo "Starting PM2 services: $PM2_APPS"
     if [[ ",$PM2_APPS," == *",ulticode-judge,"* ]]; then
       record_judge_offset
     fi
-    pm2 startOrRestart ecosystem.config.cjs \
-      --only "$PM2_APPS" \
-      --update-env
+    if [[ "${#first[@]}" -gt 0 ]]; then
+      pm2 startOrRestart ecosystem.config.cjs \
+        --only "$(devstack_apps_csv "${first[@]}")" \
+        --update-env
+    fi
   fi
   pm2 save
 )

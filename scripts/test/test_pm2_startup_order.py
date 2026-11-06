@@ -8,11 +8,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (ROOT / 'scripts/dev/up.sh').read_text()
 STARTUP = SOURCE.split('# ===== 步骤 6: PM2 服务 =====', 1)[1].split('# ===== 步骤 7:', 1)[0]
+BOOTSTRAP = SOURCE.split('# ===== 步骤 4:', 1)[1].split('# ===== 步骤 5:', 1)[0]
+BOOTSTRAP = '# ===== 步骤 4:' + BOOTSTRAP
 CHECK = SOURCE.split('check_pm2_online() {', 1)[1].split('\nfor _ in ', 1)[0]
 CHECK = 'check_pm2_online() {' + CHECK
 
 SETUP = r'''set -euo pipefail
 ROOT_DIR="$1"; PM2_APPS="$2"; DEV_SCOPE="$3"; FAILED="$4"; FRESH="$5"
+AUTH_FAILED="$7"; AUTH_STARTED_FOR_BOOTSTRAP="$8"
 source "$6/scripts/dev/devstack-manifest.sh"
 DEVSTACK_SERVICE_READINESS_ATTEMPTS=2
 DEVSTACK_READINESS_INTERVAL_SECONDS=0
@@ -41,6 +44,11 @@ pm2() {
   fi
 }
 curl() {
+  if [[ "$*" == *'9101/api/v1/auth/health/ready'* ]]; then
+    echo auth_probe >> "$ROOT_DIR/events"
+    if [[ "$AUTH_FAILED" == true ]]; then printf 503; else printf 200; fi
+    return 0
+  fi
   echo probe >> "$ROOT_DIR/events"
   # Simulate banners emitted by old auto-restarting consumers while App starts.
   mkdir -p "$ROOT_DIR/logs"
@@ -56,9 +64,11 @@ pm2_record_is_online() { return 0; }
 
 
 class StartupOrderTests(unittest.TestCase):
-    def run_stage(self, apps, scope='admin', failed=False, fresh=True, old_logs=True):
+    def run_stage(self, apps, scope='admin', failed=False, fresh=True, old_logs=True,
+                  auth_failed=False, bootstrapped=False, run_bootstrap=False, skip_bootstrap=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            (root / 'services').mkdir()
             if old_logs:
                 (root / 'logs').mkdir()
                 for owner, banner in [('submission', 'Started BackendSubmissionApplication'),
@@ -77,9 +87,25 @@ for app in ${PM2_APPS//,/ }; do
   esac
 done
 '''
-            run = subprocess.run(['bash', '-c', SETUP + STARTUP + CHECK + checks,
+            bootstrap_setup = r'''
+DEV_SEED_USERS_ENABLED=true
+DEVSTACK_DUBBO_REGISTRATION_DELAY_SECONDS=0
+DEVSTACK_BOOTSTRAP_KILL_AFTER_SECONDS=1
+DEVSTACK_BOOTSTRAP_TIMEOUT_SECONDS=1
+for key in INTERNAL_DELEGATION_PRIVATE_KEY INTERNAL_DELEGATION_KEY_ID \
+  BOOTSTRAP_DELEGATION_PRIVATE_KEY BOOTSTRAP_DELEGATION_KEY_ID \
+  AUTH_NACOS_USERNAME AUTH_NACOS_PASSWORD DEV_SEED_ADMIN_USERNAME \
+  DEV_SEED_ADMIN_EMAIL DEV_SEED_ADMIN_PASSWORD DEV_SEED_ADMIN_ROLE; do
+  printf -v "$key" '%s' test-only
+done
+timeout() { :; }
+'''
+            bootstrap = ('SKIP_BOOTSTRAP=' + str(skip_bootstrap).lower() + '\n'
+                         + bootstrap_setup + BOOTSTRAP) if run_bootstrap else ''
+            run = subprocess.run(['bash', '-c', SETUP + bootstrap + STARTUP + CHECK + checks,
                                   'test', directory, apps, scope, str(failed).lower(),
-                                  str(fresh).lower(), str(ROOT)], capture_output=True, text=True)
+                                  str(fresh).lower(), str(ROOT), str(auth_failed).lower(),
+                                  str(bootstrapped).lower()], capture_output=True, text=True)
             events = (root / 'events').read_text().splitlines()
             return run, events
 
@@ -90,7 +116,8 @@ done
     def test_app_submission_without_judge(self):
         run, events = self.run_stage('ulticode-auth,ulticode-app,ulticode-submission')
         self.assertEqual(run.returncode, 0, run.stderr)
-        self.assertEqual(self.starts(events), ['ulticode-auth,ulticode-app', 'ulticode-submission'])
+        self.assertEqual(self.starts(events), ['ulticode-auth', 'ulticode-app', 'ulticode-submission'])
+        self.assertLess(events.index('auth_probe'), events.index('pm2 startOrRestart ecosystem.config.cjs --only ulticode-app --update-env'))
         self.assertLess(events.index('probe'), events.index('offset submission fresh'))
         self.assertIn('ready ulticode-submission', events)
         self.assertFalse(any('delete' in event for event in events))
@@ -103,7 +130,8 @@ done
                 self.assertEqual(run.returncode, 0, run.stderr)
                 selected = apps.split(',')
                 consumers = [app for app in selected if app in ('ulticode-submission', 'ulticode-judge')]
-                self.assertEqual(self.starts(events), [','.join(app for app in selected if app not in consumers)] + consumers)
+                auth = ['ulticode-auth'] if 'ulticode-auth' in selected else []
+                self.assertEqual(self.starts(events), auth + [','.join(app for app in selected if app not in consumers + auth)] + consumers)
                 self.assertEqual(sum(event == 'probe' for event in events), 1)
                 self.assertIn('pm2 save', events)
                 self.assertIn('pm2 delete ulticode-admin', events)
@@ -119,6 +147,36 @@ done
                 self.assertEqual(events.count('probe'), 2)
                 self.assertNotIn('pm2 save', events)
                 self.assertIn('Fix App readiness', run.stderr)
+
+    def test_auth_bootstrap_process_is_reused_in_both_launch_branches(self):
+        for apps, expected in (
+            ('ulticode-auth', ['ulticode-auth']),
+            ('ulticode-auth,ulticode-app', ['ulticode-auth', 'ulticode-app']),
+            ('ulticode-auth,ulticode-app,ulticode-submission,ulticode-judge',
+             ['ulticode-auth', 'ulticode-app', 'ulticode-submission', 'ulticode-judge']),
+        ):
+            with self.subTest(apps=apps):
+                run, events = self.run_stage(apps, run_bootstrap=True)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                self.assertEqual(self.starts(events), expected)
+                self.assertIn('pm2 save', events)
+
+    def test_auth_timeout_does_not_start_app_or_deferred_consumers(self):
+        for reused in (False, True):
+            with self.subTest(reused=reused):
+                run, events = self.run_stage('ulticode-auth,ulticode-app,ulticode-submission,ulticode-judge',
+                                            auth_failed=True, bootstrapped=reused)
+                self.assertEqual(run.returncode, 1)
+                self.assertEqual(self.starts(events), [] if reused else ['ulticode-auth'])
+                self.assertEqual(events.count('auth_probe'), 2)
+                self.assertNotIn('probe', events)
+                self.assertNotIn('pm2 save', events)
+
+    def test_ambient_reuse_flag_cannot_skip_start_when_bootstrap_is_disabled(self):
+        run, events = self.run_stage('ulticode-auth,ulticode-app', run_bootstrap=True,
+                                    skip_bootstrap=True, bootstrapped=True)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(self.starts(events), ['ulticode-auth', 'ulticode-app'])
 
     def test_judge_only_dependency_failure_retains_legacy_fallback(self):
         run, events = self.run_stage('ulticode-app,ulticode-judge', failed=True)

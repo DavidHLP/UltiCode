@@ -203,6 +203,8 @@ ACCEPTANCE_DISPOSABLE=true bash scripts/ci/business-acceptance.sh
 
 当所选 PM2 集合同时包含 App 与 Submission/Judge 时，`up.sh` 先启动其余所选进程并等待 App 的 `/api/v1/app/health/ready`，再启动 Submission/Judge；不含 App 的部分选择不额外启动或等待 App。App 超时且选择了 Submission 时，launcher 非零退出，不启动延后的 Submission/Judge，也不保存本次 PM2 集合；已经运行的进程不会因此被停止。仅延后 Judge 的选择保留原有自动重连回退。此顺序与生产 Compose 的 Submission → App healthy 依赖对齐，但 App HTTP readiness 不证明 Dubbo provider 已注册，Submission discovery gate 及其超时保持不变。Submission/Judge 的就绪日志偏移在各自启动前记录，忽略旧 banner 及等待 App 期间旧进程产生的 banner。
 
+本次 launcher 已为管理员 bootstrap 启动的 Auth 会被复用，不在最终批次中再次重启。所选集合同时包含 Auth 与 App 时，先启动或复用 Auth，并重新确认 `/api/v1/auth/health/ready`，再启动 App；Auth 超时则非零退出，不启动 App 及其延后消费者。未选择 Auth 时不补起或等待 Auth，Auth-only 的 bootstrap 路径不发出空的 PM2 启动批次。HTTP readiness 不是 Dubbo 服务发现证明，最终仍须通过真实业务验收。
+
 按开发场景选择最小服务集合（`up.sh`/`stop.sh`/`doctor.sh` 共用同一 resolver，见 `scripts/dev/devstack-manifest.sh`）：
 
 ```bash

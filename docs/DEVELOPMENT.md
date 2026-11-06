@@ -166,8 +166,12 @@ HTTP 存活不代表 Dubbo 接口已被消费者发现。Admin readiness 额外�
 有界发现期限内检查 ProblemFactsPort 与 SubmissionUserReadPort，成功后才输出 launcher
 使用的就绪标记；超时则启动失败。检查只读取发现状态，不调用业务 RPC 或重试写入。
 launcher 记录本次启动前日志偏移，旧标记不会被当成本次成功。
-Submission 门禁另外记录最终发现观测，仅含固定接口别名、状态枚举和有界耗时；
-观测独立于成功判定，不改变发现期限或重试策略。安装报告保留日志尾部最多 16 条
+Submission 门禁另外按固定接口别名记录最终诊断，仅含固定状态/类型枚举、有界耗时和目录计数。
+诊断不调用 `isAvailable()` 或业务 RPC：Dubbo availability 检查可能触发失效/重连，
+只保留原门禁的 availability 判据，诊断仅读取已知目录的元数据。目录计数范围为 0–10000，
+缺失、超限和读取异常分别标为 UNKNOWN、OVERFLOW、ERROR；未知实现标为 UNSUPPORTED，
+不读取其目录字段。计数不是原子快照，正数不等于 ready，也不能据其数量推导等式。
+诊断独立于成功判定，不改变发现期限或重试策略。安装报告保留日志尾部最多 16 条
 此类观测，以及 launcher 最后一次 readiness/PM2 快照，不上传原始日志或环境。
 这些历史观测没有按进程代次关联，也不能证明 App 与 Submission 启动的因果顺序；
 自动重启后 ready 不能作为首次启动失败已修复的证据。

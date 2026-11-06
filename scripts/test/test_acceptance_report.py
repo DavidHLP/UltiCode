@@ -57,17 +57,29 @@ class RedactionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "logs").mkdir()
-            payload = "SubmissionDiscoveryObservation outcome=deadline elapsed_ms=120000 problem_facts=UNAVAILABLE user_read=AVAILABLE"
-            invalid = [payload + " password=secret-canary", payload.replace("UNAVAILABLE", "secret-canary"),
+            payload = ("SubmissionDiscoveryObservation outcome=deadline elapsed_ms=120000 interface=problem_facts "
+                       "state=INVOKER_PRESENT invoker_kind=SERVICE_DISCOVERY_MIGRATION directory_kind=SERVICE_DISCOVERY "
+                       "destroyed=FALSE all=1 valid=0 reconnect=1 disabled=1")
+            invalid = [payload + " password=secret-canary", payload.replace("INVOKER_PRESENT", "secret-canary"),
                        payload.replace("120000", "99999999"), payload.replace("120000", "-1"),
-                       payload.replace("deadline", "https://secret-canary"), payload.replace("120000", "1e5"), payload + " " + payload]
+                       payload.replace("deadline", "https://secret-canary"), payload.replace("120000", "1e5"), payload + " " + payload,
+                       payload.replace("all=1", "all=10001"), payload.replace("valid=0", "valid=-1"),
+                       payload.replace("valid=0", "valid=00"), payload.replace("reconnect=1", "reconnect=1e5"),
+                       payload.replace("disabled=1", "disabled=secret-canary"),
+                       payload.replace("interface=problem_facts", "interface=secret-canary"),
+                       payload.replace("invoker_kind=SERVICE_DISCOVERY_MIGRATION", "invoker_kind=secret-canary"),
+                       payload.replace("directory_kind=SERVICE_DISCOVERY", "directory_kind=secret-canary"),
+                       payload.replace("destroyed=FALSE", "destroyed=secret-canary"),
+                       payload.replace("state=INVOKER_PRESENT", "state=AVAILABLE")]
             (root / "logs/backend-submission.out.log").write_text(
                 "\n".join(invalid + ["private-prefix-canary " + payload] * 20))
             report = module.build_report(root, "launch", 1, "ulticode-acceptance-123-456")
             entries = report["submission_discovery_observations"]
             self.assertEqual(len(entries), 16)
             self.assertEqual(entries[0], {"outcome": "deadline", "elapsed_ms": 120000,
-                                         "problem_facts": "UNAVAILABLE", "user_read": "AVAILABLE"})
+                                         "interface": "problem_facts", "state": "INVOKER_PRESENT",
+                                         "invoker_kind": "SERVICE_DISCOVERY_MIGRATION", "directory_kind": "SERVICE_DISCOVERY",
+                                         "destroyed": "FALSE", "all": 1, "valid": 0, "reconnect": 1, "disabled": 1})
             self.assertNotIn("canary", json.dumps(report))
             self.assertEqual(report["submission_discovery_scope"], "historical-bounded-tail-not-process-correlated")
             # Malformed records alone do not become evidence.
@@ -79,12 +91,22 @@ class RedactionTests(unittest.TestCase):
             root = Path(directory)
             (root / "logs").mkdir()
             outside = root / "private-input"
-            payload = "SubmissionDiscoveryObservation outcome=ready elapsed_ms=1 problem_facts=AVAILABLE user_read=AVAILABLE"
+            payload = ("SubmissionDiscoveryObservation outcome=ready elapsed_ms=1 interface=user_read "
+                       "state=INVOKER_PRESENT invoker_kind=CLUSTER directory_kind=DYNAMIC "
+                       "destroyed=TRUE all=0 valid=UNKNOWN reconnect=OVERFLOW disabled=ERROR")
             outside.write_text(payload)
             log = root / "logs/backend-submission.out.log"
             log.symlink_to(outside)
             self.assertEqual(module.discovery_observations(root), [])
             log.unlink()
+            log.write_text(payload)
+            observation = module.discovery_observations(root)[0]
+            self.assertEqual(observation["all"], 0)
+            self.assertEqual(observation["valid"], "UNKNOWN")
+            self.assertEqual(observation["reconnect"], "OVERFLOW")
+            self.assertEqual(observation["disabled"], "ERROR")
+            log.write_text(payload.replace("all=0", "all=10000"))
+            self.assertEqual(module.discovery_observations(root)[0]["all"], 10000)
             log.write_text("x" * module.LIMIT + payload)
             self.assertEqual(module.discovery_observations(root), [])
 

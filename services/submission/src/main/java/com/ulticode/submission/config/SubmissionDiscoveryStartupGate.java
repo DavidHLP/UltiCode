@@ -50,12 +50,18 @@ public class SubmissionDiscoveryStartupGate implements ApplicationRunner {
         // Separate observations may race with discovery; they never determine the outcome.
         try {
             long elapsed = Math.min(86_400_000L, Math.max(0L, (System.nanoTime() - started) / 1_000_000L));
-            log.info("SubmissionDiscoveryObservation outcome={} elapsed_ms={} problem_facts={} user_read={}",
-                    outcome, elapsed,
-                    DubboDiscoveryReadiness.inspect(references, ProblemFactsPort.class.getName()),
-                    DubboDiscoveryReadiness.inspect(references, SubmissionUserReadPort.class.getName()));
+            observeInterface(outcome, elapsed, "problem_facts", ProblemFactsPort.class.getName());
+            observeInterface(outcome, elapsed, "user_read", SubmissionUserReadPort.class.getName());
         } catch (RuntimeException ignored) {
             // Diagnostics must not change startup success/failure, including logging failures.
         }
+    }
+
+    private void observeInterface(String outcome, long elapsed, String alias, String interfaceName) {
+        var observation = DubboDiscoveryReadiness.inspect(references, interfaceName);
+        log.info("SubmissionDiscoveryObservation outcome={} elapsed_ms={} interface={} state={} invoker_kind={} directory_kind={} destroyed={} all={} valid={} reconnect={} disabled={}",
+                outcome, elapsed, alias, observation.state(), observation.invokerKind(), observation.directoryKind(),
+                observation.destroyed(), observation.all().token(), observation.valid().token(),
+                observation.reconnect().token(), observation.disabled().token());
     }
 }

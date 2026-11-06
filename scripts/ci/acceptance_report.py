@@ -15,10 +15,16 @@ PHASES = {"environment", "sandbox", "fresh-migrations", "backfill-and-cutover", 
 
 
 # Match the entire generated payload. Prefixes are private logger metadata, never emitted.
+COUNT_TOKEN = r"(?:0|[1-9][0-9]{0,4}|UNKNOWN|OVERFLOW|ERROR)"
 DISCOVERY = re.compile(
-    r"^SubmissionDiscoveryObservation outcome=(ready|deadline) elapsed_ms=([0-9]{1,8}) "
-    r"problem_facts=(MANAGER_MISSING|REFERENCE_MISSING|CONFIG_MISSING|INVOKER_MISSING|UNAVAILABLE|INSPECTION_ERROR|AVAILABLE) "
-    r"user_read=(MANAGER_MISSING|REFERENCE_MISSING|CONFIG_MISSING|INVOKER_MISSING|UNAVAILABLE|INSPECTION_ERROR|AVAILABLE)$"
+    r"^SubmissionDiscoveryObservation outcome=(?P<outcome>ready|deadline) elapsed_ms=(?P<elapsed_ms>[0-9]{1,8}) "
+    r"interface=(?P<interface>problem_facts|user_read) "
+    r"state=(?P<state>MANAGER_MISSING|REFERENCE_MISSING|CONFIG_MISSING|INVOKER_MISSING|INVOKER_PRESENT|UNSUPPORTED|INSPECTION_ERROR) "
+    r"invoker_kind=(?P<invoker_kind>SERVICE_DISCOVERY_MIGRATION|MIGRATION|CLUSTER|OTHER|MISSING) "
+    r"directory_kind=(?P<directory_kind>SERVICE_DISCOVERY|DYNAMIC|OTHER|MISSING) "
+    r"destroyed=(?P<destroyed>TRUE|FALSE|UNKNOWN|ERROR) "
+    + " ".join(rf"{name}=(?P<{name}>{COUNT_TOKEN})" for name in ("all", "valid", "reconnect", "disabled"))
+    + r"$"
 )
 
 
@@ -44,10 +50,17 @@ def discovery_observations(root):
             continue
         payload = marker + line.partition(marker)[2]
         match = DISCOVERY.fullmatch(payload)
-        if not match or int(match[2]) > 86_400_000:
+        if not match or int(match["elapsed_ms"]) > 86_400_000:
             continue
-        observations.append({"outcome": match[1], "elapsed_ms": int(match[2]),
-                             "problem_facts": match[3], "user_read": match[4]})
+        item = match.groupdict()
+        item["elapsed_ms"] = int(item["elapsed_ms"])
+        for name in ("all", "valid", "reconnect", "disabled"):
+            if item[name].isdigit():
+                item[name] = int(item[name])
+        if any(isinstance(item[name], int) and item[name] > 10_000
+               for name in ("all", "valid", "reconnect", "disabled")):
+            continue
+        observations.append(item)
     return observations[-16:]
 
 

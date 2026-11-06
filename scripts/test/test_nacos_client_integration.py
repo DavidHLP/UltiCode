@@ -123,6 +123,7 @@ control = pathlib.Path(os.environ['NACOS_FIXTURE_CONTROL'])
 print(os.environ['AUTH_NACOS_PASSWORD'])  # must remain in private log
 print(os.environ['NACOS_FIXTURE_CONFIG_PASSWORD'])
 (control / 'evidence').write_text('workload-batch-result-code=500\\nworkload-batch-error-code=403\\n'
+    + 'config-retained-listener-pools=' + os.environ['NACOS_FIXTURE_CONFIG_PASSWORD'] + '\\n'
     + 'workload-batch-error-code=' + os.environ['NACOS_FIXTURE_CONFIG_PASSWORD'] + '\\n')
 if os.environ['FAILURE'] in ('client', 'transport'):
     code, classification = (-401, 'client-disconnected') if os.environ['FAILURE'] == 'transport' else (403, 'authorization-rejected')
@@ -138,6 +139,8 @@ for requested, observed in [('server-stopped', 'observed-disconnect'), ('server-
         assert time.monotonic() < deadline
         time.sleep(0.01)
     (control / observed).touch()
+with (control / 'evidence').open('a') as evidence:
+    evidence.write('config-retained-listener-pools=1\\nconfig-declared-resources-closed=true\\n')
 ''')
             java.chmod(0o755)
             env = {**os.environ, "PATH": f"{repo / 'bin'}:{os.environ['PATH']}",
@@ -182,6 +185,9 @@ for requested, observed in [('server-stopped', 'observed-disconnect'), ('server-
         self.assertIn("PASS:", result.stdout)
         self.assertIn("original workload batch-listen remains denied (403), unresolved", result.stdout)
         self.assertIn("Client diagnostic: workload-batch-error-code=403", result.stderr)
+        self.assertIn("Client diagnostic: config-retained-listener-pools=1", result.stderr)
+        self.assertIn("Client diagnostic: config-declared-resources-closed=true", result.stderr)
+        self.assertIn("upstream listener-pool retention remains unresolved", result.stdout)
         self.assertEqual(sum("stop" in event for event in events), 1)
         self.assertIn("down", events[-1])
         projects = {event[event.index('--project-name') + 1] for event in events if '--project-name' in event}

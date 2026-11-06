@@ -52,14 +52,14 @@ from pathlib import Path
 import re
 import sys
 for line in Path(sys.argv[1]).read_text().splitlines():
-    if re.fullmatch(r'(?:phase=[a-z-]+|exception=[A-Za-z0-9_.$]+|line=[0-9]+|(?:nacos-error-code|workload-batch-result-code|workload-batch-error-code)=-?[0-9]+|callback-server-readback=(?:not-run|matches|differs|request-failed)|classification=(?:client-disconnected|authorization-rejected|server-not-ready|resource-not-found|nacos-request-failed))', line):
+    if re.fullmatch(r'(?:phase=[a-z-]+|exception=[A-Za-z0-9_.$]+|line=[0-9]+|(?:nacos-error-code|workload-batch-result-code|workload-batch-error-code)=-?[0-9]+|config-retained-listener-pools=[0-9]+|config-declared-resources-closed=true|callback-server-readback=(?:not-run|matches|differs|request-failed)|classification=(?:client-disconnected|authorization-rejected|server-not-ready|resource-not-found|nacos-request-failed))', line):
         print('Client diagnostic: ' + line, file=sys.stderr)
 PY_DIAGNOSTIC
     fi
   done
   if ! rm -rf -- "$tmp"; then rc=1; fi
   if (( rc == 0 )); then
-    echo 'PASS: isolated Nacos client compatibility, naming/discovery, dedicated-namespace config callbacks, auth/scope rejection, reconnect/resubscribe, shutdown and single patched API provenance; original workload batch-listen remains denied (403), unresolved'
+    echo 'PASS: isolated Nacos client compatibility, naming/discovery, dedicated-namespace config callbacks, auth/scope rejection, reconnect/resubscribe, declared-resource closure and single patched API provenance; original workload batch-listen remains denied (403), unresolved; upstream listener-pool retention remains unresolved'
   fi
   exit "$rc"
 }

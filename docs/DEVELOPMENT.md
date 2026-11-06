@@ -690,7 +690,9 @@ python3 scripts/test/test_nacos_client_integration.py
 
 配置监听验证分为两个不可替代的对照：原 AUTH workload ACL 不变，继续验证 naming 与直接配置读写，并要求其标准批量监听请求明确返回 403；另一个随机凭据的测试账号只在独占、仅含合成数据的 namespace 内拥有配置读取权限和固定 dataId 写权限，使用普通 SDK listener 验证变更回调与重连。该读取权限覆盖测试 namespace 的所有 group，不是“仅监听”权限；不得复制到生产。跨 namespace 的直接读取和范围外写入仍须拒绝，测试账号、数据与资源随 Compose project 销毁。
 
-此补丁只覆盖应用进程加载的 Nacos 客户端 API，不改变独立 Nacos 服务端镜像或生产 workload ACL。测试专用授权下的回调通过不代表原生产角色的监听兼容；服务端解析器风险与生产监听限制分别见 [SVC-029 / SVC-030](../services/docs/SERVICES_ISSUES.md)。
+生命周期检查在关闭前捕获原 RPC、通道和 SDK 声明关闭的执行器，验证其终止及 factory 移除；关闭后调用配置客户端的 health getter 可能重新创建连接，不能用作无副作用的关闭断言。上游 listener 同步线程池的保留须单独记录，不能把临时 JVM 退出说成 SDK 完整释放。
+
+此补丁只覆盖应用进程加载的 Nacos 客户端 API，不改变独立 Nacos 服务端镜像、生产 workload ACL 或 SDK 生命周期实现。测试专用授权下的回调通过不代表原生产角色的监听兼容；服务端解析器风险、生产监听限制与 listener 线程池保留分别见 [SVC-029 / SVC-030 / SVC-031](../services/docs/SERVICES_ISSUES.md)。
 
 ### Core 与 distributed 验证边界
 

@@ -18,13 +18,19 @@ import com.alibaba.nacos.api.remote.request.Request;
 import com.alibaba.nacos.api.remote.response.Response;
 import com.alibaba.nacos.client.config.NacosConfigService;
 import com.alibaba.nacos.client.config.impl.ClientWorker;
+import com.alibaba.nacos.client.config.impl.ConfigTransportClient;
 import com.alibaba.nacos.common.remote.client.RpcClient;
+import com.alibaba.nacos.common.remote.client.RpcClientFactory;
+import com.alibaba.nacos.common.remote.client.grpc.GrpcClient;
+import com.alibaba.nacos.common.remote.client.grpc.GrpcConnection;
+import io.grpc.ManagedChannel;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.ArrayDeque;
@@ -35,8 +41,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
@@ -65,7 +73,8 @@ class NacosRegistryIT {
             Files.writeString(Path.of(required("NACOS_FIXTURE_CONTROL"), "failure"), failureDiagnostic(failure));
             throw failure;
         }
-        System.out.println("PASS: isolated client compatibility; original workload batch-listen is denied (403), unresolved");
+        System.out.println("PASS: isolated client compatibility and declared-resource closure; "
+                + "original workload batch-listen (403) and upstream listener-pool retention remain unresolved");
     }
 
     @Test
@@ -177,11 +186,21 @@ class NacosRegistryIT {
             config.removeListener(FIXTURE_DATA_ID, FIXTURE_CONFIG_GROUP, configListener);
             assertThat(config.removeConfig(FIXTURE_DATA_ID, FIXTURE_CONFIG_GROUP)).isTrue();
             assertThat(workloadConfig.removeConfig(DATA_ID, CONFIG_GROUP)).isTrue();
+            ConfigShutdown workloadShutdown = ConfigShutdown.capture(workloadConfig);
+            ConfigShutdown isolatedShutdown = ConfigShutdown.capture(config);
             clients.close();
             assertThat(producer.getServerStatus()).isEqualTo("DOWN");
             assertThat(consumer.getServerStatus()).isEqualTo("DOWN");
-            assertThat(workloadConfig.getServerStatus()).isEqualTo("DOWN");
-            assertThat(config.getServerStatus()).isEqualTo("DOWN");
+            // Nacos 2.5.1 config getServerStatus() calls ensureRpcClient("0"):
+            // after shutdown removes its factory entry, that observer creates
+            // a replacement connection. Inspect captured resources instead.
+            Files.writeString(control.resolve("evidence"), retainedListenerDiagnostic(
+                    workloadShutdown.retainedListenerPools() + isolatedShutdown.retainedListenerPools()),
+                    StandardOpenOption.APPEND);
+            workloadShutdown.assertClosed(WAIT);
+            isolatedShutdown.assertClosed(WAIT);
+            Files.writeString(control.resolve("evidence"), "config-declared-resources-closed=true\n",
+                    StandardOpenOption.APPEND);
         }
     }
 
@@ -234,9 +253,87 @@ class NacosRegistryIT {
     }
 
     private static ClientWorker configWorker(ConfigService config) throws ReflectiveOperationException {
-        Field worker = NacosConfigService.class.getDeclaredField("worker");
-        worker.setAccessible(true);
-        return (ClientWorker) worker.get(config);
+        return (ClientWorker) field(NacosConfigService.class, "worker", config);
+    }
+
+    private static Object field(Class<?> owner, String name, Object target) throws ReflectiveOperationException {
+        Field field = owner.getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(target);
+    }
+
+    static String retainedListenerDiagnostic(long retained) {
+        assertThat(retained).isNotNegative();
+        return "config-retained-listener-pools=" + retained + "\n";
+    }
+
+    record RpcShutdown(RpcClient client, ManagedChannel channel, ExecutorService events, ExecutorService grpc) {
+        static RpcShutdown capture(RpcClient client) throws ReflectiveOperationException {
+            GrpcConnection connection = (GrpcConnection) field(RpcClient.class, "currentConnection", client);
+            assertThat(connection).isNotNull();
+            return new RpcShutdown(client, connection.getChannel(),
+                    (ExecutorService) field(RpcClient.class, "clientEventExecutor", client),
+                    (ExecutorService) field(GrpcClient.class, "grpcExecutor", client));
+        }
+
+        void assertShutdown() {
+            assertThat(client.isShutdown()).as("original RPC must be shut down").isTrue();
+            assertThat(client.isRunning()).isFalse();
+            assertThat(channel.isShutdown()).as("original channel must be shut down").isTrue();
+            assertThat(events.isShutdown()).as("RPC event executor must be shut down").isTrue();
+            assertThat(grpc.isShutdown()).as("gRPC executor must be shut down").isTrue();
+        }
+
+        boolean terminated() {
+            return channel.isTerminated() && events.isTerminated() && grpc.isTerminated();
+        }
+    }
+
+    record ConfigShutdown(String prefix, List<RpcShutdown> rpcs, ExecutorService scheduler,
+            List<ThreadPoolExecutor> listenerPools) {
+        static ConfigShutdown capture(ConfigService config) throws ReflectiveOperationException {
+            ClientWorker worker = configWorker(config);
+            String prefix = field(ClientWorker.class, "uuid", worker) + "_config-";
+            List<RpcShutdown> rpcs = new java.util.ArrayList<>();
+            for (var entry : RpcClientFactory.getAllClientEntries()) {
+                if (entry.getKey().startsWith(prefix)) {
+                    rpcs.add(RpcShutdown.capture(entry.getValue()));
+                }
+            }
+            assertThat(rpcs).as("capture original transports, never create replacements").isNotEmpty();
+            Object agent = worker.getAgent();
+            ExecutorService scheduler = (ExecutorService) field(ConfigTransportClient.class, "executor", agent);
+            Map<?, ?> listeners = (Map<?, ?>) field(agent.getClass(), "multiTaskExecutor", agent);
+            return new ConfigShutdown(prefix, List.copyOf(rpcs), scheduler,
+                    listeners.values().stream().map(ThreadPoolExecutor.class::cast).toList());
+        }
+
+        long retainedListenerPools() {
+            // Upstream 2.5.1 does not shut these per-client daemon pools down.
+            // Report retention; never terminate them here or claim leak-free cleanup.
+            return listenerPools.stream().filter(pool -> !pool.isShutdown()).count();
+        }
+
+        void assertClosed(Duration timeout) throws Exception {
+            assertThat(scheduler.isShutdown()).as("config login/listen scheduler must be shut down").isTrue();
+            for (RpcShutdown rpc : rpcs) {
+                rpc.assertShutdown();
+            }
+            assertFactoryAbsent();
+            // Bounded condition wait for actual termination, not a sleep or a
+            // post-close SDK health call. Keep the fixture's existing 60s bound.
+            await("captured config resources terminate", () -> scheduler.isTerminated()
+                    && rpcs.stream().allMatch(RpcShutdown::terminated)
+                    && listenerPools.stream().allMatch(pool -> pool.getActiveCount() == 0 && pool.getQueue().isEmpty()),
+                    timeout);
+            assertFactoryAbsent();
+        }
+
+        private void assertFactoryAbsent() {
+            assertThat(RpcClientFactory.getAllClientEntries().stream()
+                    .noneMatch(entry -> entry.getKey().startsWith(prefix)))
+                    .as("no original or replacement config transport may remain registered").isTrue();
+        }
     }
 
     private static Response requestOnConfigTransport(ConfigService config, Request request) throws Exception {

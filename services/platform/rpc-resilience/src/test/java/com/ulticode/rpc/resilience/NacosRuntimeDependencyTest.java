@@ -16,6 +16,8 @@ import com.alibaba.nacos.client.config.NacosConfigService;
 import com.alibaba.nacos.client.config.impl.ClientWorker;
 import com.alibaba.nacos.client.naming.NacosNamingService;
 import com.alibaba.nacos.common.remote.client.RpcClient;
+import com.alibaba.nacos.common.remote.client.RpcClientFactory;
+import com.alibaba.nacos.common.remote.ConnectionType;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedOutputStream;
@@ -43,6 +45,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,6 +71,13 @@ class NacosRuntimeDependencyTest {
     void excludesTheSdkWithUnmanagedShadedDependencies() throws Exception {
         assertThat(NacosNamingService.class.getProtectionDomain().getCodeSource().getLocation().toString())
                 .endsWith("-pure.jar");
+        // The API gencode patch must not replace SDK lifecycle implementation.
+        for (Class<?> clientClass : List.of(NacosConfigService.class, ClientWorker.class)) {
+            assertThat(clientClass.getProtectionDomain().getCodeSource().getLocation())
+                    .isEqualTo(NacosNamingService.class.getProtectionDomain().getCodeSource().getLocation());
+            assertThat(clientClass.getProtectionDomain().getCodeSource().getLocation().toString())
+                    .endsWith("nacos-client-2.5.1-pure.jar");
+        }
         assertSinglePatchedApi();
         assertThat(getClass().getClassLoader().getResource(
                 "com/alibaba/nacos/shaded/com/google/common/collect/ImmutableList.class")).isNull();
@@ -204,6 +218,74 @@ class NacosRuntimeDependencyTest {
                 .isSameAs(timeout);
         assertThat(NacosRegistryIT.failureDiagnostic(timeout))
                 .contains("callback-server-readback=request-failed\n").doesNotContain("private-request-message");
+    }
+
+    @Test
+    void fixtureLifecycleChecksOriginalResourcesAndRejectsFactoryResurrection() throws Exception {
+        String prefix = "fixture-lifecycle-" + java.util.UUID.randomUUID() + "-";
+        RpcClient rpc = RpcClientFactory.createClient(prefix + "0", ConnectionType.GRPC, Map.of());
+        // Construct, never start/connect: this is an infrastructure-free state test.
+        RpcClientFactory.getAllClientEntries().removeIf(entry -> entry.getKey().equals(prefix + "0"));
+        ManagedChannel channel = NettyChannelBuilder.forAddress("127.0.0.1", 9).usePlaintext().build();
+        ExecutorService events = Executors.newSingleThreadExecutor();
+        ExecutorService grpc = Executors.newSingleThreadExecutor();
+        ExecutorService scheduler = Executors.newSingleThreadExecutor();
+        ExecutorService blocked = Executors.newSingleThreadExecutor();
+        CountDownLatch release = new CountDownLatch(1);
+        ThreadPoolExecutor listener = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>());
+        var original = new NacosRegistryIT.RpcShutdown(rpc, channel, events, grpc);
+        var snapshot = new NacosRegistryIT.ConfigShutdown(prefix, List.of(original), scheduler, List.of(listener));
+        try {
+            assertThatThrownBy(() -> snapshot.assertClosed(Duration.ZERO))
+                    .isInstanceOf(AssertionError.class).hasMessageContaining("scheduler");
+            scheduler.shutdown();
+            assertThatThrownBy(() -> snapshot.assertClosed(Duration.ZERO))
+                    .isInstanceOf(AssertionError.class).hasMessageContaining("original RPC");
+            rpc.shutdown();
+            assertThatThrownBy(() -> snapshot.assertClosed(Duration.ZERO))
+                    .isInstanceOf(AssertionError.class).hasMessageContaining("original channel");
+            channel.shutdownNow();
+            assertThatThrownBy(() -> snapshot.assertClosed(Duration.ZERO))
+                    .isInstanceOf(AssertionError.class).hasMessageContaining("event executor");
+            events.shutdown();
+            assertThatThrownBy(() -> snapshot.assertClosed(Duration.ZERO))
+                    .isInstanceOf(AssertionError.class).hasMessageContaining("gRPC executor");
+            grpc.shutdown();
+            snapshot.assertClosed(Duration.ofSeconds(5));
+            assertThat(snapshot.retainedListenerPools()).isEqualTo(1);
+            assertThat(NacosRegistryIT.retainedListenerDiagnostic(snapshot.retainedListenerPools()))
+                    .isEqualTo("config-retained-listener-pools=1\n");
+            assertThat(listener.isShutdown()).isFalse(); // observation must not hide upstream retention
+            assertThat(RpcClientFactory.getClient(prefix + "0")).isNull();
+
+            RpcClientFactory.createClient(prefix + "replacement", ConnectionType.GRPC, Map.of());
+            assertThatThrownBy(() -> snapshot.assertClosed(Duration.ZERO))
+                    .isInstanceOf(AssertionError.class).hasMessageContaining("remain registered");
+            RpcClientFactory.destroyClient(prefix + "replacement");
+
+            CountDownLatch started = new CountDownLatch(1);
+            blocked.submit(() -> {
+                started.countDown();
+                try { release.await(); } catch (InterruptedException failure) { Thread.currentThread().interrupt(); }
+            });
+            assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+            blocked.shutdown();
+            var notTerminated = new NacosRegistryIT.ConfigShutdown(prefix, List.of(original), blocked, List.of());
+            assertThatThrownBy(() -> notTerminated.assertClosed(Duration.ZERO))
+                    .isInstanceOf(AssertionError.class).hasMessageContaining("resources terminate");
+        } finally {
+            release.countDown();
+            blocked.shutdownNow();
+            // These are test-created stand-ins, never the SDK's retained pools.
+            listener.shutdownNow();
+            scheduler.shutdownNow();
+            events.shutdownNow();
+            grpc.shutdownNow();
+            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+            rpc.shutdown();
+            RpcClientFactory.destroyClient(prefix + "replacement");
+        }
     }
 
     @Test

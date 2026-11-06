@@ -54,7 +54,7 @@ import java.util.UUID;
 public class AdminUserProfileAdapter implements UserProfilePort {
 
     @Autowired(required = false)
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ProfileWriteService profileWriteService;
 

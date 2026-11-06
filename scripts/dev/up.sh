@@ -38,6 +38,32 @@ capture_env_vars MIGRATION_DB_HOST MIGRATION_DB_PORT MIGRATION_DB_NAME MIGRATION
   DEV_SEED_USERS_ENABLED DEV_SEED_DATA_ENABLED \
   DEV_SEED_ADMIN_USERNAME DEV_SEED_ADMIN_EMAIL DEV_SEED_ADMIN_PASSWORD DEV_SEED_ADMIN_ROLE
 
+# Administrator bootstrap policy: share the predicate between fail-closed
+# validation and execution; freeze it before sourcing a developer environment.
+dev_admin_bootstrap_enabled() {
+  [[ "$SKIP_BOOTSTRAP" != true && "$PREPARE_SUBMISSION_OWNER" != true \
+    && "$DEV_SEED_USERS_ENABLED" == true \
+    && ",$PM2_APPS," == *,ulticode-auth,* ]]
+}
+
+require_dev_admin_password() {
+  # Match Java String.isBlank/Character.isWhitespace without altering the value.
+  # Non-breaking spaces U+00A0, U+2007 and U+202F are deliberately excluded.
+  local password="${DEV_SEED_ADMIN_PASSWORD:-}" whitespace
+  # Remove exact character sequences, not a bracket class: in the C locale a
+  # multibyte bracket class can accidentally match bytes of a nonblank character.
+  for whitespace in $'\t' $'\n' $'\v' $'\f' $'\r' $'\x1c' $'\x1d' $'\x1e' $'\x1f' ' ' \
+    $'\xe1\x9a\x80' $'\xe2\x80\x80' $'\xe2\x80\x81' $'\xe2\x80\x82' $'\xe2\x80\x83' $'\xe2\x80\x84' $'\xe2\x80\x85' $'\xe2\x80\x86' \
+    $'\xe2\x80\x88' $'\xe2\x80\x89' $'\xe2\x80\x8a' $'\xe2\x80\xa8' $'\xe2\x80\xa9' $'\xe2\x81\x9f' $'\xe3\x80\x80'; do
+    password="${password//"$whitespace"/}"
+  done
+  if dev_admin_bootstrap_enabled && [[ -z "$password" ]]; then
+    echo "DEV_SEED_ADMIN_PASSWORD is required when development administrator bootstrap is enabled; provide it in the private environment or disable bootstrap." >&2
+    return 1
+  fi
+}
+readonly -f dev_admin_bootstrap_enabled require_dev_admin_password
+
 # ===== 参数解析 =====
 SKIP_INSTALL=false
 SKIP_INFRA=false
@@ -287,8 +313,8 @@ devstack_apply_scope "$DEV_SCOPE"
 : "${DEV_SEED_DATA_ENABLED:=true}"
 : "${DEV_SEED_ADMIN_USERNAME:=admin}"
 : "${DEV_SEED_ADMIN_EMAIL:=admin@localhost.test}"
-: "${DEV_SEED_ADMIN_PASSWORD:=admin123}"
 : "${DEV_SEED_ADMIN_ROLE:=ADMIN}"
+require_dev_admin_password || exit $?
 
 mapfile -t required_vars < <(devstack_required_vars "$DEV_MODE" "$FRONTEND_ONLY")
 for var in "${required_vars[@]}"; do
@@ -349,6 +375,26 @@ if [[ ",$INFRA_TARGETS," == *,rustfs,* ]]; then
   COMPOSE_TARGETS+=(rustfs-init rustfs-iam-init)
 fi
 mapfile -t SELECTED_READINESS < <(devstack_readiness_for_selection "$DEV_SCOPE" "$PM2_APPS")
+
+# Capture observations only for disposable acceptance. The EXIT hook never changes
+# launch status; PM2 metadata comes from the last existing readiness query.
+declare -A ACCEPTANCE_LAST_READINESS=()
+acceptance_launch_snapshot() {
+  local status=$? app
+  local -a observations=()
+  for app in "${!ACCEPTANCE_LAST_READINESS[@]}"; do
+    observations+=("$app=${ACCEPTANCE_LAST_READINESS[$app]}")
+  done
+  printf '%s' "${ACCEPTANCE_PM2_JSON:-}" | \
+    python3 "$ROOT_DIR/scripts/ci/acceptance_readiness.py" "$ROOT_DIR" "$PM2_APPS" \
+      "${ACCEPTANCE_PM2_COLLECTION:-failed}" "${observations[@]}" >/dev/null 2>&1 || true
+  return "$status"
+}
+if [[ "${ACCEPTANCE_DISPOSABLE:-}" == true && "$PREPARE_SUBMISSION_OWNER" != true ]]; then
+  ACCEPTANCE_PM2_JSON=""
+  ACCEPTANCE_PM2_COLLECTION=failed
+  trap acceptance_launch_snapshot EXIT
+fi
 
 resolve_mysql_container() {
   local configured="${MIGRATION_MYSQL_CONTAINER:-${MYSQL_CONTAINER:-}}"
@@ -620,8 +666,8 @@ if [[ "$REBUILD" == true && "$FRONTEND_ONLY" != true ]] && [[ ",$PM2_APPS," == *
 fi
 
 # ===== 步骤 4: dev-admin bootstrap (依赖 auth 的 Dubbo provider, 故先启动 auth) =====
-if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" \
-  && ",$PM2_APPS," == *,ulticode-auth,* ]]; then
+AUTH_STARTED_FOR_BOOTSTRAP=false
+if dev_admin_bootstrap_enabled; then
   # UserProvisioningAdapter 通过 Dubbo RPC 调用 backend-auth 的
   # AccountManagementService 创建/恢复 admin (check=false: 容器可启动, 调用期才需要 provider)。
   # 所以 bootstrap 前必须先拉起 ulticode-auth 并等待其 Dubbo provider 注册到 Nacos。
@@ -707,6 +753,7 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" \
   esac
   # The bootstrap key is handed only to the short-lived provisioning JVM;
   # no legacy symmetric bootstrap secret is exported by this launcher.
+  AUTH_STARTED_FOR_BOOTSTRAP=true
 else
   echo "Skipping dev-admin bootstrap (--skip-bootstrap / --quick / --frontend-only)."
 fi
@@ -787,10 +834,9 @@ preflight_service_ports() {
 preflight_service_ports
 
 # ===== 步骤 6: PM2 服务 =====
-# Judge 依赖 backend-app 的 Dubbo provider (SubmissionFencePort 等)。
-# 若本次同时启动 app 与 judge, 先起 app 并等其健康, 再起 judge,
-# 避免 judge 冷启动时 provider 尚未注册导致的连接超时噪音;
-# Dubbo 框架本身会自动重连, 此顺序只为让首次启动即干净连接。
+# Submission 与 Judge 依赖 backend-app 的 Dubbo provider。
+# 同时选择 App 时先等待其 HTTP readiness，再启动这两个消费者。
+# HTTP readiness 不证明 Dubbo 注册完成；各服务自己的 discovery gate 保持不变。
 echo "Starting PM2 services: $PM2_APPS"
 (
   cd "$ROOT_DIR"
@@ -825,20 +871,57 @@ echo "Starting PM2 services: $PM2_APPS"
       echo "Named scope $DEV_SCOPE: leaving processes of other scopes running (use stop.sh --scope/--all to tear down)." >&2
       ;;
   esac
-  if [[ ",$PM2_APPS," == *",ulticode-submission,"* ]]; then
+  record_submission_offset() {
     mkdir -p "$ROOT_DIR/logs"
     if [[ -f "$ROOT_DIR/logs/backend-submission.out.log" ]]; then
       wc -c < "$ROOT_DIR/logs/backend-submission.out.log" > "$ROOT_DIR/logs/.submission-ready-offset"
     else
       echo 0 > "$ROOT_DIR/logs/.submission-ready-offset"
     fi
+  }
+  # Reuse Auth started with this invocation's configuration for bootstrap.
+  # Restarting it alongside App withdraws a provider while App subscribes.
+  auth_started="$AUTH_STARTED_FOR_BOOTSTRAP"
+  if [[ ",$PM2_APPS," == *",ulticode-app,"* && ",$PM2_APPS," == *",ulticode-auth,"* ]]; then
+    if [[ "$auth_started" != true ]]; then
+      pm2 startOrRestart ecosystem.config.cjs --only ulticode-auth --update-env
+      auth_started=true
+    fi
+    auth_ready=false
+    for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
+      if [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
+        http://127.0.0.1:9101/api/v1/auth/health/ready 2>/dev/null || true)" == "200" ]]; then
+        auth_ready=true
+        break
+      fi
+      sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
+    done
+    if [[ "$auth_ready" != true ]]; then
+      echo "backend-auth did not become healthy; not starting App or its deferred consumers. Fix Auth readiness and re-run up.sh." >&2
+      exit 1
+    fi
   fi
-  if [[ ",$PM2_APPS," == *",ulticode-judge,"* && ",$PM2_APPS," == *",ulticode-app,"* ]]; then
-    first="${PM2_APPS//ulticode-judge,/}"
-    first="${first//,ulticode-judge/}"
-    pm2 startOrRestart ecosystem.config.cjs \
-      --only "$first" \
-      --update-env
+  # Partition the exact selected set without adding dependencies to partial scopes.
+  first=()
+  deferred=()
+  IFS=',' read -ra selected <<< "$PM2_APPS"
+  for app in "${selected[@]}"; do
+    if [[ "$app" == ulticode-auth && "$auth_started" == true ]]; then
+      continue
+    fi
+    if [[ ",$PM2_APPS," == *",ulticode-app,"* ]] \
+      && [[ "$app" == ulticode-submission || "$app" == ulticode-judge ]]; then
+      deferred+=("$app")
+    else
+      first+=("$app")
+    fi
+  done
+  if [[ "${#deferred[@]}" -gt 0 ]]; then
+    if [[ "${#first[@]}" -gt 0 ]]; then
+      pm2 startOrRestart ecosystem.config.cjs \
+        --only "$(devstack_apps_csv "${first[@]}")" \
+        --update-env
+    fi
     app_ready=false
     for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
       if [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
@@ -849,19 +932,33 @@ echo "Starting PM2 services: $PM2_APPS"
     sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
     done
     if [[ "$app_ready" != true ]]; then
+      if [[ ",$PM2_APPS," == *",ulticode-submission,"* ]]; then
+        echo "backend-app did not become healthy; not starting deferred Submission/Judge services. Fix App readiness and re-run up.sh." >&2
+        exit 1
+      fi
       echo "backend-app did not become healthy; starting ulticode-judge anyway (Dubbo auto-reconnect)." >&2
     fi
-    record_judge_offset
-    pm2 startOrRestart ecosystem.config.cjs \
-      --only ulticode-judge \
-      --update-env
+    for app in "${deferred[@]}"; do
+      case "$app" in
+        ulticode-submission) record_submission_offset ;;
+        ulticode-judge) record_judge_offset ;;
+      esac
+      pm2 startOrRestart ecosystem.config.cjs \
+        --only "$app" \
+        --update-env
+    done
   else
+    if [[ ",$PM2_APPS," == *",ulticode-submission,"* ]]; then
+      record_submission_offset
+    fi
     if [[ ",$PM2_APPS," == *",ulticode-judge,"* ]]; then
       record_judge_offset
     fi
-    pm2 startOrRestart ecosystem.config.cjs \
-      --only "$PM2_APPS" \
-      --update-env
+    if [[ "${#first[@]}" -gt 0 ]]; then
+      pm2 startOrRestart ecosystem.config.cjs \
+        --only "$(devstack_apps_csv "${first[@]}")" \
+        --update-env
+    fi
   fi
   pm2 save
 )
@@ -872,17 +969,36 @@ check_url() {
 }
 
 # 同时尝试 IPv4 与 IPv6 回环, 任一返回 200 即就绪, 避免绑定地址族导致的假性失败。
+readiness_http_detail() {
+  case "$1" in
+    200|401|403|404|500|502|503|504) printf 'http_%s' "$1" ;;
+    000|000000|'') printf 'http_unreachable' ;;
+    *) printf 'http_other' ;;
+  esac
+}
+
 check_port() {
-  local port="$1" path="${2:-/}"
-  [[ "$(check_url "http://127.0.0.1:${port}${path}")" == "200" ]] && return 0
-  [[ "$(check_url "http://[::1]:${port}${path}")" == "200" ]] && return 0
+  local port="$1" path="${2:-/}" ipv4 ipv6
+  ipv4="$(check_url "http://127.0.0.1:${port}${path}")"
+  if [[ "$ipv4" == "200" ]]; then
+    READINESS_DETAIL=http_200
+    return 0
+  fi
+  ipv6="$(check_url "http://[::1]:${port}${path}")"
+  if [[ "$ipv6" == "200" ]]; then
+    READINESS_DETAIL=http_200
+    return 0
+  fi
+  READINESS_DETAIL="$(readiness_http_detail "$ipv4")/$(readiness_http_detail "$ipv6")"
   return 1
 }
 
 check_pm2_online() {
   local app="$1" log
+  READINESS_DETAIL=pm2_not_online
   pm2_load_records
   pm2_record_is_online "$app" || return 1
+  READINESS_DETAIL=pm2_online_no_banner_required
 
   local banner
   banner="$(devstack_readiness_banner "$app")"
@@ -902,20 +1018,56 @@ check_pm2_online() {
   fi
   # 不用 grep -q: 它在首个匹配即提前退出, tail 收到 SIGPIPE(141),
   # 在 set -o pipefail 下管道非零 → 假阴性。改为读完全部输入并丢弃输出。
-    tail -c +$((offset + 1)) "$log" 2>/dev/null \
-    | grep "$banner" >/dev/null 2>&1
+  READINESS_DETAIL=pm2_log_missing
+  [[ -f "$log" ]] || return 1
+  READINESS_DETAIL=pm2_banner_missing
+  if tail -c +$((offset + 1)) "$log" 2>/dev/null \
+    | grep "$banner" >/dev/null 2>&1; then
+    READINESS_DETAIL=pm2_banner_observed
+    return 0
+  fi
+  return 1
+}
+
+# Record only the latest completed probe cycle, not historical startup banners.
+# Values are fixed categories; no URLs, response bodies or environment values.
+declare -A READINESS_RESULTS=()
+check_selected_readiness() {
+  local readiness app readiness_kind readiness_port readiness_path state all_ok=true
+  READINESS_RESULTS=()
+  for readiness in "${SELECTED_READINESS[@]}"; do
+    IFS='|' read -r app readiness_kind readiness_port readiness_path <<< "$readiness"
+    state=ready
+    READINESS_DETAIL=unknown_probe_kind
+    case "$readiness_kind" in
+      http) check_port "$readiness_port" "$readiness_path" || state=failed ;;
+      pm2) check_pm2_online "$app" || state=failed ;;
+      *) state=failed ;;
+    esac
+    READINESS_RESULTS["$app"]="$state $READINESS_DETAIL"
+    if [[ "${ACCEPTANCE_DISPOSABLE:-}" == true ]]; then
+      if [[ "$state" == ready ]]; then
+        ACCEPTANCE_LAST_READINESS["$app"]=ready
+      else
+        ACCEPTANCE_LAST_READINESS["$app"]=not_ready
+      fi
+    fi
+    [[ "$state" == ready ]] || all_ok=false
+  done
+  [[ "$all_ok" == true ]]
+}
+
+emit_final_readiness() {
+  local readiness app state detail
+  for readiness in "${SELECTED_READINESS[@]}"; do
+    IFS='|' read -r app _ <<< "$readiness"
+    read -r state detail <<< "${READINESS_RESULTS[$app]:-failed unknown_probe_kind}"
+    printf 'ULTICODE_FINAL_READINESS app=%s state=%s detail=%s\n' "$app" "$state" "$detail" >&2
+  done
 }
 
 for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
-  all_ok=true
-  for readiness in "${SELECTED_READINESS[@]}"; do
-    IFS='|' read -r app readiness_kind readiness_port readiness_path <<< "$readiness"
-    case "$readiness_kind" in
-      http) check_port "$readiness_port" "$readiness_path" || all_ok=false ;;
-      pm2) check_pm2_online "$app" || all_ok=false ;;
-    esac
-  done
-  if [[ "$all_ok" == true ]]; then
+  if check_selected_readiness; then
     printf 'Development stack is ready (scope: %s; mode: %s; services: %s).\n' \
       "$DEV_SCOPE" "$DEV_MODE" "$PM2_APPS"
     echo "Owner migrations: $(devstack_apps_csv "${DEVSTACK_OWNER_MIGRATION_ORDER[@]}")"
@@ -946,6 +1098,9 @@ for _ in $(seq 1 "$DEVSTACK_SERVICE_READINESS_ATTEMPTS"); do
   sleep "$DEVSTACK_READINESS_INTERVAL_SECONDS"
 done
 
+emit_final_readiness
+# Failure-only read probes: fixed loopback endpoints and bounded enum output.
+timeout --kill-after=2s 25s python3 -u "$ROOT_DIR/scripts/dev/readiness-diagnostics.py" "$PM2_APPS" 2>/dev/null || true
 echo "Application readiness check timed out for: $PM2_APPS" >&2
 pm2 status >&2 || true
 echo >&2

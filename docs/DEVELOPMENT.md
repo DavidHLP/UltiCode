@@ -166,6 +166,27 @@ HTTP 存活不代表 Dubbo 接口已被消费者发现。Admin readiness 额外�
 有界发现期限内检查 ProblemFactsPort 与 SubmissionUserReadPort，成功后才输出 launcher
 使用的就绪标记；超时则启动失败。检查只读取发现状态，不调用业务 RPC 或重试写入。
 launcher 记录本次启动前日志偏移，旧标记不会被当成本次成功。
+Submission 门禁另外按固定接口别名记录最终诊断，仅含固定状态/类型枚举、有界耗时和目录计数。
+诊断不调用 `isAvailable()` 或业务 RPC：Dubbo availability 检查可能触发失效/重连，
+只保留原门禁的 availability 判据，诊断仅读取已知目录的元数据。目录计数范围为 0–10000，
+缺失、超限和读取异常分别标为 UNKNOWN、OVERFLOW、ERROR；未知实现标为 UNSUPPORTED，
+不读取其目录字段。计数不是原子快照，正数不等于 ready，也不能据其数量推导等式。
+诊断独立于成功判定，不改变发现期限或重试策略。安装报告保留日志尾部最多 16 条
+此类观测，以及 launcher 最后一次 readiness/PM2 快照，不上传原始日志或环境。
+这些历史观测没有按进程代次关联，也不能证明 App 与 Submission 启动的因果顺序；
+自动重启后 ready 不能作为首次启动失败已修复的证据。
+真实安装验收在 launcher 返回后要求本次隔离 PM2 home 内的 Submission 已 ready、online、
+restart count 为 0；缺失、无效或其他运行的快照也会失败，不能靠自动重启通过。
+App readiness 另外读取 `SubmissionUserQueryPort` 与 `AccountQueryService` 的相同目录元数据，
+仅在两种固定接口别名的观测变化时记录，不调用 availability、业务 RPC 或读取 URL，也不改变
+原有 HTTP readiness 判定。安装报告独立保留 App 日志尾部最多 16 条此类观测；它们不是跨进程
+调用链，不能把历史 Auth 查询异常自动归因为另一次 Submission 请求的失败。
+App 还单独读取现有 application child 的目录，以及已有 listener 的应用数、已收到实例事件的应用数和实例总数，
+同样只输出固定枚举和有界数量，不读取或输出应用名称、实例内容、URL，不创建或刷新发现订阅。
+选中目录与 application child 分开记录，不能把空 DYNAMIC 目录直接认定为应用级实例缺失。
+验收退出时只在已经进入启动阶段后读取一次 Admin 原有 readiness HTTP 响应，报告仅保留固定组件的 UP/DOWN/UNKNOWN，
+此观察晚于 launcher 快照，不改变原退出码、就绪条件或超时。
+
 
 测试账号仅由 disposable dev bootstrap 与 Auth registration 创建。Manager 的直接权限
 通过真实 Auth API 临时授予并过期，不改全局 role policy；Console participant 保持 USER。
@@ -173,6 +194,8 @@ launcher 记录本次启动前日志偏移，旧标记不会被当成本次成�
 非法子项事务回滚、contest 提交及最终排名。只上传排除凭据的 JSON 报告，不上传 `.env`、
 cookies、源码、PM2 state 或原始服务日志。退出时仅停止该测试 project/home，保留本机卷供
 诊断；GitHub hosted runner 生命周期负责回收其临时磁盘。
+
+启动失败报告仅输出固定诊断词表、固定源码帧白名单及受限覆盖计数，不回显异常原文或 URL。每个 Owner 保留日志缺失、读取失败和尾部截断信息；信号为 false 只表示在受限日志尾部未观察到，不能据此认定服务未启动。Spring context 启动与投影 providers discovered 分别记录；历史成功与失败信号可以同时出现，不代表当前健康或因果关系。源码帧白名单随相关代码位置维护。
 
 本机重现需在新 checkout 安装锁定依赖、PM2 与 Playwright Chromium，然后运行：
 
@@ -188,6 +211,18 @@ ACCEPTANCE_DISPOSABLE=true bash scripts/ci/business-acceptance.sh
 ```
 
 `dev-lite` 是兼容默认：按 `auth → admin → app → notification → submission` 应用 Owner migrations，启动六个后端（含 Judge）并使用数据库 Search；不启动 Search worker，默认也不启动两个前端。`dev-lite` 与 `dev-full` 都要求 `APP_SUBMISSION_ROUTING_MODE=remote` 和 `SUBMISSION_CUTOVER_COMPLETE=true`；marker 未完成时 `up.sh` 会 fail closed。
+
+当所选 PM2 集合同时包含 App 与 Submission/Judge 时，`up.sh` 先启动其余所选进程并等待 App 的 `/api/v1/app/health/ready`，再启动 Submission/Judge；不含 App 的部分选择不额外启动或等待 App。App 超时且选择了 Submission 时，launcher 非零退出，不启动延后的 Submission/Judge，也不保存本次 PM2 集合；已经运行的进程不会因此被停止。仅延后 Judge 的选择保留原有自动重连回退。此顺序与生产 Compose 的 Submission → App healthy 依赖对齐，但 App HTTP readiness 不证明 Dubbo provider 已注册，Submission discovery gate 及其超时保持不变。Submission/Judge 的就绪日志偏移在各自启动前记录，忽略旧 banner 及等待 App 期间旧进程产生的 banner。
+
+本次 launcher 已为管理员 bootstrap 启动的 Auth 会被复用，不在最终批次中再次重启。所选集合同时包含 Auth 与 App 时，先启动或复用 Auth，并重新确认 `/api/v1/auth/health/ready`，再启动 App；Auth 超时则非零退出，不启动 App 及其延后消费者。未选择 Auth 时不补起或等待 Auth，Auth-only 的 bootstrap 路径不发出空的 PM2 启动批次。HTTP readiness 不是 Dubbo 服务发现证明，最终仍须通过真实业务验收。
+
+App、Judge 的 Submission 引用以及 Admin 的 App/Submission 引用通过 Dubbo `providedBy` 显式声明已知 Owner 应用，
+避免消费者先启动时仅依赖首次接口到应用的映射通知。地址仍由 Nacos 实例发现提供；group、version、
+查询/写入重试与超时、身份校验、`APPLICATION_FIRST` 和所有 readiness 门禁保持不变。
+默认目标分别是 `backend-app` 与 `backend-submission`。独立部署若覆盖了 provider 的 `DUBBO_APPLICATION_NAME`，
+需在相应消费者设置 `ulticode.rpc.providers.app` 或 `ulticode.rpc.providers.submission`；对应环境变量为
+`ULTICODE_RPC_PROVIDERS_APP`、`ULTICODE_RPC_PROVIDERS_SUBMISSION`，值必须匹配实际 provider 应用名，
+不能使用消费者自己的 `DUBBO_APPLICATION_NAME`。标准 PM2/Compose 应用名无需额外设置。Judge 的执行栅栏与判题结果回写均使用同一 Submission 应用声明，写入仍为零自动重试。
 
 按开发场景选择最小服务集合（`up.sh`/`stop.sh`/`doctor.sh` 共用同一 resolver，见 `scripts/dev/devstack-manifest.sh`）：
 
@@ -697,6 +732,8 @@ enabled-owner wiring 或业务 journey。
 
 `.env` 是本地部署密管输入，由 `./scripts/dev/init-env.sh` 生成并被 Git 忽略；`.env.example` 与 `.env.test.example` 是可提交模板，不包含可用凭据。实现配置以各服务 `application.yml`、Compose 和 `ecosystem.config.cjs` 为准。
 
+`.env.example` 的数据库、Redis ACL、Nacos、JWT、Meili 和开发用户凭据全部留空。首次本地初始化使用 `./scripts/dev/init-env.sh`，由初始化流程生成各角色独立的随机凭据并写入 ignored `.env`；开发管理员密码与 `VITE_TEST_PASSWORD` 使用同一份本次初始化值，验收入口继续从环境读取。启用开发管理员 bootstrap 且启动 Auth 时，`up.sh` 要求显式提供非空白 `DEV_SEED_ADMIN_PASSWORD`，缺失、空值或仅含 Java 空白字符的值会在基础设施变更前拒绝启动，不再回退到固定口令；`--skip-bootstrap`、`--prepare-submission-owner`、禁用开发用户或不启动 Auth 时不强求该密码。部署环境从密钥系统注入。不要直接使用模板启动，也不要重用曾提交到 Git 的默认密码。Redis ACL 生成器在任一角色密码缺失时拒绝生成配置；已部署凭据的撤销或轮换需要单独执行相应运维流程。 现有 `.env` 会原样保留，不自动更改或轮换已有密码。`init-env.sh --force` 会同时重新生成其他基础设施凭据，不能作为仅更改管理员口令的捷径。
+
 ### 常用变量
 
 | 变量 | 用途 | 规则 |
@@ -798,3 +835,7 @@ Codex 前缀规则只能识别已列出的参数排列，无法覆盖任意脚�
 - [部署与回滚](OPERATIONS.md#部署发布与回滚)
 - [Services 问题注册表](../services/docs/SERVICES_ISSUES.md)
 - [Worker SLO Runbook](../services/docs/WORKER_SLO_RUNBOOK.md)
+
+### 有界启动失败诊断
+
+启动超时不放宽就绪门禁。失败报告记录最后一轮所选服务的固定 readiness 结果（HTTP 状态枚举或 PM2/banner 分类），而不是用历史启动成功行判断当前状态。额外依赖诊断只读取固定 IPv4 loopback 健康端点，限制 8 KiB 响应、每 socket 5 秒，并以 25 秒总时限和 2 秒强制终止上限约束整个子进程；不跟随跳转、不传认证、不输出原始响应或地址。只发布固定 db/redis/storage/problemOwnerRpc 的 up/down/unknown 枚举。额外探测发生在最终门禁轮次之后，不代表同一时刻；缺失探测或未选服务保留 unknown，不能当作健康或失败。日志 startup_signals 仍只表示有界日志尾部曾观察到的信号，成功与失败可同时存在。

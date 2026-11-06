@@ -1,0 +1,28 @@
+{
+  "artifact": "pkg:maven/com.ulticode/nacos-api-patched@2.5.1-ulticode-1",
+  "upstream": {
+    "coordinates": "com.alibaba.nacos:nacos-api:2.5.1",
+    "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-api/2.5.1/nacos-api-2.5.1.jar",
+    "sha256": "19b0eabdc1f637eeeec72cba9d6f85fe2bcae62bb9be7e7fb8a25ce183ce8738",
+    "pomSha256": "6b814f79526b1043bc3f81c6c65ab93003205fd0d2c76bf514927967b91a972b"
+  },
+  "schema": {
+    "url": "https://github.com/alibaba/nacos/blob/2.5.1/api/src/main/proto/nacos_grpc_service.proto",
+    "gitBlob": "adf2a30a1d35363bf53eae3873975e2f0d6c79d2",
+    "sha256": "be9c1e5767ddf2450ec3824bf57038d921e53b8010bc51b2635f83df1c4e7e9e"
+  },
+  "generator": {
+    "coordinates": "com.google.protobuf:protoc:3.25.6",
+    "url": "https://repo.maven.apache.org/maven2/com/google/protobuf/protoc/3.25.6/",
+    "hashManifest": "META-INF/nacos-patch/protoc.sha256.properties",
+    "arguments": [
+      "--proto_path=src/main/proto",
+      "--java_out=<output>",
+      "nacos_grpc_service.proto"
+    ]
+  },
+  "modification": "Regenerate Metadata, MetadataOrBuilder, Payload, PayloadOrBuilder and NacosGrpcService only. Preserve all other upstream class and resource bytes. Relocate upstream Maven metadata; assign distinct project-owned identity.",
+  "advisory": "https://github.com/protocolbuffers/protobuf/security/advisories/GHSA-h4h5-3hr4-j3g2",
+  "verification": "Normal Maven package verifies pinned inputs, exact class inventory and byte-identical unmodified entries. verify-nacos-generation profile additionally verifies official protoc hash and regenerates all five sources byte-for-byte. No runtime compatibility switches are used.",
+  "scope": "Client API derivative only; does not certify the Nacos server, complete registry integration, or unrelated transitive generated protobuf classes."
+}

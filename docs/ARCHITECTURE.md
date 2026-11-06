@@ -385,6 +385,12 @@ WebSocket 只从 handshake 的 `access_token` cookie 获取 token，不接受 qu
 
 Redis ACL deny-by-default，按 Owner 限制命令、key 和 channel；运行时 ACL 在 ignored directory 原子物化，轮换使用 overlap/finalize/rollback。命令白名单授予 `+scan` 而不授予 `+keys`，因此 Spring Cache 的 Redis writer 必须使用 SCAN 批量策略（共享 `RedisCacheWritePolicy`）；默认的 `KEYS` writer 会让 `@CacheEvict(allEntries = true)` 与 `Cache#clear()` 以 `NOPERM` 失败。生产 Compose 不挂载 Docker socket；Judge 使用部署拥有的 remote/rootless Docker TLS endpoint、只读证书和共享 workspace。真实证书、私钥、密码、token、生产 endpoint 和 secret-store 状态不得提交或写入文档。
 
+### 注册中心协议解析边界
+
+应用使用独立坐标的 Nacos API 衍生包修复客户端 protobuf 生成代码，仍保留上游来源和版本血缘；构建及兼容门禁见 [开发指南](DEVELOPMENT.md#nacos-客户端协议构建与兼容验证)。客户端包与独立 Nacos 服务端镜像是不同安全边界。服务端 gRPC 解码发生在请求鉴权之前，开启鉴权不能代替解析器修复；私有网络和开发 loopback 限制暴露面，但不能保护同网络或本机可达路径。服务端开放问题单独记录在 [Services issue registry](../services/docs/SERVICES_ISSUES.md)，不得把客户端测试成功表述成服务端漏洞已修复。
+
+配置监听的协议兼容与 workload 最小权限属于不同验证边界。独占合成数据 namespace 的测试账号可以按服务端接口要求拥有该 namespace 的配置读取权限，但不得把这一测试授权推广为生产权限或生产兼容证据；原 workload 监听限制见 [SVC-030](../services/docs/SERVICES_ISSUES.md)。
+
 ### 证据入口
 
 - [Security invariants](../AGENTS.md#security-invariants)

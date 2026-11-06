@@ -1,0 +1,8 @@
+* text eol=lf
+*.java text eol=lf
+*.proto text eol=lf
+*.json text eol=lf
+*.properties text eol=lf
+*.xml text eol=lf
+src/main/resources/META-INF/LICENSE text eol=lf
+src/main/resources/META-INF/NOTICE text eol=lf

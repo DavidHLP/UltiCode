@@ -22,6 +22,7 @@
 	<modules>
 		<module>platform/common</module>
 		<module>platform/storage</module>
+		<module>platform/nacos-api-patched</module>
 		<module>platform/rpc-resilience</module>
 		<module>platform/web-security</module>
 		<module>platform/integration-inbox</module>
@@ -52,13 +53,13 @@
 		<!-- Per-service release versions: bump individually to release one owner
 		     service (its image tag) independently of the shared platform modules.
 		     Consumed by docker-publish.yml to add a v<version> GHCR tag. -->
-		<service.version.auth>1.0.7</service.version.auth>
-		<service.version.admin>1.0.7</service.version.admin>
-		<service.version.app>1.0.7</service.version.app>
-		<service.version.submission>1.0.7</service.version.submission>
-		<service.version.search>1.0.7</service.version.search>
-		<service.version.notification>1.0.7</service.version.notification>
-		<service.version.judge>1.0.7</service.version.judge>
+		<service.version.auth>1.0.8</service.version.auth>
+		<service.version.admin>1.0.8</service.version.admin>
+		<service.version.app>1.0.8</service.version.app>
+		<service.version.submission>1.0.8</service.version.submission>
+		<service.version.search>1.0.8</service.version.search>
+		<service.version.notification>1.0.8</service.version.notification>
+		<service.version.judge>1.0.8</service.version.judge>
 		<java.version>17</java.version>
 		<!-- Security fixes newer than the Spring Boot dependency BOM. -->
 		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
@@ -66,6 +67,7 @@
 		<tomcat.version>11.0.25</tomcat.version>
 		<guava.version>33.7.2-jre</guava.version>
 		<nacos-client.version>2.5.1</nacos-client.version>
+		<nacos-api-patched.version>2.5.1-ulticode-1</nacos-api-patched.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>
@@ -226,6 +228,36 @@
 				<groupId>com.squareup.okhttp3</groupId>
 				<artifactId>okhttp</artifactId>
 				<version>${okhttp.version}</version>
+			</dependency>
+			<!-- The upstream API contains unsafe generated protobuf parsers. The
+			     independently identified derivative replaces it, never shadows it. -->
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>nacos-api-patched</artifactId>
+				<version>${nacos-api-patched.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.alibaba.nacos</groupId>
+				<artifactId>nacos-client</artifactId>
+				<version>${nacos-client.version}</version>
+				<classifier>pure</classifier>
+				<exclusions>
+					<exclusion>
+						<groupId>com.alibaba.nacos</groupId>
+						<artifactId>nacos-api</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+			<dependency>
+				<groupId>com.alibaba.nacos</groupId>
+				<artifactId>nacos-common</artifactId>
+				<version>${nacos-client.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>com.alibaba.nacos</groupId>
+						<artifactId>nacos-api</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 			<!-- CVE-2026-102554: use the pure Nacos SDK so Guava is managed. -->
 			<dependency>

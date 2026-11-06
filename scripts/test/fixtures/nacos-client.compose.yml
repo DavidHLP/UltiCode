@@ -1,0 +1,55 @@
+# Test-only project. Never load application .env or attach application volumes.
+services:
+  mysql:
+    image: mysql@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?disposable password required}
+    volumes:
+      - ${NACOS_FIXTURE_SCHEMA:?schema path required}:/docker-entrypoint-initdb.d/01-nacos-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", 'MYSQL_PWD="$${MYSQL_ROOT_PASSWORD}" mysql -uroot nacos_config -e "SELECT 1 FROM users LIMIT 1" >/dev/null 2>&1']
+      interval: 2s
+      timeout: 5s
+      retries: 60
+    networks: [fixture]
+
+  nacos:
+    # Same v2.3.2 server artifact as production. This gate validates CLIENT
+    # compatibility only; it does not remediate the server's embedded libraries.
+    image: nacos/nacos-server@sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8
+    platform: linux/amd64
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?disposable password required}
+      MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true"
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+      JVM_XMN: 128m
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?disposable token required}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:?disposable identity required}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?disposable identity required}
+    ports:
+      - "127.0.0.1:${NACOS_FIXTURE_HTTP_PORT:?loopback port required}:8848"
+      - "127.0.0.1:${NACOS_FIXTURE_GRPC_PORT:?loopback port required}:9848"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8848/nacos/"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+    networks: [fixture]
+
+networks:
+  fixture:
+    # The Java client runs on the host. Like docker-compose.dev.yml, published
+    # loopback ports require a non-internal bridge. This network belongs only
+    # to the random disposable project; MySQL still publishes no host port.
+    internal: false

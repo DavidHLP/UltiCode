@@ -74,43 +74,43 @@ public class AdminDubboReferenceRegistry {
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ReconciliationQueryService reconciliationQueryReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ContestAdminReadPort contestAdminReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private DashboardAdminReadPort dashboardAdminReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ContestAnnouncementReadPort contestAnnouncementReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ContestLiveRankingReadPort contestLiveRankingReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ContestParticipantReadPort contestParticipantReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ForumCommentAdministrationService forumCommentAdministrationReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ForumCommentReadPort forumCommentReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ForumPostAdministrationService forumPostAdministrationReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ForumTagAdministrationService forumTagAdministrationReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ForumTagReadPort forumTagReadReference;
 
@@ -119,75 +119,75 @@ public class AdminDubboReferenceRegistry {
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private NotificationAdminReadPort notificationAdminReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ProblemAdminReadPort problemAdminReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ProblemAnalyticsReadPort problemAnalyticsReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ProblemListAdministrationService problemListAdministrationReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ProblemListChainReadPort problemListChainReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ProblemListSearchReadPort problemListSearchReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ProblemOwnerPort problemOwnerReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private ProblemTagOwnerPort problemTagOwnerReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SolutionAdminReadPort solutionAdminReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private SolutionCommentOwnerPort solutionCommentOwnerReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SolutionCommentReadPort solutionCommentReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private SolutionOwnerPort solutionOwnerReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SolutionReadPort solutionReadReference;
 
-    @DubboReference(group = "backend-submission", version = "1.0.0",
+    @DubboReference(group = "backend-submission", providedBy = "${ulticode.rpc.providers.submission:backend-submission}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionAdminReadPort submissionAdminReadReference;
 
-    @DubboReference(group = "backend-submission", version = "1.0.0",
+    @DubboReference(group = "backend-submission", providedBy = "${ulticode.rpc.providers.submission:backend-submission}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionStreakPort submissionStreakReference;
 
-    @DubboReference(group = "backend-submission", version = "1.1.0",
+    @DubboReference(group = "backend-submission", providedBy = "${ulticode.rpc.providers.submission:backend-submission}", version = "1.1.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionUserStatsPort submissionUserStatsReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubscriptionReadPort subscriptionReadReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.WRITE_TIMEOUT_MS, retries = RpcPolicy.WRITE_RETRIES, check = false)
     private TestCaseOwnerPort testCaseOwnerReference;
 
-    @DubboReference(group = "backend-app", version = "1.0.0",
+    @DubboReference(group = "backend-app", providedBy = "${ulticode.rpc.providers.app:backend-app}", version = "1.0.0",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private UserProfileQueryService userProfileQueryReference;
 

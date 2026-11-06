@@ -18,6 +18,7 @@ import java.util.Map;
 public class RemoteProblemSubmissionStatsAdapter implements ProblemSubmissionStatsPort {
 
     @DubboReference(group = "backend-submission", version = "1.1.0",
+            providedBy = "${ulticode.rpc.providers.submission:backend-submission}",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private ProblemSubmissionStatsPort problemSubmissionStatsPort;
 

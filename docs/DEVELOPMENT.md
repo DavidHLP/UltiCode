@@ -214,6 +214,14 @@ ACCEPTANCE_DISPOSABLE=true bash scripts/ci/business-acceptance.sh
 
 本次 launcher 已为管理员 bootstrap 启动的 Auth 会被复用，不在最终批次中再次重启。所选集合同时包含 Auth 与 App 时，先启动或复用 Auth，并重新确认 `/api/v1/auth/health/ready`，再启动 App；Auth 超时则非零退出，不启动 App 及其延后消费者。未选择 Auth 时不补起或等待 Auth，Auth-only 的 bootstrap 路径不发出空的 PM2 启动批次。HTTP readiness 不是 Dubbo 服务发现证明，最终仍须通过真实业务验收。
 
+App 的 Submission 引用以及 Admin 的 App/Submission 引用通过 Dubbo `providedBy` 显式声明已知 Owner 应用，
+避免消费者先启动时仅依赖首次接口到应用的映射通知。地址仍由 Nacos 实例发现提供；group、version、
+查询/写入重试与超时、身份校验、`APPLICATION_FIRST` 和所有 readiness 门禁保持不变。
+默认目标分别是 `backend-app` 与 `backend-submission`。独立部署若覆盖了 provider 的 `DUBBO_APPLICATION_NAME`，
+需在相应消费者设置 `ulticode.rpc.providers.app` 或 `ulticode.rpc.providers.submission`；对应环境变量为
+`ULTICODE_RPC_PROVIDERS_APP`、`ULTICODE_RPC_PROVIDERS_SUBMISSION`，值必须匹配实际 provider 应用名，
+不能使用消费者自己的 `DUBBO_APPLICATION_NAME`。标准 PM2/Compose 应用名无需额外设置。
+
 按开发场景选择最小服务集合（`up.sh`/`stop.sh`/`doctor.sh` 共用同一 resolver，见 `scripts/dev/devstack-manifest.sh`）：
 
 ```bash

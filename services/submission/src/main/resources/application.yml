@@ -97,9 +97,6 @@ dubbo:
   application:
     name: ${DUBBO_APPLICATION_NAME:backend-submission}
     register-mode: instance
-    # App providers register instances only; do not start on an interface directory.
-    migration:
-      step: FORCE_APPLICATION
     qos-enable: false
     protocol: tri
     metadata-type: local

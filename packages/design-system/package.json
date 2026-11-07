@@ -54,13 +54,13 @@
     "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
-    "shadcn-vue": "2.8.2",
+    "shadcn-vue": "2.9.0",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/tsconfig": "^0.9.1",
     "shadcn-vue": "2.8.2",
     "typescript": "~5.9.3",
-    "vite": "^8.3.4",
+    "vite": "^8.3.5",
     "vue": "^3.5.44",
-    "vue-tsc": "^3.3.13"
+    "vue-tsc": "^3.3.14"
   }
 }

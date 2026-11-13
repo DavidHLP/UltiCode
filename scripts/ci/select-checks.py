@@ -82,7 +82,7 @@ def select(paths: set[str] | None) -> dict[str, bool]:
         "apps/console/**", "apps/management/**", "apps/landing/**", "packages/**", "shared/**",
         "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".dockerignore",
         "pyproject.toml", "uv.lock", "mise.toml", ".mise.toml",
-        "docs/**", "assets/**", "README*", "AGENTS.md", "CONTEXT.md", "LICENSE", ".gitleaks.toml",
+        "docs/**", "assets/**", "README*", "AGENTS.md", "GLOSSARY.md", "LICENSE", ".gitleaks.toml",
         "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
     )
     if not paths or any(not matches(path, *known) for path in paths):

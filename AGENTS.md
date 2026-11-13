@@ -142,7 +142,7 @@ Do not use `/actuator/health` as a readiness check; Actuator is not exposed. Use
 - Do not record volatile counts, file lengths, temporary review findings, planned architecture, or facts directly inferable from package/build configuration.
 - Update the affected canonical document under `docs/` in the same change when behavior, commands, paths, contracts, or architecture boundaries change. Keep implementation and executable configuration authoritative.
 - Read documentation through [`docs/index.md`](docs/index.md): it maps the six current core documents. For a task, read the relevant core entry first, then the owning code/config/tests; use `services/docs/` only for its owner-maintained issue and runbook material.
-- Do not add a new task/session/date-specific document or duplicate a core topic. Keep current documentation in the six core files; task execution state stays in ignored local agent directories, and open service issues remain in `services/docs/SERVICES_ISSUES.md`.
+- Do not add a new task/session/date-specific document or duplicate a core topic. Keep current topic documentation in the six core files; `docs/agents/` is reserved for the engineering-skill configuration linked below; task execution state stays in ignored local agent directories, and open service issues remain in `services/docs/SERVICES_ISSUES.md`.
 
 ## Completion criteria
 
@@ -168,3 +168,20 @@ Rules:
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## Agent skills
+
+### Issue tracker
+
+工程技能使用 DavidHLP/UltiCode 的 GitHub Issues。
+处理事项前读取 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+使用五个默认 triage 标签。
+分类事项前读取 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+采用 single-context，共用根目录 `GLOSSARY.md`。
+领域建模或架构讨论前读取 `docs/agents/domain.md`。

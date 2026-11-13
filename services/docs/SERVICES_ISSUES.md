@@ -203,7 +203,7 @@ The repository-side SVC-003 gate is closed by source inventory, major-version co
 
 ### SVC-011 文档收敛残差（DEFERRED）
 
-现状：`docs/` 只保留六个核心文档；本文件维护当前问题和外部触发条件，历史快照不再作为仓库当前入口。`CONTEXT.md` 与核心文档中的事实仍以源码、配置、测试和门禁核实。
+现状：`docs/` 的主题文档只保留六个核心文档；本文件维护当前问题和外部触发条件，历史快照不再作为仓库当前入口。`GLOSSARY.md` 与核心文档中的事实仍以源码、配置、测试和门禁核实。
 触发条件：若未来需要历史审计或完整基线，应在外部 evidence store 或任务专用资料中维护，不重新扩展 `docs/` 当前入口。
 
 ### SVC-026 Meilisearch Cloud 试点（OPTIONAL_PROFILE）

@@ -1,4 +1,4 @@
-# CONTEXT — UltiCode Domain Glossary
+# GLOSSARY — UltiCode Domain Glossary
 
 > Domain language for the UltiCode online-judge platform. Used by
 > architecture reviews (see `AGENTS.md` and `.codex/skills/`)

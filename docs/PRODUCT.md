@@ -1,6 +1,6 @@
 # 产品与领域
 
-本文是 UltiCode 当前产品定位、用户角色、核心能力和领域边界的主题入口。实现、配置、契约和测试仍是行为真相；完整稳定术语表保留在根目录 [`CONTEXT.md`](../CONTEXT.md)。
+本文是 UltiCode 当前产品定位、用户角色、核心能力和领域边界的主题入口。实现、配置、契约和测试仍是行为真相；完整稳定术语表保留在根目录 [`GLOSSARY.md`](../GLOSSARY.md)。
 
 ## 产品定位
 
@@ -80,7 +80,7 @@ Agent 提供独立的多轮分析工作区 `/agent`，首版仅支持本人普�
 
 ## 领域对象与术语
 
-稳定术语以 [`CONTEXT.md`](../CONTEXT.md) 为准；当前主题中常见的边界对象包括：
+稳定术语以 [`GLOSSARY.md`](../GLOSSARY.md) 为准；当前主题中常见的边界对象包括：
 
 - **Account / User / principal**：Auth 的身份、账号状态和认证主体。
 - **Problem / Contest**：App 的题目与比赛聚合及其管理数据。
@@ -101,7 +101,7 @@ Agent 提供独立的多轮分析工作区 `/agent`，首版仅支持本人普�
 
 ## 继续阅读
 
-- 产品与稳定术语：[`CONTEXT.md`](../CONTEXT.md)
+- 产品与稳定术语：[`GLOSSARY.md`](../GLOSSARY.md)
 - 当前架构与安全：[`ARCHITECTURE.md`](ARCHITECTURE.md)
 - API、认证与契约：[`REFERENCE.md`](REFERENCE.md)
 - 当前实现与边界：[`ARCHITECTURE.md`](ARCHITECTURE.md)、[`DEVELOPMENT.md`](DEVELOPMENT.md)、[`OPERATIONS.md`](OPERATIONS.md)。

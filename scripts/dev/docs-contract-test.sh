@@ -50,8 +50,8 @@ contains docs/OPERATIONS.md 'owner-schema-contraction-contract: PASS'
 contains services/docs/SCHEDULER_RUNBOOK.md 'P3-SCHED-001'
 contains services/docs/SCHEDULER_RUNBOOK.md 'ThreadPoolTaskScheduler'
 
-not_contains CONTEXT.md 'the App runtime role'
-contains CONTEXT.md 'User Directory View'
-contains CONTEXT.md 'the worker role of the Notification'
+not_contains GLOSSARY.md 'the App runtime role'
+contains GLOSSARY.md 'User Directory View'
+contains GLOSSARY.md 'the worker role of the Notification'
 
 echo "Documentation contract: PASS"

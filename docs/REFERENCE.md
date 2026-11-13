@@ -82,8 +82,8 @@ checkpoints. Source citations are checked in memory and persisted without their 
 In metadata mode, the initial model prompt includes the server-verified status and user question, but
 omits the bound submission ID and source code; it identifies the submission as already selected so
 the model does not ask the user for another ID or infer a code-level diagnosis.
-`sampleScope` identifies whether an analysis used the checked-in synthetic corpus or the
-owner-authorized thread source. Model-answer citations are added only after same-run retrieval,
+`sampleScope` identifies the analysis scope; synthetic documents are restricted to explicitly injected
+offline tests, while live analysis uses selected references or the owner-authorized thread source. Model-answer citations are added only after same-run retrieval,
 document-integrity, support, and derivability checks.
 
 Conversation requests use independent conversation/turn storage and do not enter the LearningPlan thread state machine. Each run requires a strict `sourceConsent` boolean; in `owner_source` mode, consent applies to that run only, and the exact bound submission is re-fetched for the request. Fetched source and citation excerpts are not persisted in conversation rows, turns, events, or checkpoints; citation responses keep safe reference fields without excerpt text. Prior context is limited to recent completed turns and a 16,000-character cap. Conversation history remains until the owner deletes it; deletion is rejected while a turn runs and does not cascade into separately saved LearningPlans.
@@ -248,3 +248,7 @@ Adding/switching returns the existing login response and applies session cookies
 - [API 与内部契约](REFERENCE.md#api-与内部契约)
 - [安全架构与信任边界](ARCHITECTURE.md#安全架构与信任边界)
 - [Services issue registry](../services/docs/SERVICES_ISSUES.md)
+
+### Agent 选材引用边界
+
+会话选材引用沿用现有 citation 字段；题目、题解评论与论坛评论分别标为 `problem-statement`、`solution-comment`、`forum-comment`，访问范围为 `session-authorized-current-run`，版本标识为本轮 `runId`，不表示上游历史版本或公开访问权限。`source_position` 给出本轮所选文本的字符范围，并在题目截断时注明；位置由服务端产生，不把模型提供的地址作为导航。题面保留 8,000 字上限，评论合计最多三条且单条超过 2,000 字拒绝；检索片段最多 1,200 字，查询可使用资料目录中的精确 `doc_id` 获取尚未见过的正文，或使用正文关键词；每次命中与每份回答引用仍最多三条。正文只在本轮内存中使用，持久化会话引用去除 `text`。引用必须实际命中本轮资料并通过完整性及语义核验；评论只支持对评论内容的归因，不支持实现诊断或算法正确性。无命中可以解释已知状态或给一般建议，不能补造引用；在线路径不使用合成语料回落。

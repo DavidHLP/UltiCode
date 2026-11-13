@@ -142,9 +142,11 @@ def keyword_search(
         haystack = document.text.casefold()
         if requirement is not None and requirement not in haystack:
             continue
-        matched = tuple(term for term in query_terms if term in haystack)
+        exact_id = query_text == document.doc_id
+        matched = (document.doc_id,) if exact_id else tuple(term for term in query_terms if term in haystack)
         if matched:
-            hits.append((len(set(matched)), document.doc_id, document, matched))
+            score = len(set(query_terms)) + 1 if exact_id else len(set(matched))
+            hits.append((score, document.doc_id, document, matched))
     hits.sort(key=lambda item: (-item[0], item[1]))
     return tuple(
         SourceHit(
@@ -161,3 +163,33 @@ def keyword_search(
         )
         for _, _, document, matched in hits[:limit]
     )
+
+
+def context_documents(context: dict[str, object], run_id: str) -> tuple[SourceDocument, ...]:
+    """Project server-refetched selections into bounded, run-local evidence."""
+    items = []
+    problem = context.get("problem")
+    if isinstance(problem, dict):
+        items.append(("problem-statement", problem["reference"],
+                      "\n\n".join(str(problem[key]) for key in ("title", "content") if problem.get(key)),
+                      bool(problem.get("truncated"))))
+    for comment in context.get("comments", []):
+        items.append((comment["kind"].replace("_", "-"), comment["reference"], comment["content"], False))
+    documents = []
+    for kind, reference, text, truncated in items:
+        if not text.strip():
+            raise ValueError("context_unavailable")
+        text.encode("utf-8")
+        for start in range(0, len(text), MAX_SOURCE_CHARS):
+            fragment = text[start:start + MAX_SOURCE_CHARS]
+            if not fragment.strip():
+                continue
+            documents.append(SourceDocument(
+                doc_id=f"{kind}:{reference}:{start}", version=run_id,
+                source_path=f"selected/{kind}/{reference}",
+                access_scope="session-authorized-current-run", sample_kind=kind,
+                text=fragment,
+                source_position=f"chars {start + 1}-{start + len(fragment)}"
+                                + (" (selected text truncated)" if truncated else ""),
+            ))
+    return tuple(documents)

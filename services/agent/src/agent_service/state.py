@@ -39,7 +39,7 @@ def params_digest(owner_id: str, source_submission_id: str, draft_version: int, 
 
 def make_draft(submission: dict[str, object], question: str) -> dict[str, object]:
     submission_id, status = validate_submission_facts(submission)
-    analysis = analyze_submission({"id": submission_id, "status": status}, question)
+    analysis = analyze_submission({"id": submission_id, "status": status}, question, documents=())
     facts = list(analysis["facts"])
     hypotheses = list(analysis["hypotheses"])
     return {
@@ -49,5 +49,5 @@ def make_draft(submission: dict[str, object], question: str) -> dict[str, object
         "hypotheses": hypotheses,
         "citations": list(analysis.get("citations", [])),
         "citation_checks": list(analysis.get("citation_checks", [])),
-        "sample_scope": "synthetic corpus metadata only; source code and test data are not available",
+        "sample_scope": "submission metadata only; no retrieved material, source code or test data",
     }

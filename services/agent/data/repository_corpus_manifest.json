@@ -1,8 +1,8 @@
 [
   {
     "doc_id": "repository-product",
-    "version": "sha256-0dfbb3a50fa456955dc04050223b527feb36ae4ec7e6dfabe53817f8a8b46271",
-    "chunk_id": "repository-product:sha256-0dfbb3a50fa456955dc04050223b527feb36ae4ec7e6dfabe53817f8a8b46271:1",
+    "version": "sha256-b1e71194be971c128950ef5d515db814349a5d79f97f3894f44ecc366ad1ee70",
+    "chunk_id": "repository-product:sha256-b1e71194be971c128950ef5d515db814349a5d79f97f3894f44ecc366ad1ee70:1",
     "source_path": "docs/PRODUCT.md",
     "access_scope": "repository-public",
     "sample_kind": "real",

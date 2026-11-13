@@ -93,9 +93,10 @@ def test_complete_submission_status_claim(status):
         _verify_answer_boundary(parsed, [{"status": status}], (), (), (), question="如何复盘？")
         with pytest.raises(ValueError, match="answer_submission_fact_mismatch"):
             _verify_answer_boundary(parsed, [{"status": "Accepted"}], (), (), (), question="如何复盘？")
-        with pytest.raises(ValueError, match="answer_source_diagnosis_unverified"):
-            _verify_answer_boundary({"text": text + " 根因是数组越界。", "citations": []},
-                                    [{"status": status}], (), (), (), question="如何复盘？")
+        for diagnosis in ("根因是数组越界。", "假设：根因是数组越界。", "可能根因是数组越界。"):
+            with pytest.raises(ValueError, match="answer_source_diagnosis_unverified"):
+                _verify_answer_boundary({"text": text + diagnosis, "citations": []},
+                                        [{"status": status}], (), (), (), question="如何复盘？")
 
 
 def test_metadata_answer_allows_inline_code_but_rejects_uncited_retrieved_text():

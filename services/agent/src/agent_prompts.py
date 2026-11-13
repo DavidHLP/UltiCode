@@ -37,8 +37,8 @@ TRUST_INVARIANTS = (
 
 #: Which parts of an answer the caller fixes and which the agent owns.
 AUTONOMY = (
-    "These fix the outcome, not your method: choose your own structure, depth, and wording, "
-    "and answer in the user's language."
+    "choose your own structure; distinguish facts, judgments, hypotheses and next steps "
+    "in the user's language. No source-free diagnosis."
 )
 
 #: One required outcome per scored situation, phrased as a result rather than a procedure.

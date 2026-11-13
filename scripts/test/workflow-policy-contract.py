@@ -58,6 +58,78 @@ class WorkflowPolicyContract(unittest.TestCase):
             path.write_text(json.dumps(data))
             self.assertTrue(any('acceptance' in error for error in policy.check_repository(self.root)))
 
+    def test_nacos_upstream_scan_cannot_be_removed_or_weakened(self):
+        import shutil
+        shutil.copytree(ROOT / '.github', self.root / '.github', dirs_exist_ok=True)
+        self.assertEqual(policy.check_repository(self.root), [])
+        path = self.root / '.github/workflows/_backend.yml'
+        original = policy.yaml.load(path.read_text(), Loader=policy.WorkflowLoader)
+        for mutation in ('remove', 'conditional', 'scan-ref', 'severity', 'exit-code', 'ignore-unfixed',
+                         'inventory', 'recognition', 'artifact'):
+            with self.subTest(mutation=mutation):
+                data = copy.deepcopy(original)
+                steps = data['jobs']['backend-build']['steps']
+                scan = next(step for step in steps if step.get('id') == 'nacos-sbom-scan')
+                if mutation == 'remove': steps.remove(scan)
+                elif mutation == 'conditional': scan['if'] = '${{ false }}'
+                elif mutation in ('scan-ref', 'severity', 'exit-code'): scan['with'][mutation] = 'weakened'
+                elif mutation == 'ignore-unfixed': scan['with'][mutation] = True
+                elif mutation == 'inventory': scan['with']['list-all-pkgs'] = 'false'
+                elif mutation == 'recognition':
+                    steps[:] = [step for step in steps if '--report' not in step.get('run', '')]
+                elif mutation == 'artifact':
+                    steps[:] = [step for step in steps if step.get('with', {}).get('name') != 'nacos-api-pedigree-scan']
+                path.write_text(json.dumps(data))
+                self.assertTrue(any('Nacos' in error for error in policy.check_repository(self.root)))
+
+    def test_nacos_client_upstream_scan_cannot_be_removed_or_weakened(self):
+        import shutil
+        shutil.copytree(ROOT / '.github', self.root / '.github', dirs_exist_ok=True)
+        self.assertEqual(policy.check_repository(self.root), [])
+        path = self.root / '.github/workflows/_backend.yml'
+        original = policy.yaml.load(path.read_text(), Loader=policy.WorkflowLoader)
+        for mutation in ('remove', 'conditional', 'scan-ref', 'severity', 'exit-code', 'ignore-unfixed',
+                         'inventory', 'recognition', 'artifact'):
+            with self.subTest(mutation=mutation):
+                data = copy.deepcopy(original)
+                steps = data['jobs']['backend-build']['steps']
+                scan = next(step for step in steps if step.get('id') == 'nacos-client-sbom-scan')
+                if mutation == 'remove': steps.remove(scan)
+                elif mutation == 'conditional': scan['if'] = '${{ false }}'
+                elif mutation in ('scan-ref', 'severity', 'exit-code'): scan['with'][mutation] = 'weakened'
+                elif mutation == 'ignore-unfixed': scan['with'][mutation] = True
+                elif mutation == 'inventory': scan['with']['list-all-pkgs'] = 'false'
+                elif mutation == 'recognition':
+                    steps[:] = [step for step in steps if '--report' not in step.get('run', '')]
+                elif mutation == 'artifact':
+                    steps[:] = [step for step in steps if step.get('with', {}).get('name') != 'nacos-client-pedigree-scan']
+                path.write_text(json.dumps(data))
+                self.assertTrue(any('Nacos' in error for error in policy.check_repository(self.root)))
+
+    def test_nacos_common_upstream_scan_cannot_be_removed_or_weakened(self):
+        import shutil
+        shutil.copytree(ROOT / '.github', self.root / '.github', dirs_exist_ok=True)
+        self.assertEqual(policy.check_repository(self.root), [])
+        path = self.root / '.github/workflows/_backend.yml'
+        original = policy.yaml.load(path.read_text(), Loader=policy.WorkflowLoader)
+        for mutation in ('remove', 'conditional', 'scan-ref', 'severity', 'exit-code', 'ignore-unfixed',
+                         'inventory', 'recognition', 'artifact'):
+            with self.subTest(mutation=mutation):
+                data = copy.deepcopy(original)
+                steps = data['jobs']['backend-build']['steps']
+                scan = next(step for step in steps if step.get('id') == 'nacos-common-sbom-scan')
+                if mutation == 'remove': steps.remove(scan)
+                elif mutation == 'conditional': scan['if'] = '${{ false }}'
+                elif mutation in ('scan-ref', 'severity', 'exit-code'): scan['with'][mutation] = 'weakened'
+                elif mutation == 'ignore-unfixed': scan['with'][mutation] = True
+                elif mutation == 'inventory': scan['with']['list-all-pkgs'] = 'false'
+                elif mutation == 'recognition':
+                    steps[:] = [step for step in steps if '--report' not in step.get('run', '')]
+                elif mutation == 'artifact':
+                    steps[:] = [step for step in steps if step.get('with', {}).get('name') != 'nacos-common-pedigree-scan']
+                path.write_text(json.dumps(data))
+                self.assertTrue(any('Nacos' in error for error in policy.check_repository(self.root)))
+
     def test_safe_workflow_and_yaml_on_key(self):
         self.assertEqual(self.check(WORKFLOW), [])
         parsed = policy.yaml.load("on:\n  push:\npermissions: {}\nenabled: false\n", Loader=policy.WorkflowLoader)

@@ -1,0 +1,18 @@
+{
+  "artifact": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2",
+  "upstream": {
+    "coordinates": "com.alibaba.nacos:nacos-client:jar:pure:2.5.3",
+    "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-client/2.5.3/nacos-client-2.5.3-pure.jar",
+    "sha256": "a991843c4d991fc68d4acb82c3bd9a43fe1deee3a76f1bd66260d81d08d03fa6",
+    "pomSha256": "09064d5e849eac2c6e1f210670afca20645cb52c04efa45a512fc7220a8e463f"
+  },
+  "source": {
+    "url": "https://github.com/alibaba/nacos/blob/8d49753ba2b723fbd6946390feb57213957e7f2d/client/src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java",
+    "gitTag": "2.5.3",
+    "gitCommit": "8d49753ba2b723fbd6946390feb57213957e7f2d",
+    "gitBlob": "e54bdc2dc55ecb87410df63f1bd49865ec24061f",
+    "sha256": "1e95acb6af9c7f8e4c423ac57bf20ad7cca62bd2f17aac6fa7b002f0e8561bd4"
+  },
+  "modification": "Recompile only ClientWorker and its four inner classes. Seal listener/RPC admission, use per-task single-flight startup outside the monitor, reject same-thread reentry, retain exact RPC/subscriber cleanup ownership, and compare-remove factory identities. Preserve every other upstream entry byte-for-byte; relocate upstream Maven identity.",
+  "scope": "Config transport admission and owned-resource cleanup with nacos-common-patched 2.5.3-ulticode-1. Bounded synthetic SDK lifecycle coverage does not certify real authenticated registry integration; SVC-031 remains open."
+}

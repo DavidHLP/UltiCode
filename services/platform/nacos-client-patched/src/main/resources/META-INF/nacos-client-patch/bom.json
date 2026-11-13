@@ -1,0 +1,128 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "library",
+      "bom-ref": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2",
+      "group": "com.ulticode",
+      "name": "nacos-client-patched",
+      "version": "2.5.3-ulticode-2",
+      "purl": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "pedigree": {
+        "ancestors": [
+          {
+            "type": "library",
+            "group": "com.alibaba.nacos",
+            "name": "nacos-client",
+            "version": "2.5.3",
+            "purl": "pkg:maven/com.alibaba.nacos/nacos-client@2.5.3",
+            "licenses": [
+              {
+                "license": {
+                  "id": "Apache-2.0"
+                }
+              }
+            ],
+            "hashes": [
+              {
+                "alg": "SHA-256",
+                "content": "a991843c4d991fc68d4acb82c3bd9a43fe1deee3a76f1bd66260d81d08d03fa6"
+              }
+            ],
+            "externalReferences": [
+              {
+                "type": "distribution",
+                "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-client/2.5.3/nacos-client-2.5.3-pure.jar"
+              },
+              {
+                "type": "vcs",
+                "url": "https://github.com/alibaba/nacos/tree/2.5.3"
+              }
+            ]
+          }
+        ],
+        "notes": "Recompile only ClientWorker and its four inner classes. Seal listener/RPC admission, use per-task single-flight startup outside the monitor, reject same-thread reentry, retain exact RPC/subscriber cleanup ownership, and compare-remove factory identities. Preserve every other upstream entry byte-for-byte; relocate upstream Maven identity."
+      },
+      "properties": [
+        {
+          "name": "ulticode:upstream-classifier",
+          "value": "pure"
+        },
+        {
+          "name": "ulticode:source-sha256",
+          "value": "1e95acb6af9c7f8e4c423ac57bf20ad7cca62bd2f17aac6fa7b002f0e8561bd4"
+        },
+        {
+          "name": "ulticode:upstream-pom-sha256",
+          "value": "09064d5e849eac2c6e1f210670afca20645cb52c04efa45a512fc7220a8e463f"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/DavidHLP/UltiCode"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "group": "com.alibaba.nacos",
+      "name": "nacos-client",
+      "version": "2.5.3",
+      "purl": "pkg:maven/com.alibaba.nacos/nacos-client@2.5.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a991843c4d991fc68d4acb82c3bd9a43fe1deee3a76f1bd66260d81d08d03fa6"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-client/2.5.3/nacos-client-2.5.3-pure.jar"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/alibaba/nacos/tree/2.5.3"
+        }
+      ],
+      "bom-ref": "pkg:maven/com.alibaba.nacos/nacos-client@2.5.3",
+      "properties": [
+        {
+          "name": "ulticode:relationship",
+          "value": "Upstream code incorporated into this derivative, not a second runtime jar; retained for ordinary SBOM vulnerability attribution."
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2",
+      "dependsOn": [
+        "pkg:maven/com.alibaba.nacos/nacos-client@2.5.3"
+      ]
+    },
+    {
+      "ref": "pkg:maven/com.alibaba.nacos/nacos-client@2.5.3",
+      "dependsOn": []
+    }
+  ]
+}

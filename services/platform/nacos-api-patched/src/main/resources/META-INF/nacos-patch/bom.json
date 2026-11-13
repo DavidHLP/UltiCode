@@ -1,0 +1,132 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "library",
+      "bom-ref": "pkg:maven/com.ulticode/nacos-api-patched@2.5.3-ulticode-1",
+      "group": "com.ulticode",
+      "name": "nacos-api-patched",
+      "version": "2.5.3-ulticode-1",
+      "purl": "pkg:maven/com.ulticode/nacos-api-patched@2.5.3-ulticode-1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "pedigree": {
+        "ancestors": [
+          {
+            "type": "library",
+            "group": "com.alibaba.nacos",
+            "name": "nacos-api",
+            "version": "2.5.3",
+            "purl": "pkg:maven/com.alibaba.nacos/nacos-api@2.5.3",
+            "licenses": [
+              {
+                "license": {
+                  "id": "Apache-2.0"
+                }
+              }
+            ],
+            "hashes": [
+              {
+                "alg": "SHA-256",
+                "content": "8a0485b4c9ec3df44555c947163421df52824faae17906112651873076fdcee0"
+              }
+            ],
+            "externalReferences": [
+              {
+                "type": "distribution",
+                "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-api/2.5.3/nacos-api-2.5.3.jar"
+              },
+              {
+                "type": "vcs",
+                "url": "https://github.com/alibaba/nacos/tree/2.5.3"
+              }
+            ]
+          }
+        ],
+        "notes": "Regenerate Metadata, MetadataOrBuilder, Payload, PayloadOrBuilder and NacosGrpcService only. Preserve all other upstream class and resource bytes. Relocate upstream Maven metadata; assign distinct project-owned identity."
+      },
+      "properties": [
+        {
+          "name": "ulticode:protoc-version",
+          "value": "3.25.6"
+        },
+        {
+          "name": "ulticode:schema-sha256",
+          "value": "be9c1e5767ddf2450ec3824bf57038d921e53b8010bc51b2635f83df1c4e7e9e"
+        },
+        {
+          "name": "ulticode:upstream-pom-sha256",
+          "value": "3c5689beecff65cc8ac15aec73af58bfd9acf1cf15d61be62976fa2cbe2a082d"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/DavidHLP/UltiCode"
+        },
+        {
+          "type": "advisories",
+          "url": "https://github.com/protocolbuffers/protobuf/security/advisories/GHSA-h4h5-3hr4-j3g2"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "group": "com.alibaba.nacos",
+      "name": "nacos-api",
+      "version": "2.5.3",
+      "purl": "pkg:maven/com.alibaba.nacos/nacos-api@2.5.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8a0485b4c9ec3df44555c947163421df52824faae17906112651873076fdcee0"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-api/2.5.3/nacos-api-2.5.3.jar"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/alibaba/nacos/tree/2.5.3"
+        }
+      ],
+      "bom-ref": "pkg:maven/com.alibaba.nacos/nacos-api@2.5.3",
+      "properties": [
+        {
+          "name": "ulticode:relationship",
+          "value": "Upstream code incorporated into this derivative, not a second runtime jar; retained for ordinary SBOM vulnerability attribution."
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:maven/com.ulticode/nacos-api-patched@2.5.3-ulticode-1",
+      "dependsOn": [
+        "pkg:maven/com.alibaba.nacos/nacos-api@2.5.3"
+      ]
+    },
+    {
+      "ref": "pkg:maven/com.alibaba.nacos/nacos-api@2.5.3",
+      "dependsOn": []
+    }
+  ]
+}

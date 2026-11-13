@@ -1,0 +1,7 @@
+* text eol=lf
+src/main/java/**/*.java whitespace=-blank-at-eol
+build/upstream/*.java whitespace=-blank-at-eol
+build/rpc-lifecycle.patch whitespace=-blank-at-eol
+# Preserve the verified upstream GrpcClient EOF bytes in both source copies.
+build/upstream/GrpcClient.java whitespace=-blank-at-eol,-blank-at-eof
+src/main/java/com/alibaba/nacos/common/remote/client/grpc/GrpcClient.java whitespace=-blank-at-eol,-blank-at-eof

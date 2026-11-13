@@ -16,20 +16,16 @@
     <dependencies>
         <!-- The shaded SDK embeds vulnerable Guava that dependency management cannot replace. -->
         <dependency>
-            <groupId>com.alibaba.nacos</groupId>
-            <artifactId>nacos-client</artifactId>
-            <version>${nacos-client.version}</version>
-            <classifier>pure</classifier>
+            <groupId>com.ulticode</groupId>
+            <artifactId>nacos-client-patched</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.nacos</groupId>
-            <artifactId>nacos-common</artifactId>
-            <version>${nacos-client.version}</version>
+            <groupId>com.ulticode</groupId>
+            <artifactId>nacos-common-patched</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.nacos</groupId>
-            <artifactId>nacos-api</artifactId>
-            <version>${nacos-client.version}</version>
+            <groupId>com.ulticode</groupId>
+            <artifactId>nacos-api-patched</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
@@ -64,6 +60,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+                    <systemPropertyVariables>
+                        <com.google.protobuf.error_on_unsafe_pre22_gencode>true</com.google.protobuf.error_on_unsafe_pre22_gencode>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>

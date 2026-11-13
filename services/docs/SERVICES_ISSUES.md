@@ -1,6 +1,6 @@
 # `services/` 问题清单
 
-更新时间：2026-09-06
+更新时间：2026-11-06
 
 本文件是 `services/` 微服务架构问题、评审 Finding、修复状态与可选外部运行触发条件的唯一入口。其他文档只能链接到本文件，不得复制问题正文或维护第二份状态。
 
@@ -30,10 +30,61 @@ App interface locality 已闭环；Core 的边界与验证范围见 SVC-025。
 
 当前拓扑与 Contract 边界以 [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)、源码、配置和门禁为准。本文件是当前 issue 状态和 SVC-025 关闭条件的唯一入口；已完成的执行计划、台账和检查点不作为当前证据。
 
+Core Auth/Admin bounded testbed 已取得 local Adapter parity 和真实 HTTP
+disposable journey 证据；本项不改变默认拓扑或 SVC-025 的状态。
+
 ## OPEN
 
-本文件当前无 OPEN 项；Core Auth/Admin bounded testbed 已取得 local Adapter
-parity 和真实 HTTP disposable journey 证据，不得切换默认拓扑。
+### SVC-029 Nacos registry server protobuf generated code（OPEN）
+
+Base Compose 的 `nacos/nacos-server:v2.3.2` 与 prod/HA 固定的
+`sha256:d70b20546fe59aeb86add0754db1dbc3a3067363e18599329c5163d0d8cd9cd8`
+指向同一镜像。该镜像包含 `nacos-api:2.3.2`、`protobuf-java:3.22.3`，
+并在 `nacos-client:2.3.2` 内再次包含协议类。上游同版本的 Metadata/Payload
+仍使用旧生成解析器；[GHSA-h4h5-3hr4-j3g2](https://github.com/protocolbuffers/protobuf/security/advisories/GHSA-h4h5-3hr4-j3g2)
+不能仅靠更新 protobuf runtime 修复。Owner/Worker 的 patched API 只作用于应用
+依赖，不修改这个独立的注册中心镜像。
+
+Nacos gRPC 在连接有效性与请求鉴权之前解析 Payload，不能把开启认证当作
+解析器修复。base/prod 不发布 Nacos 端口，dev 只绑定 loopback，缩小了入口，
+但不能排除同网络服务或本机进程。提取依赖的有界本地解析已观察到资源放大；
+这不是镜像 JDK 或运行中服务器的完整验证。替换镜像尚未验收；后续修复须
+检查所有协议类来源，并验证数据、认证、SDK/集群连接与重连兼容性。不得通过
+静音旧生成代码警告、取消认证或放宽门禁关闭本项。
+
+### SVC-030 Nacos 批量配置监听与 workload ACL（OPEN）
+
+现有 bootstrap 按 namespace、明确的 group 和数据范围授予 workload 配置权限。
+Nacos 2.3.2 对标准 SDK 的批量监听请求使用 namespace 级配置读取权限；空 group/name
+会形成 `<namespace>:*:config/*`，而不是逐个匹配请求中的配置条目。
+[资源解析](https://github.com/alibaba/nacos/blob/2.3.2/auth/src/main/java/com/alibaba/nacos/auth/parser/grpc/ConfigGrpcResourceParser.java#L34-L72)
+与[权限键拼接](https://github.com/alibaba/nacos/blob/2.3.2/plugin-default-impl/nacos-default-auth-plugin/src/main/java/com/alibaba/nacos/plugin/auth/impl/roles/NacosRoleServiceImpl.java#L263-L288)、
+[权限匹配](https://github.com/alibaba/nacos/blob/2.3.2/plugin-default-impl/nacos-default-auth-plugin/src/main/java/com/alibaba/nacos/plugin/auth/impl/roles/NacosRoleServiceImpl.java#L146-L160)
+使现有 group 级读取权限不足以允许该批量请求。直接配置读写成功不能证明监听回调可用。
+所核对的 2.5.5、3.3.0 同一路径也未提供逐配置授权，不能仅以升级版本关闭本项。
+
+客户端协议门禁保留原 AUTH workload ACL，明确要求其批量监听请求返回 403；
+正向配置回调使用另外的测试账号和独占、仅含合成数据的测试 namespace。
+该测试账号拥有整个测试 namespace 的配置读取权限、仅固定 dataId 的写权限，
+没有管理员角色，随独立测试环境销毁。此权限宽度只用于客户端协议、回调和重连
+兼容验证，不证明原 workload ACL 的生产监听兼容性。不得把该 namespace 全读
+权限加入生产 bootstrap、使用管理员账号替代 workload，或把回调超时当成鉴权通过。
+
+本项需独立解决服务端批量请求的逐配置授权与隔离边界，并重新验收真实角色的
+订阅和恢复行为。客户端 protobuf 修复与扩大测试授权范围均不能关闭本项；
+现有生产 profile、bootstrap 权限和已有凭据保持不变。
+
+### SVC-031 Nacos 配置客户端 listener 线程池释放（OPEN）
+
+原 2.5.1 SDK 未关闭配置客户端 `multiTaskExecutor` 中的 listener 同步线程池。
+当前 client/common 与衍生 API 上游基线同步迁移到官方 2.5.3；
+[上游 #15449](https://github.com/alibaba/nacos/pull/15449) 已加入正常 shutdown
+和同 task id 原子创建修复，包含于 [2.5.3](https://github.com/alibaba/nacos/releases/tag/2.5.3)。
+衍生 API 仍仅重建 protobuf 生成类；独立 `nacos-client-patched` 修改 `ClientWorker` admission 与所属资源清理，独立 `nacos-common-patched` 修改 `RpcClient` / `GrpcClient` 发布和临时通道所有权，均保留其他上游内容与独立来源/扫描门禁。
+
+client 关闭入口先停止 listener/RPC admission。每个 task id 单一初始化任务，外部启动与清理不持有 admission monitor，同线程初始化重入拒绝；每个 RPC/subscriber 独立跟踪，失败清理可重试，迟到创建自行回收，factory 仅比较移除所属实例。common 的 `SHUTDOWN` 为终态，拒绝迟到连接发布；临时通道覆盖启动、协商、返回和发布交接，独立能力协商上下文避免并行串扰，正常重连不无限保留旧通道。
+
+listener 已接收回调仍可自然完成，不等待或强制打断；安全清理异常后原主 scheduler 仍需重试。清理异常不等于释放成功；测试必须在兜底清理前捕获原资源并验证实际关闭、终止和 factory 移除。合成 localhost peer 下的实际 SDK 并发测试不替代真实认证注册中心、配置/命名业务回调、断网重连、共享通知线程及长期同 JVM 生命周期验收；也不保证强制终止不合作的外部回调。因此本项整体保持 OPEN。
 
 ## CLOSED
 

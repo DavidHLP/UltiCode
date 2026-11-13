@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.ulticode</groupId>
+        <artifactId>ulticode-backend</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <artifactId>nacos-client-patched</artifactId>
+    <version>2.5.3-ulticode-2</version>
+    <name>UltiCode patched Nacos pure client</name>
+    <description>Nacos pure client 2.5.3 with atomic config-listener and RPC admission lifecycle.
+        Independently identified derivative; all non-ClientWorker upstream entries remain byte-identical.</description>
+    <url>https://github.com/DavidHLP/UltiCode</url>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <properties>
+        <project.build.outputTimestamp>2025-03-11T13:53:00Z</project.build.outputTimestamp>
+        <argLine/>
+    </properties>
+
+    <!-- Preserve published pure-client dependency surface; common/API are explicit and exact. -->
+    <dependencies>
+        <!-- Gson is already used by the pure client. Keep the annotation dependency
+             supplied by gRPC rather than Gson's older transitive annotation version. -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId><artifactId>gson</artifactId>
+            <exclusions><exclusion><groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_annotations</artifactId></exclusion></exclusions>
+        </dependency>
+        <dependency>
+			<groupId>com.alibaba.nacos</groupId>
+			<artifactId>nacos-auth-plugin</artifactId>
+			<version>2.5.3</version>
+		</dependency>
+        <dependency>
+			<groupId>com.alibaba.nacos</groupId>
+			<artifactId>nacos-encryption-plugin</artifactId>
+			<version>2.5.3</version>
+		</dependency>
+        <dependency>
+			<groupId>com.alibaba.nacos</groupId>
+			<artifactId>nacos-logback-adapter-12</artifactId>
+			<version>2.5.3</version>
+		</dependency>
+        <dependency>
+			<groupId>com.alibaba.nacos</groupId>
+			<artifactId>logback-adapter</artifactId>
+			<version>1.1.5</version>
+		</dependency>
+        <dependency>
+			<groupId>com.alibaba.nacos</groupId>
+			<artifactId>nacos-log4j2-adapter</artifactId>
+			<version>2.5.3</version>
+		</dependency>
+        <dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			</dependency>
+        <dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			</dependency>
+        <dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpasyncclient</artifactId>
+			<version>4.1.5</version>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+        <dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpcore</artifactId>
+			<version>4.4.16</version>
+		</dependency>
+        <dependency>
+			<groupId>io.prometheus</groupId>
+			<artifactId>simpleclient</artifactId>
+			</dependency>
+        <dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			</dependency>
+        <dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+			</dependency>
+        <dependency><groupId>com.ulticode</groupId><artifactId>nacos-api-patched</artifactId></dependency>
+        <dependency><groupId>com.ulticode</groupId><artifactId>nacos-common-patched</artifactId></dependency>
+        <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+        <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>
+        <dependency><groupId>org.objenesis</groupId><artifactId>objenesis</artifactId><version>3.4</version><scope>test</scope></dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId>
+                <configuration><systemPropertyVariables>
+                    <com.google.protobuf.error_on_unsafe_pre22_gencode>true</com.google.protobuf.error_on_unsafe_pre22_gencode>
+                </systemPropertyVariables></configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.7.0</version>
+                <executions>
+                    <execution>
+                        <id>require-compatible-nacos-sdk</id>
+                        <phase>validate</phase>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules>
+                                <requireProperty>
+                                    <property>nacos-client.version</property>
+                                    <regex>2[.]5[.]3</regex>
+                                    <regexMessage>This client derivative preserves Nacos 2.5.3 classes. Keep common and the API derivative at the exact audited baseline.</regexMessage>
+                                </requireProperty>
+                                <requireProperty>
+                                    <property>nacos-client-patched.version</property>
+                                    <regex>2[.]5[.]3-ulticode-2</regex>
+                                    <regexMessage>The runtime client dependency must select this exact 2.5.3-ulticode-2 derivative.</regexMessage>
+                                </requireProperty>
+                                <requireProperty>
+                                    <property>nacos-common-patched.version</property>
+                                    <regex>2[.]5[.]3-ulticode-1</regex>
+                                    <regexMessage>This client revision requires the exact RPC lifecycle common derivative.</regexMessage>
+                                </requireProperty>
+                                <requireProperty>
+                                    <property>nacos-api-patched.version</property>
+                                    <regex>2[.]5[.]3-ulticode-1</regex>
+                                    <regexMessage>This client derivative requires the exact 2.5.3-ulticode-1 API derivative.</regexMessage>
+                                </requireProperty>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.8.1</version>
+                <executions>
+                    <execution>
+                        <id>fetch-pinned-upstream-inputs</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>copy</goal></goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.alibaba.nacos</groupId>
+                                    <artifactId>nacos-client</artifactId>
+                                    <version>2.5.3</version>
+                                    <type>jar</type>
+                                    <classifier>pure</classifier>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.alibaba.nacos</groupId>
+                                    <artifactId>nacos-client</artifactId>
+                                    <version>2.5.3</version>
+                                    <type>pom</type>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}/upstream</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-and-prepare-patched-client</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.build.directory}/patch-tool"/>
+                                <javac srcdir="${project.basedir}/build"
+                                       destdir="${project.build.directory}/patch-tool"
+                                       release="17" encoding="UTF-8" includes="PatchNacosClient.java" includeantruntime="false"/>
+                                <java classname="PatchNacosClient" fork="true" failonerror="true">
+                                    <classpath><pathelement location="${project.build.directory}/patch-tool"/></classpath>
+                                    <arg value="prepare"/>
+                                    <arg value="${project.basedir}"/>
+                                    <arg value="${project.build.directory}"/>
+                                </java>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>verify-packaged-client</id>
+                        <phase>package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <java classname="PatchNacosClient" fork="true" failonerror="true">
+                                    <classpath><pathelement location="${project.build.directory}/patch-tool"/></classpath>
+                                    <arg value="verify"/>
+                                    <arg value="${project.basedir}"/>
+                                    <arg value="${project.build.directory}"/>
+                                    <arg value="${project.build.directory}/${project.build.finalName}.jar"/>
+                                </java>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+                <configuration>
+                    <proc>none</proc>
+                    <release>8</release>
+                    <testRelease>17</testRelease>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Implementation-Title>UltiCode patched Nacos pure client</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Nacos-Upstream-Version>2.5.3</Nacos-Upstream-Version>
+                            <Nacos-Upstream-Classifier>pure</Nacos-Upstream-Classifier>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-upstream-pedigree</id>
+                        <phase>package</phase>
+                        <goals><goal>attach-artifact</goal></goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>${project.basedir}/src/main/resources/META-INF/nacos-client-patch/bom.json</file>
+                                    <type>json</type>
+                                    <classifier>cyclonedx</classifier>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

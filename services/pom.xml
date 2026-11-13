@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.1</version>
+		<version>4.1.2</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.ulticode</groupId>
@@ -22,6 +22,9 @@
 	<modules>
 		<module>platform/common</module>
 		<module>platform/storage</module>
+		<module>platform/nacos-api-patched</module>
+		<module>platform/nacos-common-patched</module>
+		<module>platform/nacos-client-patched</module>
 		<module>platform/rpc-resilience</module>
 		<module>platform/web-security</module>
 		<module>platform/integration-inbox</module>
@@ -52,32 +55,37 @@
 		<!-- Per-service release versions: bump individually to release one owner
 		     service (its image tag) independently of the shared platform modules.
 		     Consumed by docker-publish.yml to add a v<version> GHCR tag. -->
-		<service.version.auth>1.0.7</service.version.auth>
-		<service.version.admin>1.0.7</service.version.admin>
-		<service.version.app>1.0.7</service.version.app>
-		<service.version.submission>1.0.7</service.version.submission>
-		<service.version.search>1.0.7</service.version.search>
-		<service.version.notification>1.0.7</service.version.notification>
-		<service.version.judge>1.0.7</service.version.judge>
+		<service.version.auth>1.0.8</service.version.auth>
+		<service.version.admin>1.0.8</service.version.admin>
+		<service.version.app>1.0.8</service.version.app>
+		<service.version.submission>1.0.8</service.version.submission>
+		<service.version.search>1.0.8</service.version.search>
+		<service.version.notification>1.0.8</service.version.notification>
+		<service.version.judge>1.0.8</service.version.judge>
 		<java.version>17</java.version>
 		<!-- Security fixes newer than the Spring Boot dependency BOM. -->
 		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
 		<jackson-bom.version>3.1.7</jackson-bom.version>
 		<tomcat.version>11.0.25</tomcat.version>
-		<guava.version>33.7.2-jre</guava.version>
-		<nacos-client.version>2.5.1</nacos-client.version>
+		<guava.version>33.8.0-jre</guava.version>
+		<!-- Keep client/common aligned with the patched API upstream baseline.
+		     Any upstream baseline upgrade requires rebuilding and verifying the derivative. -->
+		<nacos-client.version>2.5.3</nacos-client.version>
+		<nacos-api-patched.version>2.5.3-ulticode-1</nacos-api-patched.version>
+		<nacos-client-patched.version>2.5.3-ulticode-2</nacos-client-patched.version>
+		<nacos-common-patched.version>2.5.3-ulticode-1</nacos-common-patched.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<mybatis-plus.version>3.5.17</mybatis-plus.version>
+		<mybatis-plus.version>3.5.18.1</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>
 		<redisson.version>4.8.0</redisson.version>
-		<springdoc.version>3.1.1</springdoc.version>
+		<springdoc.version>3.2.0</springdoc.version>
 		<dubbo.version>3.3.6</dubbo.version>
 		<hutool.version>5.8.48</hutool.version>
 		<lombok.version>1.18.48</lombok.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<!-- OkHttp 5 ships an empty jar to Maven consumers; see the okhttp
 		     entry in dependencyManagement. -->
-		<okhttp.version>4.12.0</okhttp.version>
+		<okhttp.version>4.12.1</okhttp.version>
 		<japicmp.version>0.26.5</japicmp.version>
 		<coverage.bundle.minimum>0.50</coverage.bundle.minimum>
 		<!-- Submission has an explicit owner-specific floor because its current
@@ -99,6 +107,7 @@
 
 	<dependencyManagement>
 		<dependencies>
+            <dependency><groupId>com.ulticode</groupId><artifactId>nacos-common-patched</artifactId><version>${nacos-common-patched.version}</version></dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-common</artifactId>
@@ -226,6 +235,35 @@
 				<groupId>com.squareup.okhttp3</groupId>
 				<artifactId>okhttp</artifactId>
 				<version>${okhttp.version}</version>
+			</dependency>
+			<!-- The upstream API contains unsafe generated protobuf parsers. The
+			     independently identified derivative replaces it, never shadows it. -->
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>nacos-api-patched</artifactId>
+				<version>${nacos-api-patched.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>nacos-client-patched</artifactId>
+				<version>${nacos-client-patched.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>com.alibaba.nacos</groupId>
+						<artifactId>nacos-api</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+			<dependency>
+				<groupId>com.alibaba.nacos</groupId>
+				<artifactId>nacos-common</artifactId>
+				<version>${nacos-client.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>com.alibaba.nacos</groupId>
+						<artifactId>nacos-api</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 			<!-- CVE-2026-102554: use the pure Nacos SDK so Guava is managed. -->
 			<dependency>
@@ -386,7 +424,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-enforcer-plugin</artifactId>
-						<version>3.6.3</version>
+						<version>3.7.0</version>
 						<executions>
 							<execution>
 								<id>require-contract-baseline</id>

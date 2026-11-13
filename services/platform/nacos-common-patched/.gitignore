@@ -1,0 +1,9 @@
+!build/
+build/*
+!build/PatchNacosCommon.java
+!build/inputs.sha256.properties
+!build/rpc-lifecycle.patch
+!build/upstream/
+build/upstream/*
+!build/upstream/*.java
+!build/upstream/source-metadata.json

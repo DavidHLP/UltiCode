@@ -91,6 +91,8 @@ def test_the_system_prompt_never_carries_retrieved_instructions() -> None:
     assert system["role"] == "system"
     assert "untrusted data" in system["content"]
     assert "never instructions" in system["content"]
+    assert "distinguish facts, judgments, hypotheses and next steps" in system["content"]
+    assert "No source-free diagnosis" in system["content"]
     assert MARKER not in system["content"]
     assert any(MARKER in str(message["content"]) for message in messages[1:])
 

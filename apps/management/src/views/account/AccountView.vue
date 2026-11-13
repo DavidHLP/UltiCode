@@ -8,7 +8,7 @@ import { Label } from '@ulticode/design-system/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@ulticode/design-system/ui/card'
 import { Separator } from '@ulticode/design-system/ui/separator'
 import SemanticBadge from '@ulticode/badge-config/SemanticBadge.vue'
-import { USER_ROLE_COLOR_MAP } from '@ulticode/badge-config'
+import { USER_ROLE_COLOR_MAP, type SemanticColor } from '@ulticode/badge-config'
 import { formatDateByLocale, formatDateTimeByLocale } from '@/i18n/utils'
 import { accountApi, type AccountProfile, type UpdateProfileDto } from '@/api/admin/account'
 import { toast } from 'vue-sonner'
@@ -35,6 +35,13 @@ const profile = ref<AccountProfile>({
   email: '',
   role: '',
   joined_at: '',
+})
+
+// Resolve the string-keyed map in script so template ref unwrapping cannot
+// mistake its index signature for a `.value` property.
+const roleColor = computed<SemanticColor>(() => {
+  const role = profile.value.role
+  return Object.hasOwn(USER_ROLE_COLOR_MAP, role) ? USER_ROLE_COLOR_MAP[role] : 'neutral'
 })
 
 const formData = ref<UpdateProfileDto>({})
@@ -375,7 +382,7 @@ onMounted(async () => {
                 <Label>{{ t('account.fields.role') }}</Label>
                 <div>
                   <SemanticBadge
-                    :color="USER_ROLE_COLOR_MAP[profile.role] || 'neutral'"
+                    :color="roleColor"
                     :label="
                       t(`users.filters.role.${profile.role}`) !==
                       `users.filters.role.${profile.role}`

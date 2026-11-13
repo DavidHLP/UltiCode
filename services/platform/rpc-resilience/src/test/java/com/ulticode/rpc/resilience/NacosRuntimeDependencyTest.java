@@ -15,6 +15,7 @@ import com.alibaba.nacos.api.remote.response.Response;
 import com.alibaba.nacos.client.config.NacosConfigService;
 import com.alibaba.nacos.client.config.impl.ClientWorker;
 import com.alibaba.nacos.client.naming.NacosNamingService;
+import com.alibaba.nacos.client.naming.utils.InitUtils;
 import com.alibaba.nacos.common.remote.client.RpcClient;
 import com.alibaba.nacos.common.remote.client.RpcClientFactory;
 import com.alibaba.nacos.common.remote.ConnectionType;
@@ -78,9 +79,19 @@ class NacosRuntimeDependencyTest {
             assertThat(clientClass.getProtectionDomain().getCodeSource().getLocation().toString())
                     .endsWith("nacos-client-2.5.1-pure.jar");
         }
+        assertThat(ConnectionType.class.getProtectionDomain().getCodeSource().getLocation().toString())
+                .as("common and client must use the patched API's upstream baseline")
+                .endsWith("nacos-common-2.5.1.jar");
         assertSinglePatchedApi();
         assertThat(getClass().getClassLoader().getResource(
                 "com/alibaba/nacos/shaded/com/google/common/collect/ImmutableList.class")).isNull();
+    }
+
+    @Test
+    void initializesNamingSerializationAgainstThePatchedApi() {
+        // Ordinary naming startup links API selector/serializer classes here.
+        // A protocol-only round trip does not exercise this SDK/API boundary.
+        InitUtils.initSerialization();
     }
 
     static void assertSinglePatchedApi() throws Exception {

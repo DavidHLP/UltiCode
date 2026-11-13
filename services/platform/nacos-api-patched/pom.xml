@@ -78,6 +78,27 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.7.0</version>
+                <executions>
+                    <execution>
+                        <id>require-compatible-nacos-sdk</id>
+                        <phase>validate</phase>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules>
+                                <requireProperty>
+                                    <property>nacos-client.version</property>
+                                    <regex>2[.]5[.]1</regex>
+                                    <regexMessage>This API derivative preserves Nacos 2.5.1 classes. Keep nacos-client and nacos-common at 2.5.1; upgrade the API derivative and verify provenance, protocol and registry integration together.</regexMessage>
+                                </requireProperty>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.8.1</version>
                 <executions>

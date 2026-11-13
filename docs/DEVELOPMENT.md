@@ -382,7 +382,7 @@ Management forms use patched Zod 4 through `src/lib/toTypedSchema.ts`, which pre
 vee-validate 4 form contract for parsed values, defaults, field errors and required metadata.
 The published Zod 3 adapter is not used; production dependency audits retain the high-severity gate.
 
-Nacos 客户端使用官方 `pure` classifier，并显式引入同版本 `nacos-api`、`nacos-common`，由共享 RPC 模块提供给各 Owner/Worker；排除 Dubbo 引入的默认 shaded client，避免其内嵌依赖绕过 Maven 的安全版本管理。依赖升级须保留 protobuf 消息解析与 loopback gRPC 回归，并由镜像扫描及真实安装 CI 验证。Guava 升级不修复 Nacos 旧 protobuf 生成代码的资源放大风险；本地消息回归也不证明该风险已消除或线上可利用。
+Nacos 客户端使用官方 `pure` classifier，并显式引入同一上游版本的 `nacos-common` 与 `nacos-api-patched` 衍生 API，由共享 RPC 模块提供给各 Owner/Worker；排除 Dubbo 引入的默认 shaded client，避免其内嵌依赖绕过 Maven 的安全版本管理。依赖升级须保留 protobuf 消息解析与 loopback gRPC 回归，并由镜像扫描及真实安装 CI 验证。Guava 升级不修复 Nacos 旧 protobuf 生成代码的资源放大风险；本地消息回归也不证明该风险已消除或线上可利用。
 
 后续变更必须保留以下基线契约：
 
@@ -674,6 +674,8 @@ CI/CD 契约的 provenance 测试数据必须由测试在临时目录生成或�
 ### Nacos 客户端协议构建与兼容验证
 
 `services/platform/nacos-api-patched` 以独立的 `com.ulticode:nacos-api-patched` 坐标构建客户端 API 衍生包，不发布到上游坐标或覆盖上游 artifact。构建校验锁定的原始 JAR、POM、协议和生成源码 SHA-256，仅替换 protobuf 生成类，保留其他上游字节；包内保留原始来源、许可证和 CycloneDX 血缘；CI 额外扫描上游普通组件并核对 Trivy 实际识别结果，不能因为改用自有坐标而丢失扫描覆盖。普通构建编译已提交的生成源码，不需要本机 protoc。更改协议或工具链时必须同时更新来源、生成结果和校验值，不得把不匹配改为警告。
+
+客户端与 common 必须和衍生 API 的上游基线一起升级。当前 `2.5.1-ulticode-1` 只允许 `nacos-client.version=2.5.1`，衍生模块在 Maven `validate` 阶段拒绝其他值，运行时来源回归同时检查 client 与 common。不能将 3.x client/common 与此 2.5.1 API 混用，也不能通过恢复原始 API、跳过检查或禁用严格 protobuf 解析来消除冲突。Nacos 主版本升级须单独重建来源、哈希和扫描血缘，并重新通过协议回归与本机隔离注册中心集成；其他依赖可独立升级。
 
 ```bash
 # Linux x86_64 上再生成并逐字节校验；其他已锁定平台用 nacos.protoc.classifier 选择。

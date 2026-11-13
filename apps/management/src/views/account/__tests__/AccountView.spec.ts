@@ -1,7 +1,8 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { expect, it, vi } from 'vitest'
+import SemanticBadge from '@ulticode/badge-config/SemanticBadge.vue'
 import AccountView from '../AccountView.vue'
-import { accountApi } from '@/api/admin/account'
+import { accountApi, type AccountProfile } from '@/api/admin/account'
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
 vi.mock('@/i18n/utils', () => ({
@@ -38,6 +39,62 @@ it('returns focus to the password entry when cancelling without writing account 
     expect(document.activeElement).toBe(button('account.actions.changePassword').element)
     expect(accountApi.changePassword).not.toHaveBeenCalled()
     expect(accountApi.updateProfile).not.toHaveBeenCalled()
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it.each([
+  ['SUPER_ADMIN', 'purple'],
+  ['ADMIN', 'info'],
+  ['MODERATOR', 'warning'],
+  ['USER', 'neutral'],
+  ['FUTURE_ROLE', 'neutral'],
+  ['', 'neutral'],
+  ['admin', 'neutral'],
+  ['toString', 'neutral'],
+  ['__proto__', 'neutral'],
+])('renders role %j with the %s badge color', async (role, color) => {
+  vi.mocked(accountApi.getProfile).mockResolvedValueOnce({
+    id: 'test',
+    username: 'test',
+    name: '',
+    email: '',
+    role,
+    joined_at: '',
+  })
+  const wrapper = mount(AccountView)
+  try {
+    await flushPromises()
+    expect(wrapper.getComponent(SemanticBadge).props()).toMatchObject({ color, label: role })
+  } finally {
+    wrapper.unmount()
+  }
+})
+
+it('updates the role badge when a refreshed profile is returned after saving', async () => {
+  const profile: AccountProfile = {
+    id: 'test',
+    username: 'test',
+    name: '',
+    email: '',
+    role: 'ADMIN',
+    joined_at: '',
+  }
+  vi.mocked(accountApi.getProfile).mockResolvedValueOnce(profile)
+  vi.mocked(accountApi.updateProfile).mockResolvedValueOnce({ ...profile, role: 'SUPER_ADMIN' })
+  const wrapper = mount(AccountView)
+  try {
+    await flushPromises()
+    expect(wrapper.getComponent(SemanticBadge).props('color')).toBe('info')
+    await wrapper.find('input').setValue('Updated name')
+    const saveButton = wrapper.findAll('button').find((button) => button.text() === 'account.actions.save')!
+    await saveButton.trigger('click')
+    await flushPromises()
+    expect(wrapper.getComponent(SemanticBadge).props()).toMatchObject({
+      color: 'purple',
+      label: 'SUPER_ADMIN',
+    })
   } finally {
     wrapper.unmount()
   }

@@ -67,9 +67,9 @@
 		<tomcat.version>11.0.25</tomcat.version>
 		<guava.version>33.8.0-jre</guava.version>
 		<!-- Keep client/common aligned with the patched API upstream baseline.
-		     A Nacos major upgrade requires rebuilding and verifying the derivative. -->
-		<nacos-client.version>2.5.1</nacos-client.version>
-		<nacos-api-patched.version>2.5.1-ulticode-1</nacos-api-patched.version>
+		     Any upstream baseline upgrade requires rebuilding and verifying the derivative. -->
+		<nacos-client.version>2.5.3</nacos-client.version>
+		<nacos-api-patched.version>2.5.3-ulticode-1</nacos-api-patched.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mybatis-plus.version>3.5.18.1</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>

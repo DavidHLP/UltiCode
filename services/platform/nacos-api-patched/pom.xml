@@ -10,9 +10,9 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <artifactId>nacos-api-patched</artifactId>
-    <version>2.5.1-ulticode-1</version>
+    <version>2.5.3-ulticode-1</version>
     <name>UltiCode patched Nacos API</name>
-    <description>Nacos API 2.5.1 with five protobuf sources regenerated using protoc 3.25.6.
+    <description>Nacos API 2.5.3 with five protobuf sources regenerated using protoc 3.25.6.
         This independently versioned derivative retains all other upstream class bytes.
         Upstream hashes, Apache licensing and CycloneDX pedigree are included in the jar.</description>
     <url>https://github.com/DavidHLP/UltiCode</url>
@@ -89,8 +89,13 @@
                             <rules>
                                 <requireProperty>
                                     <property>nacos-client.version</property>
-                                    <regex>2[.]5[.]1</regex>
-                                    <regexMessage>This API derivative preserves Nacos 2.5.1 classes. Keep nacos-client and nacos-common at 2.5.1; upgrade the API derivative and verify provenance, protocol and registry integration together.</regexMessage>
+                                    <regex>2[.]5[.]3</regex>
+                                    <regexMessage>This API derivative preserves Nacos 2.5.3 classes. Keep nacos-client and nacos-common at 2.5.3; upgrade the API derivative and verify provenance, protocol and registry integration together.</regexMessage>
+                                </requireProperty>
+                                <requireProperty>
+                                    <property>nacos-api-patched.version</property>
+                                    <regex>2[.]5[.]3-ulticode-1</regex>
+                                    <regexMessage>The runtime API dependency must select this exact 2.5.3-ulticode-1 derivative.</regexMessage>
                                 </requireProperty>
                             </rules>
                         </configuration>
@@ -111,13 +116,13 @@
                                 <artifactItem>
                                     <groupId>com.alibaba.nacos</groupId>
                                     <artifactId>nacos-api</artifactId>
-                                    <version>2.5.1</version>
+                                    <version>2.5.3</version>
                                     <type>jar</type>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>com.alibaba.nacos</groupId>
                                     <artifactId>nacos-api</artifactId>
-                                    <version>2.5.1</version>
+                                    <version>2.5.3</version>
                                     <type>pom</type>
                                 </artifactItem>
                             </artifactItems>
@@ -186,7 +191,7 @@
                         <manifestEntries>
                             <Implementation-Title>UltiCode patched Nacos API</Implementation-Title>
                             <Implementation-Version>${project.version}</Implementation-Version>
-                            <Nacos-Upstream-Version>2.5.1</Nacos-Upstream-Version>
+                            <Nacos-Upstream-Version>2.5.3</Nacos-Upstream-Version>
                             <Nacos-Protoc-Version>3.25.6</Nacos-Protoc-Version>
                         </manifestEntries>
                     </archive>

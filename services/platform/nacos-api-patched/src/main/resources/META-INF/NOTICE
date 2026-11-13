@@ -1,6 +1,6 @@
 UltiCode patched Nacos API
 
-Derived from Alibaba Nacos API 2.5.1, Apache License 2.0.
+Derived from Alibaba Nacos API 2.5.3, Apache License 2.0.
 Copyright 1999-2020 Alibaba Group Holding Ltd.
 
 UltiCode modification: regenerate Metadata, MetadataOrBuilder, Payload,

@@ -1,15 +1,17 @@
 {
-  "artifact": "pkg:maven/com.ulticode/nacos-api-patched@2.5.1-ulticode-1",
+  "artifact": "pkg:maven/com.ulticode/nacos-api-patched@2.5.3-ulticode-1",
   "upstream": {
-    "coordinates": "com.alibaba.nacos:nacos-api:2.5.1",
-    "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-api/2.5.1/nacos-api-2.5.1.jar",
-    "sha256": "19b0eabdc1f637eeeec72cba9d6f85fe2bcae62bb9be7e7fb8a25ce183ce8738",
-    "pomSha256": "6b814f79526b1043bc3f81c6c65ab93003205fd0d2c76bf514927967b91a972b"
+    "coordinates": "com.alibaba.nacos:nacos-api:2.5.3",
+    "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-api/2.5.3/nacos-api-2.5.3.jar",
+    "sha256": "8a0485b4c9ec3df44555c947163421df52824faae17906112651873076fdcee0",
+    "pomSha256": "3c5689beecff65cc8ac15aec73af58bfd9acf1cf15d61be62976fa2cbe2a082d"
   },
   "schema": {
-    "url": "https://github.com/alibaba/nacos/blob/2.5.1/api/src/main/proto/nacos_grpc_service.proto",
+    "url": "https://github.com/alibaba/nacos/blob/8d49753ba2b723fbd6946390feb57213957e7f2d/api/src/main/proto/nacos_grpc_service.proto",
     "gitBlob": "adf2a30a1d35363bf53eae3873975e2f0d6c79d2",
-    "sha256": "be9c1e5767ddf2450ec3824bf57038d921e53b8010bc51b2635f83df1c4e7e9e"
+    "sha256": "be9c1e5767ddf2450ec3824bf57038d921e53b8010bc51b2635f83df1c4e7e9e",
+    "gitTag": "2.5.3",
+    "gitCommit": "8d49753ba2b723fbd6946390feb57213957e7f2d"
   },
   "generator": {
     "coordinates": "com.google.protobuf:protoc:3.25.6",

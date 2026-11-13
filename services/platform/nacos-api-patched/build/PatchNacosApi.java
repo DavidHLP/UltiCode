@@ -26,9 +26,9 @@ public final class PatchNacosApi {
             "Payload.class", "Payload$1.class", "Payload$Builder.class",
             "PayloadOrBuilder.class", "NacosGrpcService.class");
     private static final String UPSTREAM_SHA256 =
-            "19b0eabdc1f637eeeec72cba9d6f85fe2bcae62bb9be7e7fb8a25ce183ce8738";
+            "8a0485b4c9ec3df44555c947163421df52824faae17906112651873076fdcee0";
     private static final String POM_SHA256 =
-            "6b814f79526b1043bc3f81c6c65ab93003205fd0d2c76bf514927967b91a972b";
+            "3c5689beecff65cc8ac15aec73af58bfd9acf1cf15d61be62976fa2cbe2a082d";
 
     public static void main(String[] args) throws Exception {
         Path base = Path.of(args[1]).toAbsolutePath().normalize();
@@ -61,9 +61,9 @@ public final class PatchNacosApi {
     }
 
     private static Map<String, byte[]> upstream(Path build) throws Exception {
-        Path jar = build.resolve("upstream/nacos-api-2.5.1.jar");
+        Path jar = build.resolve("upstream/nacos-api-2.5.3.jar");
         checkHash(jar, UPSTREAM_SHA256);
-        checkHash(build.resolve("upstream/nacos-api-2.5.1.pom"), POM_SHA256);
+        checkHash(build.resolve("upstream/nacos-api-2.5.3.pom"), POM_SHA256);
         return entries(jar);
     }
 
@@ -88,7 +88,7 @@ public final class PatchNacosApi {
         }
         require(replaced.equals(REPLACED), "Upstream generated class set differs from audited baseline");
         write(output, "META-INF/nacos-upstream/published-pom.xml",
-                Files.readAllBytes(build.resolve("upstream/nacos-api-2.5.1.pom")));
+                Files.readAllBytes(build.resolve("upstream/nacos-api-2.5.3.pom")));
         write(output, "META-INF/nacos-patch/inputs.sha256.properties",
                 Files.readAllBytes(base.resolve("build/inputs.sha256.properties")));
         write(output, "META-INF/nacos-patch/protoc.sha256.properties",

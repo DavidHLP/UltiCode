@@ -675,7 +675,7 @@ CI/CD 契约的 provenance 测试数据必须由测试在临时目录生成或�
 
 `services/platform/nacos-api-patched` 以独立的 `com.ulticode:nacos-api-patched` 坐标构建客户端 API 衍生包，不发布到上游坐标或覆盖上游 artifact。构建校验锁定的原始 JAR、POM、协议和生成源码 SHA-256，仅替换 protobuf 生成类，保留其他上游字节；包内保留原始来源、许可证和 CycloneDX 血缘；CI 额外扫描上游普通组件并核对 Trivy 实际识别结果，不能因为改用自有坐标而丢失扫描覆盖。普通构建编译已提交的生成源码，不需要本机 protoc。更改协议或工具链时必须同时更新来源、生成结果和校验值，不得把不匹配改为警告。
 
-客户端与 common 必须和衍生 API 的上游基线一起升级。当前 `2.5.1-ulticode-1` 只允许 `nacos-client.version=2.5.1`，衍生模块在 Maven `validate` 阶段拒绝其他值，运行时来源回归同时检查 client 与 common。不能将 3.x client/common 与此 2.5.1 API 混用，也不能通过恢复原始 API、跳过检查或禁用严格 protobuf 解析来消除冲突。Nacos 主版本升级须单独重建来源、哈希和扫描血缘，并重新通过协议回归与本机隔离注册中心集成；其他依赖可独立升级。
+客户端与 common 必须和衍生 API 的上游基线一起升级。当前 `2.5.3-ulticode-1` 只允许 `nacos-client.version=2.5.3` 与 `nacos-api-patched.version=2.5.3-ulticode-1`，衍生模块在 Maven `validate` 阶段拒绝其他值，单测和独立集成入口共用精确的 client、common 与 API 来源检查。不能将其他版本的 client/common 与此 2.5.3 API 混用，也不能通过恢复原始 API、跳过检查或禁用严格 protobuf 解析来消除冲突。Nacos 上游基线升级须单独重建来源、哈希和扫描血缘，并重新通过协议回归与本机隔离注册中心集成；其他依赖可独立升级。
 
 ```bash
 # Linux x86_64 上再生成并逐字节校验；其他已锁定平台用 nacos.protoc.classifier 选择。
@@ -692,9 +692,9 @@ python3 scripts/test/test_nacos_client_integration.py
 
 配置监听验证分为两个不可替代的对照：原 AUTH workload ACL 不变，继续验证 naming 与直接配置读写，并要求其标准批量监听请求明确返回 403；另一个随机凭据的测试账号只在独占、仅含合成数据的 namespace 内拥有配置读取权限和固定 dataId 写权限，使用普通 SDK listener 验证变更回调与重连。该读取权限覆盖测试 namespace 的所有 group，不是“仅监听”权限；不得复制到生产。跨 namespace 的直接读取和范围外写入仍须拒绝，测试账号、数据与资源随 Compose project 销毁。
 
-生命周期检查在关闭前捕获原 RPC、通道和 SDK 声明关闭的执行器，验证其终止及 factory 移除；关闭后调用配置客户端的 health getter 可能重新创建连接，不能用作无副作用的关闭断言。上游 listener 同步线程池的保留须单独记录，不能把临时 JVM 退出说成 SDK 完整释放。
+生命周期检查在关闭前捕获原 RPC、通道和 SDK 声明关闭的执行器，验证其终止及 factory 移除；关闭后调用配置客户端的 health getter 可能重新创建连接，不能用作无副作用的关闭断言。2.5.3 已纳入上游 listener 同步线程池的正常关闭修复，门禁要求捕获的原池实际 shutdown/terminated，并继续单独记录保留量；关闭后新建 task、创建/关闭竞争和父类关闭异常的完整边界仍未解决，不能把正常关闭或临时 JVM 退出说成 SDK 完整释放。
 
-此补丁只覆盖应用进程加载的 Nacos 客户端 API，不改变独立 Nacos 服务端镜像、生产 workload ACL 或 SDK 生命周期实现。测试专用授权下的回调通过不代表原生产角色的监听兼容；服务端解析器风险、生产监听限制与 listener 线程池保留分别见 [SVC-029 / SVC-030 / SVC-031](../services/docs/SERVICES_ISSUES.md)。
+API 衍生补丁只替换应用进程的生成类；client/common 同步采用官方 2.5.3，不私自回移 SDK 生命周期实现，不改变独立 Nacos 服务端镜像或生产 workload ACL。测试专用授权下的回调通过不代表原生产角色的监听兼容；服务端解析器风险、生产监听限制与 listener 线程池保留分别见 [SVC-029 / SVC-030 / SVC-031](../services/docs/SERVICES_ISSUES.md)。
 
 ### Core 与 distributed 验证边界
 

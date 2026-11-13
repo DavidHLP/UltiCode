@@ -15,7 +15,7 @@ SPEC.loader.exec_module(CHECK)
 class NacosSbomTest(unittest.TestCase):
     def setUp(self):
         self.sbom = json.loads((ROOT / "services/platform/nacos-api-patched/src/main/resources/META-INF/nacos-patch/bom.json").read_text())
-        self.report = {"Results": [{"Packages": [{"Name": "com.alibaba.nacos:nacos-api", "Version": "2.5.1",
+        self.report = {"Results": [{"Packages": [{"Name": "com.alibaba.nacos:nacos-api", "Version": "2.5.3",
                                                 "Identifier": {"PURL": CHECK.UPSTREAM}}]}]}
 
     def test_actual_sbom_and_recognized_package(self):
@@ -31,9 +31,21 @@ class NacosSbomTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             CHECK.validate(self.sbom)
 
+    def test_other_upstream_versions_do_not_count(self):
+        for version in ("2.5.1", "3.3.0"):
+            with self.subTest(version=version):
+                sbom = copy.deepcopy(self.sbom)
+                sbom["components"][0]["version"] = version
+                with self.assertRaises(ValueError):
+                    CHECK.validate(sbom)
+                report = {"Results": [{"Packages": [{"Name": "com.alibaba.nacos:nacos-api",
+                                                       "Version": version}]}]}
+                with self.assertRaises(ValueError):
+                    CHECK.validate(self.sbom, report)
+
     def test_empty_or_wrong_scan_inventory_is_not_a_pass(self):
         for report in ({}, {"Results": []}, {"Results": [{"Vulnerabilities": []}]},
-                       {"Results": [{"Packages": [{"Name": "unrelated", "Version": "2.5.1"}]}]}):
+                       {"Results": [{"Packages": [{"Name": "unrelated", "Version": "2.5.3"}]}]}):
             with self.subTest(report=report), self.assertRaises(ValueError):
                 CHECK.validate(self.sbom, copy.deepcopy(report))
 

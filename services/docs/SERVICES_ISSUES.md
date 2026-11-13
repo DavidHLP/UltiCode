@@ -76,25 +76,23 @@ Nacos 2.3.2 对标准 SDK 的批量监听请求使用 namespace 级配置读取�
 
 ### SVC-031 Nacos 配置客户端 listener 线程池释放（OPEN）
 
-Nacos pure SDK 2.5.1 的配置客户端在首次同步监听时创建按 task 分组的 daemon
-线程池；`shutDown()` 会关闭 RPC、通道和主调度器，但未关闭 `multiTaskExecutor`
-内的监听同步线程池，移除 listener 也不释放它们。
-[创建路径](https://github.com/alibaba/nacos/blob/2.5.1/client/src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java#L911-L920)
-与[关闭路径](https://github.com/alibaba/nacos/blob/2.5.1/client/src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java#L614-L645)
-属于未修改的上游 SDK；客户端 protobuf API 衍生包不替换这段实现。
-单个稳定客户端按 task 复用线程池，保留量跟随曾用到的 task 分区，
-不是每次回调都新增。长期存活的 JVM 若反复创建、监听、销毁配置客户端，
-会累积保留的线程及关联对象；daemon 线程不阻止 JVM 退出，
-但不能据此宣称进程内资源已经完整释放。
+原 2.5.1 SDK 未关闭配置客户端 `multiTaskExecutor` 中的 listener 同步线程池。
+当前 client/common 与衍生 API 上游基线同步迁移到官方 2.5.3；
+[上游 #15449](https://github.com/alibaba/nacos/pull/15449) 已加入正常 shutdown
+和同 task id 原子创建修复，包含于 [2.5.3](https://github.com/alibaba/nacos/releases/tag/2.5.3)。
+衍生 API 仍仅重建 protobuf 生成类，不替换 SDK 生命周期实现。
 
-生命周期门禁必须在关闭前捕获原 RPC、通道和已声明关闭的执行器，验证它们终止
-并从 factory 移除，同时独立记录未释放的 listener 线程池。不得手动清理这些池后
-把结果当作 SDK 自身释放成功，也不得以测试 JVM 退出代替原传输资源释放断言。
-关闭后不要再调用配置客户端的 `getServerStatus()`：其
-[health 路径](https://github.com/alibaba/nacos/blob/2.5.1/client/src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java#L1304-L1311)
-会经 `ensureRpcClient("0")` 创建并启动新的 RPC 客户端，可能重新建立连接，
-具有观察副作用。
-本项需独立修复 SDK 生命周期，并以同 JVM 多轮创建、监听和销毁验证无累积；
+本项保持 OPEN：2.5.3 在关闭后新 task id 创建、创建/关闭竞争和父类关闭异常
+边界仍不能保证所有 listener 池关闭；正常关闭通过不能代表完整生命周期安全。
+共享 JVM shutdown hook、事件发布线程的上游改动也不等于本项目已完成运行验收。
+长期存活 JVM 的反复创建、监听、移除、关闭及异常/并发路径仍需独立验证。
+
+生命周期门禁必须在关闭前捕获原 RPC、通道、主执行器和 listener 池，
+验证 SDK 自身关闭和实际终止、factory 移除，并单独记录未关闭池数量。
+不得手动清理 SDK 池来伪造通过，不得以测试 JVM 退出代替资源释放断言。
+关闭后不要再调用配置客户端 `getServerStatus()`，它可能经
+`ensureRpcClient("0")` 新建 RPC 客户端，具有观察副作用。
+真实认证注册中心、回调、重连与同 JVM 多轮生命周期验收仍须完成；
 一次隔离进程的协议兼容通过不能关闭本项。
 
 ## CLOSED

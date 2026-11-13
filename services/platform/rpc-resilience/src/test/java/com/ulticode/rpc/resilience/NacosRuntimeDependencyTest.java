@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.alibaba.nacos.api.NacosFactory;
+import com.alibaba.nacos.api.PropertyKeyConst;
 import com.alibaba.nacos.api.config.remote.response.ConfigChangeBatchListenResponse;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.grpc.auto.BiRequestStreamGrpc;
@@ -81,11 +82,11 @@ class NacosRuntimeDependencyTest {
             assertThat(clientClass.getProtectionDomain().getCodeSource().getLocation())
                     .isEqualTo(NacosNamingService.class.getProtectionDomain().getCodeSource().getLocation());
             assertThat(clientClass.getProtectionDomain().getCodeSource().getLocation().toString())
-                    .endsWith("nacos-client-2.5.1-pure.jar");
+                    .endsWith("nacos-client-2.5.3-pure.jar");
         }
         assertThat(ConnectionType.class.getProtectionDomain().getCodeSource().getLocation().toString())
                 .as("common and client must use the patched API's upstream baseline")
-                .endsWith("nacos-common-2.5.1.jar");
+                .endsWith("nacos-common-2.5.3.jar");
         assertSinglePatchedApi();
         assertThat(NacosRuntimeDependencyTest.class.getClassLoader().getResource(
                 "com/alibaba/nacos/shaded/com/google/common/collect/ImmutableList.class")).isNull();
@@ -98,9 +99,16 @@ class NacosRuntimeDependencyTest {
         InitUtils.initSerialization();
     }
 
+    @Test
+    void retainsThe253ClientMetricsApiConstant() throws Exception {
+        // Reflection avoids a compile-time inlined constant masking an older API JAR.
+        assertThat(PropertyKeyConst.class.getField("ENABLE_CLIENT_METRICS").get(null))
+                .isEqualTo("enableClientMetrics");
+    }
+
     static void assertSinglePatchedApi() throws Exception {
         ClassLoader loader = NacosRuntimeDependencyTest.class.getClassLoader();
-        for (Class<?> apiClass : List.of(NacosFactory.class, Payload.class, Metadata.class,
+        for (Class<?> apiClass : List.of(NacosFactory.class, PropertyKeyConst.class, Payload.class, Metadata.class,
                 RequestGrpc.class, BiRequestStreamGrpc.class)) {
             assertThat(loader.getResources(apiClass.getName().replace('.', '/') + ".class").asIterator())
                     .toIterable().hasSize(1);
@@ -109,7 +117,7 @@ class NacosRuntimeDependencyTest {
         }
         assertThat(loader.getResource("META-INF/maven/com.alibaba.nacos/nacos-api/pom.properties")).isNull();
         String source = NacosFactory.class.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
-        assertThat(source.endsWith("nacos-api-patched-2.5.1-ulticode-1.jar")
+        assertThat(source.endsWith("nacos-api-patched-2.5.3-ulticode-1.jar")
                 || source.endsWith("/nacos-api-patched/target/classes/"))
                 .as("API classes must originate from the owned artifact: %s", source).isTrue();
         String provenance = "META-INF/nacos-patch/provenance.json";
@@ -118,7 +126,9 @@ class NacosRuntimeDependencyTest {
         assertThat(loader.getResource(provenance).toExternalForm()).isEqualTo(resourceRoot + provenance);
         try (InputStream input = loader.getResourceAsStream(provenance)) {
             assertThat(new String(input.readAllBytes(), StandardCharsets.UTF_8))
-                    .contains("\"artifact\": \"pkg:maven/com.ulticode/nacos-api-patched@2.5.1-ulticode-1\"");
+                    .contains("\"artifact\": \"pkg:maven/com.ulticode/nacos-api-patched@2.5.3-ulticode-1\"",
+                            "\"coordinates\": \"com.alibaba.nacos:nacos-api:2.5.3\"",
+                            "\"sha256\": \"8a0485b4c9ec3df44555c947163421df52824faae17906112651873076fdcee0\"");
         }
         // Maven test uses reactor target/classes; Maven adds its own metadata
         // only when packaging. The standalone registry gate requires the JAR.
@@ -131,7 +141,7 @@ class NacosRuntimeDependencyTest {
             }
             assertThat(identity.getProperty("groupId")).isEqualTo("com.ulticode");
             assertThat(identity.getProperty("artifactId")).isEqualTo("nacos-api-patched");
-            assertThat(identity.getProperty("version")).isEqualTo("2.5.1-ulticode-1");
+            assertThat(identity.getProperty("version")).isEqualTo("2.5.3-ulticode-1");
         }
     }
 
@@ -267,11 +277,15 @@ class NacosRuntimeDependencyTest {
             assertThatThrownBy(() -> snapshot.assertClosed(Duration.ZERO))
                     .isInstanceOf(AssertionError.class).hasMessageContaining("gRPC executor");
             grpc.shutdown();
-            snapshot.assertClosed(Duration.ofSeconds(5));
+            assertThatThrownBy(() -> snapshot.assertClosed(Duration.ZERO))
+                    .isInstanceOf(AssertionError.class).hasMessageContaining("listener pools must be shut down");
             assertThat(snapshot.retainedListenerPools()).isEqualTo(1);
             assertThat(NacosRegistryIT.retainedListenerDiagnostic(snapshot.retainedListenerPools()))
                     .isEqualTo("config-retained-listener-pools=1\n");
             assertThat(listener.isShutdown()).isFalse(); // observation must not hide upstream retention
+            listener.shutdown(); // synthetic stand-in, not an SDK pool
+            snapshot.assertClosed(Duration.ofSeconds(5));
+            assertThat(snapshot.retainedListenerPools()).isZero();
             assertThat(RpcClientFactory.getClient(prefix + "0")).isNull();
 
             RpcClientFactory.createClient(prefix + "replacement", ConnectionType.GRPC, Map.of());

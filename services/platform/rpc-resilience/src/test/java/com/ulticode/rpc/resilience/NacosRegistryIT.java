@@ -66,7 +66,7 @@ class NacosRegistryIT {
     public static void main(String[] args) throws Exception {
         NacosRuntimeDependencyTest.requiresSafeGencodeWithoutAnUnsafeOverride();
         assertThat(NacosFactory.class.getProtectionDomain().getCodeSource().getLocation().toString())
-                .endsWith("nacos-api-patched-2.5.1-ulticode-1.jar");
+                .endsWith("nacos-api-patched-2.5.3-ulticode-1.jar");
         try {
             new NacosRegistryIT().authenticatedRegistrySurvivesServerRestart();
         } catch (Throwable failure) {
@@ -74,7 +74,7 @@ class NacosRegistryIT {
             throw failure;
         }
         System.out.println("PASS: isolated client compatibility and declared-resource closure; "
-                + "original workload batch-listen (403) and upstream listener-pool retention remain unresolved");
+                + "original workload batch-listen (403) and full SDK lifecycle boundaries remain unresolved");
     }
 
     @Test
@@ -191,7 +191,7 @@ class NacosRegistryIT {
             clients.close();
             assertThat(producer.getServerStatus()).isEqualTo("DOWN");
             assertThat(consumer.getServerStatus()).isEqualTo("DOWN");
-            // Nacos 2.5.1 config getServerStatus() calls ensureRpcClient("0"):
+            // Nacos 2.5.3 config getServerStatus() calls ensureRpcClient("0"):
             // after shutdown removes its factory entry, that observer creates
             // a replacement connection. Inspect captured resources instead.
             Files.writeString(control.resolve("evidence"), retainedListenerDiagnostic(
@@ -309,8 +309,7 @@ class NacosRegistryIT {
         }
 
         long retainedListenerPools() {
-            // Upstream 2.5.1 does not shut these per-client daemon pools down.
-            // Report retention; never terminate them here or claim leak-free cleanup.
+            // Observe the original pools; never terminate them here to hide a regression.
             return listenerPools.stream().filter(pool -> !pool.isShutdown()).count();
         }
 
@@ -320,11 +319,14 @@ class NacosRegistryIT {
                 rpc.assertShutdown();
             }
             assertFactoryAbsent();
+            assertThat(listenerPools.stream().allMatch(ExecutorService::isShutdown))
+                    .as("captured listener pools must be shut down by SDK 2.5.3").isTrue();
             // Bounded condition wait for actual termination, not a sleep or a
             // post-close SDK health call. Keep the fixture's existing 60s bound.
             await("captured config resources terminate", () -> scheduler.isTerminated()
                     && rpcs.stream().allMatch(RpcShutdown::terminated)
-                    && listenerPools.stream().allMatch(pool -> pool.getActiveCount() == 0 && pool.getQueue().isEmpty()),
+                    && listenerPools.stream().allMatch(pool -> pool.isTerminated()
+                            && pool.getActiveCount() == 0 && pool.getQueue().isEmpty()),
                     timeout);
             assertFactoryAbsent();
         }
@@ -337,7 +339,7 @@ class NacosRegistryIT {
     }
 
     private static Response requestOnConfigTransport(ConfigService config, Request request) throws Exception {
-        // Pinned 2.5.1 test-only access: ConfigService hides unsuccessful async
+        // Pinned 2.5.3 test-only access: ConfigService hides unsuccessful async
         // batch responses. Reuse its existing task-0 RPC and security headers;
         // never open a raw unauthenticated channel or alter SDK internals.
         Object agent = configWorker(config).getAgent();

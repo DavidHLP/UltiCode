@@ -387,7 +387,7 @@ Redis ACL deny-by-default，按 Owner 限制命令、key 和 channel；运行时
 
 ### 注册中心协议解析边界
 
-应用使用独立坐标的 Nacos API 衍生包修复客户端 protobuf 生成代码，仍保留上游来源和版本血缘；构建及兼容门禁见 [开发指南](DEVELOPMENT.md#nacos-客户端协议构建与兼容验证)。客户端包与独立 Nacos 服务端镜像是不同安全边界。服务端 gRPC 解码发生在请求鉴权之前，开启鉴权不能代替解析器修复；私有网络和开发 loopback 限制暴露面，但不能保护同网络或本机可达路径。服务端开放问题单独记录在 [Services issue registry](../services/docs/SERVICES_ISSUES.md)，不得把客户端测试成功表述成服务端漏洞已修复。
+应用使用独立坐标的 Nacos API 衍生包修复客户端 protobuf 生成代码，并使用独立 client 衍生包封闭 listener 线程池的创建/关闭边界；两者分别保留上游来源和版本血缘；构建及兼容门禁见 [开发指南](DEVELOPMENT.md#nacos-客户端协议构建与兼容验证)。客户端包与独立 Nacos 服务端镜像是不同安全边界。服务端 gRPC 解码发生在请求鉴权之前，开启鉴权不能代替解析器修复；私有网络和开发 loopback 限制暴露面，但不能保护同网络或本机可达路径。服务端开放问题单独记录在 [Services issue registry](../services/docs/SERVICES_ISSUES.md)，不得把客户端测试成功表述成服务端漏洞已修复。
 
 配置监听的协议兼容与 workload 最小权限属于不同验证边界。独占合成数据 namespace 的测试账号可以按服务端接口要求拥有该 namespace 的配置读取权限，但不得把这一测试授权推广为生产权限或生产兼容证据；原 workload 监听限制见 [SVC-030](../services/docs/SERVICES_ISSUES.md)。
 

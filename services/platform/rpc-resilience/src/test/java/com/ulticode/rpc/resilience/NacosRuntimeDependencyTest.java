@@ -75,14 +75,43 @@ class NacosRuntimeDependencyTest {
     }
 
     static void assertPinnedNacosRuntime() throws Exception {
-        assertThat(NacosNamingService.class.getProtectionDomain().getCodeSource().getLocation().toString())
-                .endsWith("-pure.jar");
-        // The API gencode patch must not replace SDK lifecycle implementation.
-        for (Class<?> clientClass : List.of(NacosConfigService.class, ClientWorker.class)) {
+        ClassLoader loader = NacosRuntimeDependencyTest.class.getClassLoader();
+        String clientSource = NacosNamingService.class.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
+        assertThat(clientSource.endsWith("nacos-client-patched-2.5.3-ulticode-1.jar")
+                || clientSource.endsWith("/nacos-client-patched/target/classes/"))
+                .as("Client must originate from the exact owned derivative: %s", clientSource).isTrue();
+        for (Class<?> clientClass : List.of(NacosNamingService.class, NacosConfigService.class, ClientWorker.class)) {
             assertThat(clientClass.getProtectionDomain().getCodeSource().getLocation())
                     .isEqualTo(NacosNamingService.class.getProtectionDomain().getCodeSource().getLocation());
-            assertThat(clientClass.getProtectionDomain().getCodeSource().getLocation().toString())
-                    .endsWith("nacos-client-2.5.3-pure.jar");
+            assertThat(loader.getResources(clientClass.getName().replace('.', '/') + ".class").asIterator())
+                    .toIterable().hasSize(1);
+        }
+        assertThat(loader.getResource("META-INF/maven/com.alibaba.nacos/nacos-client/pom.properties")).isNull();
+        String clientRoot = clientSource.endsWith(".jar") ? "jar:" + clientSource + "!/" : clientSource;
+        String provenance = "META-INF/nacos-client-patch/provenance.json";
+        assertThat(loader.getResources(provenance).asIterator()).toIterable().hasSize(1);
+        assertThat(loader.getResource(provenance).toExternalForm()).isEqualTo(clientRoot + provenance);
+        try (InputStream input = new java.net.URL(clientRoot + provenance).openStream()) {
+            assertThat(new String(input.readAllBytes(), StandardCharsets.UTF_8))
+                    .contains("\"artifact\": \"pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-1\"",
+                            "\"coordinates\": \"com.alibaba.nacos:nacos-client:jar:pure:2.5.3\"",
+                            "\"sha256\": \"a991843c4d991fc68d4acb82c3bd9a43fe1deee3a76f1bd66260d81d08d03fa6\"");
+        }
+        Properties upstream = new Properties();
+        try (InputStream input = new java.net.URL(clientRoot + "META-INF/nacos-client-upstream/pom.properties").openStream()) {
+            upstream.load(input);
+        }
+        assertThat(upstream.getProperty("groupId")).isEqualTo("com.alibaba.nacos");
+        assertThat(upstream.getProperty("artifactId")).isEqualTo("nacos-client");
+        assertThat(upstream.getProperty("version")).isEqualTo("2.5.3");
+        if (clientSource.endsWith(".jar")) {
+            Properties owned = new Properties();
+            try (InputStream input = new java.net.URL(clientRoot + "META-INF/maven/com.ulticode/nacos-client-patched/pom.properties").openStream()) {
+                owned.load(input);
+            }
+            assertThat(owned.getProperty("groupId")).isEqualTo("com.ulticode");
+            assertThat(owned.getProperty("artifactId")).isEqualTo("nacos-client-patched");
+            assertThat(owned.getProperty("version")).isEqualTo("2.5.3-ulticode-1");
         }
         assertThat(ConnectionType.class.getProtectionDomain().getCodeSource().getLocation().toString())
                 .as("common and client must use the patched API's upstream baseline")

@@ -72,6 +72,39 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Verify upstream Nacos client SBOM identity
+        run: |
+          python3 -m unittest discover -s scripts/test -p test_nacos_sbom.py -v
+          python3 scripts/ci/check-nacos-sbom.py services/platform/nacos-client-patched/src/main/resources/META-INF/nacos-client-patch/bom.json --artifact nacos-client
+
+      - name: Scan upstream Nacos client SBOM identity
+        id: nacos-client-sbom-scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (Trivy v0.74.0)
+        with:
+          scan-type: sbom
+          list-all-pkgs: 'true'
+          scan-ref: services/platform/nacos-client-patched/src/main/resources/META-INF/nacos-client-patch/bom.json
+          scanners: vuln
+          vuln-type: library
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: json
+          output: ${{ runner.temp }}/nacos-client-pedigree.trivy.json
+          version: v0.74.0
+
+      - name: Verify Trivy recognized upstream Nacos client
+        if: ${{ always() && steps.nacos-client-sbom-scan.outcome != 'skipped' && steps.nacos-client-sbom-scan.outcome != '' }}
+        run: python3 scripts/ci/check-nacos-sbom.py services/platform/nacos-client-patched/src/main/resources/META-INF/nacos-client-patch/bom.json --artifact nacos-client --report "$RUNNER_TEMP/nacos-client-pedigree.trivy.json"
+
+      - name: Upload upstream Nacos client scan inventory
+        if: ${{ always() && steps.nacos-client-sbom-scan.outcome != 'skipped' && steps.nacos-client-sbom-scan.outcome != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: nacos-client-pedigree-scan
+          path: ${{ runner.temp }}/nacos-client-pedigree.trivy.json
+          if-no-files-found: error
+          retention-days: 30
+
   backend-test:
     name: Backend Test
     needs: backend-build

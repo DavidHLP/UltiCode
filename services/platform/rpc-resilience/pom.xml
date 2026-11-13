@@ -16,10 +16,8 @@
     <dependencies>
         <!-- The shaded SDK embeds vulnerable Guava that dependency management cannot replace. -->
         <dependency>
-            <groupId>com.alibaba.nacos</groupId>
-            <artifactId>nacos-client</artifactId>
-            <version>${nacos-client.version}</version>
-            <classifier>pure</classifier>
+            <groupId>com.ulticode</groupId>
+            <artifactId>nacos-client-patched</artifactId>
         </dependency>
         <dependency>
             <groupId>com.alibaba.nacos</groupId>

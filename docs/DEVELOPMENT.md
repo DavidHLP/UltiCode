@@ -382,7 +382,7 @@ Management forms use patched Zod 4 through `src/lib/toTypedSchema.ts`, which pre
 vee-validate 4 form contract for parsed values, defaults, field errors and required metadata.
 The published Zod 3 adapter is not used; production dependency audits retain the high-severity gate.
 
-Nacos 客户端使用官方 `pure` classifier，并显式引入同一上游版本的 `nacos-common` 与 `nacos-api-patched` 衍生 API，由共享 RPC 模块提供给各 Owner/Worker；排除 Dubbo 引入的默认 shaded client，避免其内嵌依赖绕过 Maven 的安全版本管理。依赖升级须保留 protobuf 消息解析与 loopback gRPC 回归，并由镜像扫描及真实安装 CI 验证。Guava 升级不修复 Nacos 旧 protobuf 生成代码的资源放大风险；本地消息回归也不证明该风险已消除或线上可利用。
+Nacos 客户端使用基于官方 `pure` classifier 的独立 `nacos-client-patched` 衍生包，并显式引入同一上游版本的 `nacos-common` 与 `nacos-api-patched` 衍生 API，由共享 RPC 模块提供给各 Owner/Worker；排除 Dubbo 引入的默认 shaded client，避免其内嵌依赖绕过 Maven 的安全版本管理。依赖升级须保留 protobuf 消息解析与 loopback gRPC 回归，并由镜像扫描及真实安装 CI 验证。Guava 升级不修复 Nacos 旧 protobuf 生成代码的资源放大风险；本地消息回归也不证明该风险已消除或线上可利用。
 
 后续变更必须保留以下基线契约：
 
@@ -675,7 +675,7 @@ CI/CD 契约的 provenance 测试数据必须由测试在临时目录生成或�
 
 `services/platform/nacos-api-patched` 以独立的 `com.ulticode:nacos-api-patched` 坐标构建客户端 API 衍生包，不发布到上游坐标或覆盖上游 artifact。构建校验锁定的原始 JAR、POM、协议和生成源码 SHA-256，仅替换 protobuf 生成类，保留其他上游字节；包内保留原始来源、许可证和 CycloneDX 血缘；CI 额外扫描上游普通组件并核对 Trivy 实际识别结果，不能因为改用自有坐标而丢失扫描覆盖。普通构建编译已提交的生成源码，不需要本机 protoc。更改协议或工具链时必须同时更新来源、生成结果和校验值，不得把不匹配改为警告。
 
-客户端与 common 必须和衍生 API 的上游基线一起升级。当前 `2.5.3-ulticode-1` 只允许 `nacos-client.version=2.5.3` 与 `nacos-api-patched.version=2.5.3-ulticode-1`，衍生模块在 Maven `validate` 阶段拒绝其他值，单测和独立集成入口共用精确的 client、common 与 API 来源检查。不能将其他版本的 client/common 与此 2.5.3 API 混用，也不能通过恢复原始 API、跳过检查或禁用严格 protobuf 解析来消除冲突。Nacos 上游基线升级须单独重建来源、哈希和扫描血缘，并重新通过协议回归与本机隔离注册中心集成；其他依赖可独立升级。
+客户端与 common 必须和衍生 API 的上游基线一起升级。当前 `2.5.3-ulticode-1` 只允许 `nacos-client.version=2.5.3` 、`nacos-client-patched.version=2.5.3-ulticode-1` 与 `nacos-api-patched.version=2.5.3-ulticode-1`，衍生模块在 Maven `validate` 阶段拒绝其他值，单测和独立集成入口共用精确的 client、common 与 API 来源检查。不能将其他版本的 client/common 与此 2.5.3 API 混用，也不能通过恢复原始 API、跳过检查或禁用严格 protobuf 解析来消除冲突。Nacos 上游基线升级须单独重建来源、哈希和扫描血缘，并重新通过协议回归与本机隔离注册中心集成；其他依赖可独立升级。
 
 ```bash
 # Linux x86_64 上再生成并逐字节校验；其他已锁定平台用 nacos.protoc.classifier 选择。
@@ -692,9 +692,9 @@ python3 scripts/test/test_nacos_client_integration.py
 
 配置监听验证分为两个不可替代的对照：原 AUTH workload ACL 不变，继续验证 naming 与直接配置读写，并要求其标准批量监听请求明确返回 403；另一个随机凭据的测试账号只在独占、仅含合成数据的 namespace 内拥有配置读取权限和固定 dataId 写权限，使用普通 SDK listener 验证变更回调与重连。该读取权限覆盖测试 namespace 的所有 group，不是“仅监听”权限；不得复制到生产。跨 namespace 的直接读取和范围外写入仍须拒绝，测试账号、数据与资源随 Compose project 销毁。
 
-生命周期检查在关闭前捕获原 RPC、通道和 SDK 声明关闭的执行器，验证其终止及 factory 移除；关闭后调用配置客户端的 health getter 可能重新创建连接，不能用作无副作用的关闭断言。2.5.3 已纳入上游 listener 同步线程池的正常关闭修复，门禁要求捕获的原池实际 shutdown/terminated，并继续单独记录保留量；关闭后新建 task、创建/关闭竞争和父类关闭异常的完整边界仍未解决，不能把正常关闭或临时 JVM 退出说成 SDK 完整释放。
+生命周期检查在关闭前捕获原 RPC、通道和 SDK 声明关闭的执行器，验证其终止及 factory 移除；关闭后调用配置客户端的 health getter 可能重新创建连接，不能用作无副作用的关闭断言。2.5.3 已纳入上游 listener 同步线程池的正常关闭修复，门禁要求捕获的原池实际 shutdown/terminated，并继续单独记录保留量；独立 client 衍生包为 listener 分配与关闭共用短 monitor：先停止接收新/旧 task id，获取池快照，再在 monitor 外逐池 graceful shutdown，最后调用原安全/RPC 清理。每次关闭均重试池与原清理；池的 RuntimeException 会在尝试其他池与原清理后保留/抛出，不承诺 VM Error 下的完整清理。没有等待回调终止或强制中断已接收任务，关闭返回不表示阻塞回调已经完成。原安全关闭异常仍需调用者重试原清理。此边界不封闭 RPC、handler 或 subscriber 的创建，不能据此声称 SDK 完整释放。
 
-API 衍生补丁只替换应用进程的生成类；client/common 同步采用官方 2.5.3，不私自回移 SDK 生命周期实现，不改变独立 Nacos 服务端镜像或生产 workload ACL。测试专用授权下的回调通过不代表原生产角色的监听兼容；服务端解析器风险、生产监听限制与 listener 线程池保留分别见 [SVC-029 / SVC-030 / SVC-031](../services/docs/SERVICES_ISSUES.md)。
+API 衍生补丁仍只替换应用进程的生成类；`services/platform/nacos-client-patched` 以独立 `com.ulticode:nacos-client-patched:2.5.3-ulticode-1` 坐标，仅重编译官方 2.5.3 的 ClientWorker 五个 class，其他 pure-client 字节原样保留，common 保持官方 2.5.3。其独立输入锁、上游源/补丁、原始 Maven 元数据与普通 CycloneDX 上游组件均随包保存，CI 对 client 血缘单独执行同样严格的扫描和识别检查。构建与运行时来源门禁拒绝原版/重复 client 混入，不覆盖官方坐标，不改变独立 Nacos 服务端镜像或生产 workload ACL。测试专用授权下的回调通过不代表原生产角色的监听兼容；服务端解析器风险、生产监听限制与 listener 线程池保留分别见 [SVC-029 / SVC-030 / SVC-031](../services/docs/SERVICES_ISSUES.md)。
 
 ### Core 与 distributed 验证边界
 

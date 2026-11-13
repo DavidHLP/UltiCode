@@ -1,0 +1,85 @@
+--- a/client/src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java
++++ b/client/src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java
+@@ -611,6 +611,9 @@
+     public class ConfigRpcTransportClient extends ConfigTransportClient {
+         
+         Map<String, ExecutorService> multiTaskExecutor = new ConcurrentHashMap<>();
++
++        // UltiCode change: guarded by this transport's monitor, shared with allocation.
++        private boolean listenerExecutorsClosed;
+         
+         private final BlockingQueue<Object> listenExecutebell = new ArrayBlockingQueue<>(1);
+         
+@@ -635,6 +638,46 @@
+         
+         @Override
+         public void shutdown() throws NacosException {
++            // Stop listener allocation before security or RPC cleanup can block/fail.
++            // Every caller retries the snapshot: a concurrent closer may still be in progress.
++            RuntimeException listenerFailure = shutdownListenerExecutors();
++            try {
++                shutdownTransport();
++            } catch (NacosException | RuntimeException | Error failure) {
++                if (listenerFailure != null && listenerFailure != failure) {
++                    failure.addSuppressed(listenerFailure);
++                }
++                throw failure;
++            }
++            if (listenerFailure != null) {
++                throw listenerFailure;
++            }
++        }
++
++        private RuntimeException shutdownListenerExecutors() {
++            final List<ExecutorService> listeners;
++            synchronized (this) {
++                listenerExecutorsClosed = true;
++                listeners = new ArrayList<>(multiTaskExecutor.values());
++            }
++            // No external cleanup or termination wait under the lifecycle monitor.
++            // shutdown() lets already accepted work drain, including a calling callback.
++            RuntimeException firstFailure = null;
++            for (ExecutorService listener : listeners) {
++                try {
++                    listener.shutdown();
++                } catch (RuntimeException failure) {
++                    if (firstFailure == null) {
++                        firstFailure = failure;
++                    } else if (firstFailure != failure) {
++                        firstFailure.addSuppressed(failure);
++                    }
++                }
++            }
++            return firstFailure;
++        }
++
++        private void shutdownTransport() throws NacosException {
+             super.shutdown();
+             synchronized (RpcClientFactory.getAllClientEntries()) {
+                 LOGGER.info("Trying to shutdown transport client {}", this);
+@@ -657,12 +700,7 @@
+                 
+                 LOGGER.info("Shutdown executor {}", executor);
+                 executor.shutdown();
+-                multiTaskExecutor.values().forEach((taskExecutor) -> {
+-                    if (taskExecutor != null && !taskExecutor.isShutdown()) {
+-                        LOGGER.info("Shutdown multi task executor {}", taskExecutor);
+-                        taskExecutor.shutdown();
+-                    }
+-                });
++
+                 Map<String, CacheData> stringCacheDataMap = cacheMap.get();
+                 for (Map.Entry<String, CacheData> entry : stringCacheDataMap.entrySet()) {
+                     entry.getValue().setConsistentWithServer(false);
+@@ -937,7 +975,10 @@
+             }
+         }
+         
+-        private ExecutorService ensureSyncExecutor(String taskId) {
++        private synchronized ExecutorService ensureSyncExecutor(String taskId) {
++            if (listenerExecutorsClosed) {
++                throw new java.util.concurrent.RejectedExecutionException("Config listener executors are closed");
++            }
+             return multiTaskExecutor.computeIfAbsent(taskId, k -> new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+                     new LinkedBlockingQueue<>(), r -> {
+                 Thread thread = new Thread(r, "nacos.client.config.listener.task-" + taskId);

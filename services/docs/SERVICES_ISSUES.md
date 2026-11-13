@@ -80,10 +80,13 @@ Nacos 2.3.2 对标准 SDK 的批量监听请求使用 namespace 级配置读取�
 当前 client/common 与衍生 API 上游基线同步迁移到官方 2.5.3；
 [上游 #15449](https://github.com/alibaba/nacos/pull/15449) 已加入正常 shutdown
 和同 task id 原子创建修复，包含于 [2.5.3](https://github.com/alibaba/nacos/releases/tag/2.5.3)。
-衍生 API 仍仅重建 protobuf 生成类，不替换 SDK 生命周期实现。
+衍生 API 仍仅重建 protobuf 生成类；独立 `nacos-client-patched` 衍生包仅修改 ClientWorker 的 listener 生命周期，保留所有其他上游内容。
 
-本项保持 OPEN：2.5.3 在关闭后新 task id 创建、创建/关闭竞争和父类关闭异常
-边界仍不能保证所有 listener 池关闭；正常关闭通过不能代表完整生命周期安全。
+衍生 client 对关闭后新/旧 task id、创建/关闭竞争及父安全清理异常增加有界回归：
+关闭入口先在分配 monitor 内停止接收并取池快照，再在 monitor 外逐池关闭，最后执行原清理；
+重复/并发关闭仍重试所有池及原清理。已接收回调可自然完成，不等待或强制打断。
+本项保持 OPEN：RPC、handler、subscriber 创建仍未被该 listener 边界封闭，
+安全清理异常后原 scheduler/RPC 清理仍需重试，真实启动、回调、重连和长期生命周期尚未验收。
 共享 JVM shutdown hook、事件发布线程的上游改动也不等于本项目已完成运行验收。
 长期存活 JVM 的反复创建、监听、移除、关闭及异常/并发路径仍需独立验证。
 

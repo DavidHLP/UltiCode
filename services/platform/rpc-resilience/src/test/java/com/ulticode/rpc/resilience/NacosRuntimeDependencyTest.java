@@ -70,6 +70,10 @@ class NacosRuntimeDependencyTest {
 
     @Test
     void excludesTheSdkWithUnmanagedShadedDependencies() throws Exception {
+        assertPinnedNacosRuntime();
+    }
+
+    static void assertPinnedNacosRuntime() throws Exception {
         assertThat(NacosNamingService.class.getProtectionDomain().getCodeSource().getLocation().toString())
                 .endsWith("-pure.jar");
         // The API gencode patch must not replace SDK lifecycle implementation.
@@ -83,7 +87,7 @@ class NacosRuntimeDependencyTest {
                 .as("common and client must use the patched API's upstream baseline")
                 .endsWith("nacos-common-2.5.1.jar");
         assertSinglePatchedApi();
-        assertThat(getClass().getClassLoader().getResource(
+        assertThat(NacosRuntimeDependencyTest.class.getClassLoader().getResource(
                 "com/alibaba/nacos/shaded/com/google/common/collect/ImmutableList.class")).isNull();
     }
 

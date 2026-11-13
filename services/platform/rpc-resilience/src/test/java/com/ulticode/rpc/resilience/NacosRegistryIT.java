@@ -80,7 +80,7 @@ class NacosRegistryIT {
     @Test
     void authenticatedRegistrySurvivesServerRestart() throws Exception {
         NacosRuntimeDependencyTest.requiresSafeGencodeWithoutAnUnsafeOverride();
-        NacosRuntimeDependencyTest.assertSinglePatchedApi();
+        NacosRuntimeDependencyTest.assertPinnedNacosRuntime();
         Path control = Path.of(required("NACOS_FIXTURE_CONTROL"));
         assertThat(Files.isDirectory(control)).isTrue();
         assertThat(required("NACOS_FIXTURE_SERVER")).matches("127\\.0\\.0\\.1:[0-9]{2,5}");

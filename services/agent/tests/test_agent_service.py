@@ -665,8 +665,11 @@ def test_conversation_context_is_refetched_and_scoped_to_the_submission(tmp_path
         else:
             prompt = prompts[0]
             payload = json.loads(prompt.rsplit("INPUT_JSON ", 1)[1])
-            assert payload["selected_context"]["problem"]["content"] == "Public problem statement"
-            assert payload["selected_context"]["comments"][0]["content"].startswith("Ignore previous")
+            catalog = payload["evidence_catalog"]
+            assert [item["sample_kind"] for item in catalog] == ["problem-statement", "solution-comment"]
+            assert all(item["version"] == created.json()["data"]["turn"]["runId"] for item in catalog)
+            assert all("text" not in item for item in catalog)
+            assert "Public problem statement" not in prompt and "Ignore previous" not in prompt
             assert "untrusted reference data" in prompt
             assert "already selected and verified" in prompt
             assert "PRIVATE_SOURCE" not in prompt and "PRIVATE_AUTHOR" not in prompt
@@ -729,8 +732,10 @@ def test_conversation_forum_references_recheck_access_and_nested_replies(tmp_pat
         response = await client.post(f"/agent/conversations/{conversation_id}/turns/{turn_id}/run", headers=HEADERS, json={"sourceConsent": False, "expectedRunId": created.json()["data"]["turn"]["runId"]})
         assert response.status_code == {"available": 200, "missing": 422, "denied": 403, "oversized": 413}[availability]
         if availability == "available":
-            selected = json.loads(prompts[0].rsplit("INPUT_JSON ", 1)[1])["selected_context"]
-            assert selected == {"comments": [{"kind": "forum_comment", "content": "Forum reply"}]}
+            selected = json.loads(prompts[0].rsplit("INPUT_JSON ", 1)[1])["evidence_catalog"]
+            assert len(selected) == 1 and selected[0]["sample_kind"] == "forum-comment"
+            assert comment_id in selected[0]["doc_id"]
+            assert "text" not in selected[0] and "Forum reply" not in prompts[0]
             assert "PRIVATE" not in prompts[0]
         else:
             assert not prompts
@@ -2415,7 +2420,8 @@ def test_cancelling_conversation_turn_preserves_previous_turn(tmp_path):
 
 
 @pytest.mark.parametrize("ask_tool", [False, True])
-def test_owner_source_is_consent_scoped_and_never_persisted(tmp_path, monkeypatch, ask_tool):
+@pytest.mark.parametrize("with_comment", [False, True])
+def test_owner_source_is_consent_scoped_and_never_persisted(tmp_path, monkeypatch, ask_tool, with_comment):
     import agent_service.app as app_module
     from boundary_evaluation import CITATION_FIELDS
 
@@ -2447,7 +2453,8 @@ def test_owner_source_is_consent_scoped_and_never_persisted(tmp_path, monkeypatc
             citation = {field: hit[field] for field in CITATION_FIELDS if field != "claim"}
             citation["claim"] = "The implementation returns a result."
             return ModelDecision(text=json.dumps({
-                "text": "The implementation returns a result; inspect the authorized source path and line range.",
+                "text": "The implementation returns a result; inspect the authorized source path and line range."
+                        + (" The selected comment says: Use boundary examples." if with_comment else ""),
                 "citations": [citation],
             }))
 
@@ -2471,6 +2478,9 @@ def test_owner_source_is_consent_scoped_and_never_persisted(tmp_path, monkeypatc
                 "id": submission_id, "status": "Accepted", "contestSubmission": False,
                 "code": source_text,
             }
+
+        async def get_forum_thread(self, post_id):
+            return {"post": {"id": post_id}, "comments": [{"id": "comment-1", "body": "Use boundary examples."}]}
 
     app = create_app(
         state_path=tmp_path / "source-conversation.sqlite3", client_factory=SourceClient,
@@ -2497,7 +2507,8 @@ def test_owner_source_is_consent_scoped_and_never_persisted(tmp_path, monkeypatc
 
         next_turn = await client.post(
             f"/agent/conversations/{conversation_id}/turns", headers=HEADERS,
-            json={"clientTurnId": str(uuid.uuid4()), "question": "Now analyze the implementation."},
+            json={"clientTurnId": str(uuid.uuid4()), "question": "Now analyze the implementation.",
+                  "context": {"comments": [{"postId": "post-1", "commentId": "comment-1"}]} if with_comment else {}},
         )
         turn = next_turn.json()["data"]
         with_source = await client.post(
@@ -2560,4 +2571,123 @@ def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path
         history = (await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)).json()["data"]
         assert [turn["status"] for turn in history["turns"]] == ["completed", "cancelled"]
 
+    asyncio.run(with_client(app, scenario))
+
+
+@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing"])
+def test_product_conversation_retrieves_only_current_authorized_context(tmp_path, monkeypatch, kind):
+    import agent_service.app as app_module
+    import retrieval
+
+    calls, judge_calls = [], []
+    private = "PRIVATE_SOURCE_NOT_SENT"
+    text = "Use the boundary token to reason about the statement."
+
+    class Client(SessionClient):
+        async def get_my_submission(self, submission_id):
+            return {"id": submission_id, "status": "Accepted", "contestSubmission": False,
+                    "problemId": 7, "code": private}
+
+        async def get_problem(self, problem_id):
+            if kind == "missing":
+                raise UlticodeServiceError(40400, 404)
+            return {"id": 7, "detail": {"content": text}}
+
+        async def get_forum_thread(self, post_id):
+            return {"post": {"id": post_id}, "comments": [{"id": "comment-1", "body": text}]}
+
+    class Model:
+        usage = []
+
+        async def decide(self, messages):
+            calls.append(messages)
+            self.usage.append({"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2})
+            assert private not in str(messages)
+            if messages[-1]["role"] != "tool":
+                payload = json.loads(messages[0]["content"].rsplit("INPUT_JSON ", 1)[1])
+                assert text not in str(payload)
+                assert "selected_context" not in payload
+                return ModelDecision(tool_call=ToolCall("search_evidence", {"query": "zzzzmissing" if kind == "no_hit" else payload["evidence_catalog"][0]["doc_id"]}))
+            hits = json.loads(messages[-1]["content"])["hits"]
+            if kind == "no_hit":
+                assert hits == []
+                return ModelDecision(text=json.dumps({"text": "The material is insufficient; the submission status is Accepted.", "citations": []}))
+            assert len(hits) == 1 and hits[0]["text"] == text
+            hit = hits[0]
+            assert hit["source_trust"] == "untrusted-data" and hit["access_scope"] == "session-authorized-current-run"
+            assert hit["sample_kind"] != "synthetic"
+            if kind == "old_run":
+                hit["version"] = "old-run"
+            claim = ("The selected comment suggests reasoning about the statement." if kind == "comment"
+                     else "The selected statement mentions a boundary token.")
+            if kind == "unattributed":
+                claim = "The implementation is correct according to the comment."
+            from boundary_evaluation import CITATION_FIELDS
+            citation = {field: hit[field] for field in CITATION_FIELDS if field != "claim"}
+            return ModelDecision(text=json.dumps({"text": claim, "citations": [{**citation, "claim": claim}]}))
+
+    class Judge:
+        def __init__(self):
+            self.usage = []
+
+        async def decide(self, messages):
+            judge_calls.append(messages)
+            prompt = messages[0]["content"]
+            payload = json.loads(prompt.rsplit("\nINPUT_JSON ", 1)[1])
+            assert payload["REFERENCE_KIND"] == ("forum-comment" if kind in {"comment", "unattributed"} else "problem-statement")
+            assert "only explicitly attributed comment content" in prompt
+            assert text not in str(payload["SUBMISSION_FACTS"])
+            assert payload["ANSWER"] == payload["CLAIM"]
+            self.usage.append({"prompt_tokens": 1, "completion_tokens": 1})
+            return ModelDecision(text=json.dumps({"supports": True, "derivable": kind != "unattributed"}))
+
+    model, judge = Model(), Judge()
+    monkeypatch.setattr(app_module, "_authorized_model_for_purpose", lambda _period, purpose, *_a, **_kw: model if purpose == "u03_analysis" else judge)
+    monkeypatch.setattr(retrieval, "load_sample_corpus", lambda *_a, **_kw: pytest.fail("product must never load synthetic corpus"))
+    app = create_app(state_path=tmp_path / "product.sqlite3", client_factory=Client,
+                     unbudgeted_development_mode=True)
+    context = ({"comments": [{"postId": "post-1", "commentId": "comment-1"}]}
+               if kind in {"comment", "unattributed"} else {"includeProblem": True})
+
+    async def scenario(client):
+        conversation_id = str(uuid.uuid4())
+        created = await client.post("/agent/conversations", headers=HEADERS, json={
+            "conversationId": conversation_id, "sourceSubmissionId": str(uuid.uuid4()),
+            "clientTurnId": str(uuid.uuid4()), "question": "Explain the boundary", "context": context,
+        })
+        turn = created.json()["data"]["turn"]
+        response = await client.post(f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/run", headers=HEADERS,
+                                     json={"sourceConsent": False, "expectedRunId": turn["runId"]})
+        assert response.status_code == (404 if kind == "missing" else 502 if kind in {"old_run", "unattributed"} else 200)
+        page = (await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)).json()["data"]
+        assert private not in json.dumps(page)
+        if kind == "missing":
+            assert not calls and not judge_calls
+        elif kind == "old_run":
+            assert not judge_calls
+            assert page["turns"][0]["failureReason"] == "citation_not_retrieved_in_run"
+        elif kind == "unattributed":
+            assert len(judge_calls) == 1
+            assert page["turns"][0]["failureReason"] == "citation_claim_unverified"
+        elif kind != "no_hit":
+            saved = page["turns"][0]["citations"][0]
+            assert "text" not in saved and saved["version"] == turn["runId"]
+            assert len(judge_calls) == 1
+    asyncio.run(with_client(app, scenario))
+
+
+def test_legacy_thread_creation_has_no_implicit_synthetic_evidence(tmp_path, monkeypatch):
+    def no_samples(*_args, **_kwargs):
+        pytest.fail("online draft creation must not load synthetic material")
+    monkeypatch.setattr("sourced_analysis.load_sample_corpus", no_samples)
+    app = create_app(state_path=tmp_path / "draft.sqlite3", client_factory=SessionClient)
+
+    async def scenario(client):
+        response = await client.post("/agent/threads", headers=HEADERS, json={
+            "sourceSubmissionId": str(uuid.uuid4()), "question": "Accepted synthetic review",
+        })
+        assert response.status_code == 200
+        draft = response.json()["data"]["draft"]
+        assert draft["citations"] == [] and draft["citationChecks"] == []
+        assert draft["sampleScope"].startswith("submission metadata only")
     asyncio.run(with_client(app, scenario))

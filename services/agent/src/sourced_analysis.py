@@ -103,6 +103,8 @@ def _validated_corpus(
     """
     if documents is None:
         return load_sample_corpus()
+    if documents == () and manifest_path is None:
+        return ()
     if manifest_path is None:
         # Fail closed: a caller that skips this hands the model documents nothing
         # binds to the text they claim to be.
@@ -191,7 +193,8 @@ def analyze_submission(
     the recorded source; it does not mean the fragment supports the conclusion.
 
     ``documents`` defaults to the pinned sample corpus so the recorded baseline is
-    unchanged. This parameter is a **test seam**: a supplied corpus must carry its
+    unchanged. An explicit empty tuple performs metadata-only analysis without
+    loading a corpus or requiring a material manifest. Nonempty input is a **test seam**: a supplied corpus must carry its
     own manifest and is restricted to agent-authored synthetic material, so it can
     exercise the evidence path but can never present itself as real or licensed
     material. The acceptance workflow uses ``analyze_authorized_submission`` with an

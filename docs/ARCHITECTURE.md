@@ -160,6 +160,8 @@ The Agent is a standalone consumer of existing Auth/App/LearningPlan HTTP contra
 
 LearningPlan drafts and workflow events live in canonical private Agent SQLite state; their LangGraph checkpoints are resumable workflow control state. Multi-turn conversations and ordered turns use independent SQLite records and run/event fences; chat analysis does not write a LangGraph checkpoint. Confirming a draft is not a Java write; only explicit save can persist a LearningPlan through Java. Uncertain writes remain `unknown` and reconcile through the original idempotency key. `/auth/me` is the identity source; unsafe Agent requests require the access/CSRF pair and matching header. Confirm/save/recover require the explicit persistence deployment setting and remain absent in manual analysis-only mode; model calls independently require budget authorization. Nonempty citations are checked against same-run retrieval, document integrity, and support/derivability; answer text also passes bounded source-fact and tool-trace checks. These safeguards do not guarantee perfect semantic correctness. Runtime configuration and retained checks are documented in [Development and testing](DEVELOPMENT.md#agent-本地运行).
 
+Conversation evidence is projected from server-refetched selections into request-local fragments of at most 1,200 characters, scoped and versioned by the current run. Only the catalog enters the initial prompt; retrieved text remains untrusted and comment citations establish attribution only. Live analysis never falls back to synthetic documents; the legacy plan workflow without selected material has an explicit empty corpus.
+
 ### 依赖规则
 
 ```text

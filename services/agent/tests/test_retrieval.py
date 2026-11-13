@@ -74,3 +74,12 @@ def test_selected_resource_id_is_not_an_uncited_filename():
     assert not _refusal_has_reference("Try an example with 7 elements.", documents)
     for reference in (documents[0].doc_id, documents[0].source_path, documents[0].text):
         assert _refusal_has_reference(reference, documents)
+
+
+def test_selected_short_lines_allow_general_advice_but_not_forged_provenance():
+    from boundary_evaluation import _refusal_has_reference
+    from retrieval import context_documents
+    documents = context_documents({"problem": {"reference": "7", "content": "Input\n1\nOutput\n2\nA distinctive long statement."}}, "run-1")
+    assert not _refusal_has_reference("Start with 2 small examples; inspect the output.", documents)
+    for reference in (documents[0].doc_id, documents[0].source_path, "A distinctive long statement."):
+        assert _refusal_has_reference(reference, documents)

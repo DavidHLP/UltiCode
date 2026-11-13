@@ -2574,14 +2574,14 @@ def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path
     asyncio.run(with_client(app, scenario))
 
 
-@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing", "numeric"])
+@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing", "numeric", "short_lines"])
 def test_product_conversation_retrieves_only_current_authorized_context(tmp_path, monkeypatch, kind):
     import agent_service.app as app_module
     import retrieval
 
     calls, judge_calls = [], []
     private = "PRIVATE_SOURCE_NOT_SENT"
-    text = "Use the boundary token to reason about the statement."
+    text = "Input\n1\nOutput\n2" if kind == "short_lines" else "Use the boundary token to reason about the statement."
 
     class Client(SessionClient):
         async def get_my_submission(self, submission_id):
@@ -2607,8 +2607,9 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
                 payload = json.loads(messages[0]["content"].rsplit("INPUT_JSON ", 1)[1])
                 assert text not in str(payload)
                 assert "selected_context" not in payload
-                if kind == "numeric":
-                    return ModelDecision(text=json.dumps({"text": "Review 7 boundary cases before choosing a new practice problem.", "citations": []}))
+                if kind in {"numeric", "short_lines"}:
+                    advice = "Start with 2 small examples." if kind == "short_lines" else "Review 7 boundary cases before choosing a new practice problem."
+                    return ModelDecision(text=json.dumps({"text": advice, "citations": []}))
                 return ModelDecision(tool_call=ToolCall("search_evidence", {"query": "zzzzmissing" if kind == "no_hit" else payload["evidence_catalog"][0]["doc_id"]}))
             hits = json.loads(messages[-1]["content"])["hits"]
             if kind == "no_hit":
@@ -2671,7 +2672,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
         elif kind == "unattributed":
             assert len(judge_calls) == 1
             assert page["turns"][0]["failureReason"] == "citation_claim_unverified"
-        elif kind not in {"no_hit", "numeric"}:
+        elif kind not in {"no_hit", "numeric", "short_lines"}:
             saved = page["turns"][0]["citations"][0]
             assert "text" not in saved and saved["version"] == turn["runId"]
             assert len(judge_calls) == 1

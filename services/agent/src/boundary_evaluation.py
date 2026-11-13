@@ -908,6 +908,9 @@ def _refusal_has_reference(
                 return True
         for line in document.text.splitlines():
             normalized_line = normalize(line)
+            # Sample values and short headings are not distinctive reference excerpts.
+            if document.access_scope == "session-authorized-current-run" and len(normalized_line) < 8:
+                continue
             if normalized_line and normalized_line in normalized_text:
                 return True
     return False

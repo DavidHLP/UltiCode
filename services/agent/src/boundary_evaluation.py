@@ -900,7 +900,7 @@ def _refusal_has_reference(
             document.chunk_id,
             document.doc_id,
             document.source_path,
-            Path(document.source_path).name,
+            Path(document.source_path).name if Path(document.source_path).suffix else "",
         )
         for identifier in identifiers:
             normalized_identifier = normalize(identifier)

@@ -2574,7 +2574,7 @@ def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path
     asyncio.run(with_client(app, scenario))
 
 
-@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing"])
+@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing", "numeric"])
 def test_product_conversation_retrieves_only_current_authorized_context(tmp_path, monkeypatch, kind):
     import agent_service.app as app_module
     import retrieval
@@ -2607,6 +2607,8 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
                 payload = json.loads(messages[0]["content"].rsplit("INPUT_JSON ", 1)[1])
                 assert text not in str(payload)
                 assert "selected_context" not in payload
+                if kind == "numeric":
+                    return ModelDecision(text=json.dumps({"text": "Review 7 boundary cases before choosing a new practice problem.", "citations": []}))
                 return ModelDecision(tool_call=ToolCall("search_evidence", {"query": "zzzzmissing" if kind == "no_hit" else payload["evidence_catalog"][0]["doc_id"]}))
             hits = json.loads(messages[-1]["content"])["hits"]
             if kind == "no_hit":
@@ -2669,7 +2671,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
         elif kind == "unattributed":
             assert len(judge_calls) == 1
             assert page["turns"][0]["failureReason"] == "citation_claim_unverified"
-        elif kind != "no_hit":
+        elif kind not in {"no_hit", "numeric"}:
             saved = page["turns"][0]["citations"][0]
             assert "text" not in saved and saved["version"] == turn["runId"]
             assert len(judge_calls) == 1

@@ -24,10 +24,30 @@ export interface AgentCitation {
 }
 
 export interface AgentWorkflowEvent {
+  runId?: string;
   seq: number;
   kind: string;
   detail: Record<string, unknown>;
   createdAt: number;
+}
+
+export type AgentAnalysisStage = "evidence" | "analysis" | "verification";
+
+export interface AgentAnalysisStageEvent extends AgentWorkflowEvent {
+  runId: string;
+  kind: "stage_started" | "stage_finished";
+  detail: {
+    stage: AgentAnalysisStage;
+    outcome?: "completed" | "failed";
+    reason?: "stage_failed";
+  };
+}
+
+export function isAgentAnalysisStageEvent(event: AgentWorkflowEvent): event is AgentAnalysisStageEvent {
+  if (!event.detail || typeof event.detail !== "object" || typeof event.runId !== "string") return false;
+  return typeof event.detail.stage === "string" && ["evidence", "analysis", "verification"].includes(event.detail.stage) &&
+    (event.kind === "stage_started" ||
+      (event.kind === "stage_finished" && typeof event.detail.outcome === "string" && ["completed", "failed"].includes(event.detail.outcome)));
 }
 
 export interface AgentCapabilities {
@@ -78,6 +98,7 @@ export interface AgentConversationTurn {
   answer: string | null;
   citations: AgentConversationCitation[];
   trace: Array<{ tool_name?: string; failed?: boolean }>;
+  stages?: AgentAnalysisStageEvent[];
   failureReason: string | null;
   cancelRequested: boolean;
   eventSeq: number;

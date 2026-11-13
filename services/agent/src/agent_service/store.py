@@ -783,6 +783,20 @@ class WorkflowStore:
                    "detail": json.loads(row["detail_json"]), "createdAt": row["created_at"]} for row in rows]
         return events, (int(rows[-1]["seq"]) if rows else after)
 
+    def conversation_stages(self, conversation_id: str, turn_id: str, owner_id: str, run_id: str) -> list[dict[str, object]]:
+        """Project only this owner's current-run stages from canonical events."""
+        with self._connect() as db:
+            rows = db.execute(
+                """SELECT e.seq,e.run_id,e.kind,e.detail_json,e.created_at
+                   FROM conversation_events e JOIN conversation_turns t ON t.turn_id=e.turn_id
+                   WHERE t.conversation_id=? AND t.turn_id=? AND t.owner_id=? AND t.run_id=?
+                     AND e.run_id=t.run_id AND e.kind IN ('stage_started','stage_finished')
+                   ORDER BY e.seq""",
+                (conversation_id, turn_id, owner_id, run_id),
+            ).fetchall()
+        return [{"seq": row["seq"], "runId": row["run_id"], "kind": row["kind"],
+                 "detail": json.loads(row["detail_json"]), "createdAt": row["created_at"]} for row in rows]
+
     def delete_conversation(self, conversation_id: str, owner_id: str) -> None:
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")

@@ -2414,6 +2414,9 @@ def test_cancelling_conversation_turn_preserves_previous_turn(tmp_path):
         history = await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)
         turns = history.json()["data"]["turns"]
         assert [turn["status"] for turn in turns] == ["completed", "cancelled"]
+        assert turns[1]["stages"][-1]["kind"] == "stage_started"
+        assert turns[1]["stages"][-1]["detail"]["stage"] == "analysis"
+        assert not any(event["detail"]["stage"] == "verification" for event in turns[1]["stages"])
         deleted = await client.delete(f"/agent/conversations/{conversation_id}", headers=HEADERS)
         assert deleted.status_code == 200
 
@@ -2664,6 +2667,17 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
                                      json={"sourceConsent": False, "expectedRunId": turn["runId"]})
         assert response.status_code == (404 if kind == "missing" else 502 if kind in {"old_run", "unattributed"} else 200)
         page = (await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)).json()["data"]
+        stages = page["turns"][0]["stages"]
+        assert [event["detail"]["stage"] for event in stages if event["kind"] == "stage_started"] == (
+            ["evidence"] if kind == "missing" else ["evidence", "analysis", "verification"]
+        )
+        assert all(event["runId"] == turn["runId"] for event in stages)
+        assert all(set(event["detail"]) <= {"stage", "outcome", "reason"} for event in stages)
+        assert stages[-1]["detail"]["outcome"] == ("failed" if kind in {"missing", "old_run", "unattributed"} else "completed")
+        stream = await client.get(f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/events/stream?after={stages[0]['seq']}", headers=HEADERS)
+        replay = [json.loads(frame.split("\ndata: ", 1)[1]) for frame in stream.text.split("\n\n") if "\nevent: workflow\n" in frame]
+        replay_stages = [event for event in replay if event["kind"].startswith("stage_")]
+        assert [event["seq"] for event in replay_stages] == [event["seq"] for event in stages[1:]]
         assert private not in json.dumps(page)
         if kind == "missing":
             assert not calls and not judge_calls

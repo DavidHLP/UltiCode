@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiDelete, apiGet, apiPost, apiPut } from "@/utils/request";
-import { agentApi } from "@/api/agent";
+import { agentApi, isAgentAnalysisStageEvent } from "@/api/agent";
 
 vi.mock("@/utils/request", () => ({
   apiGet: vi.fn(),
@@ -121,5 +121,15 @@ describe("agentApi", () => {
     expect(agentApi.conversationEventStreamUrl("conversation/one", "turn/2", 7, "run/1")).toBe(
       "/api/agent/conversations/conversation%2Fone/turns/turn%2F2/events/stream?after=7&runId=run%2F1",
     );
+  });
+});
+
+describe("analysis stage validation", () => {
+  it.each([
+    { stage: ["analysis"], outcome: "failed" },
+    { stage: "analysis", outcome: ["failed"] },
+    { stage: null, outcome: "completed" },
+  ])("rejects malformed stage detail %j", (detail) => {
+    expect(isAgentAnalysisStageEvent({ runId: "run-1", seq: 1, kind: "stage_finished", detail, createdAt: 1 })).toBe(false);
   });
 });

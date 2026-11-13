@@ -2,6 +2,7 @@ import { computed, onScopeDispose, ref } from "vue";
 import { ApiError } from "@/utils/request";
 import {
   agentApi,
+  isAgentAnalysisStageEvent,
   type AgentAnalysisContext,
   type AgentConversation,
   type AgentConversationTurn,
@@ -59,7 +60,18 @@ export function useAgentConversations() {
     return generation;
   }
 
+  function mergeObservedStages(turn: AgentConversationTurn) {
+    const previous = turns.value.find(
+      (item) => item.turnId === turn.turnId && item.runId === turn.runId,
+    );
+    if (!previous?.stages?.length) return turn;
+    const stages = new Map(previous.stages.map((event) => [event.seq, event]));
+    for (const event of turn.stages ?? []) stages.set(event.seq, event);
+    return { ...turn, stages: [...stages.values()].sort((a, b) => a.seq - b.seq) };
+  }
+
   function upsertTurn(turn: AgentConversationTurn) {
+    turn = mergeObservedStages(turn);
     const index = turns.value.findIndex((item) => item.turnId === turn.turnId);
     if (index < 0)
       turns.value = [...turns.value, turn].sort(
@@ -123,7 +135,7 @@ export function useAgentConversations() {
       )
         return null;
       conversation.value = page.conversation;
-      turns.value = page.turns;
+      turns.value = page.turns.map(mergeObservedStages);
       hasMoreTurns.value = page.hasMore;
       upsertConversation(page.conversation);
       return page;
@@ -236,6 +248,11 @@ export function useAgentConversations() {
           ...events.value,
           payload as unknown as AgentWorkflowEvent,
         ].sort((left, right) => left.seq - right.seq);
+      }
+      const recorded = payload as unknown as AgentWorkflowEvent;
+      if (isAgentAnalysisStageEvent(recorded)) {
+        const current = turns.value.find((item) => item.turnId === turn.turnId && item.runId === turn.runId);
+        if (current) upsertTurn({ ...current, stages: [recorded] });
       }
     });
     stream.addEventListener("terminal", (event) => {
@@ -447,7 +464,7 @@ export function useAgentConversations() {
       if (token !== generation) return;
       conversation.value = page.conversation;
       sourceSubmissionId.value = page.conversation.sourceSubmissionId;
-      turns.value = page.turns;
+      turns.value = page.turns.map(mergeObservedStages);
       hasMoreTurns.value = page.hasMore;
       upsertConversation(page.conversation);
       const active = [...page.turns]

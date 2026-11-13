@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
   workspace: null as object | null,
 }));
 
-vi.mock("@/api/agent", () => ({
+vi.mock("@/api/agent", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/api/agent")>(),
   agentApi: { getCapabilities: mocks.getCapabilities },
 }));
 vi.mock("@/api/problem", () => ({ fetchProblems: vi.fn() }));
@@ -39,7 +40,10 @@ vi.mock("vue-router", () => ({
   useRoute: () => mocks.route,
   useRouter: () => ({ replace: mocks.replace }),
 }));
-vi.mock("vue-i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+vi.mock("vue-i18n", async (importOriginal) => ({
+  ...await importOriginal<typeof import("vue-i18n")>(),
+  useI18n: () => ({ t: (key: string) => key }),
+}));
 
 import AgentConversationWorkspace from "../AgentConversationWorkspace.vue";
 
@@ -632,4 +636,49 @@ describe("AgentConversationWorkspace", () => {
     expect(wrapper.text()).toContain("agent.workspace.unavailable");
     wrapper.unmount();
   });
+  it.each(["running", "completed", "failed", "cancelled", "legacy"])(
+    "renders only actual latest stages for %s turns without payloads", async (status) => {
+      const state = mocks.workspace as ReturnType<typeof createWorkspace>;
+      const stages = [
+        { seq: 1, kind: "stage_started", detail: { stage: "evidence" }, createdAt: 1 },
+        { seq: 2, kind: "stage_finished", detail: { stage: "evidence", outcome: "completed" }, createdAt: 2 },
+        { seq: 3, kind: "stage_started", detail: { stage: "analysis" }, createdAt: 3 },
+      ];
+      if (["completed", "failed"].includes(status)) stages.push(
+        { seq: 4, kind: "stage_finished", detail: { stage: "analysis", outcome: status }, createdAt: 4 },
+      );
+      stages.push({ seq: 9, kind: "stage_started", detail: { stage: "<img src=x onerror=alert(1)>" }, createdAt: 9 });
+      state.openConversation.mockImplementation(async () => {
+        state.sourceSubmissionId.value = submissionId;
+        state.conversation.value = { conversationId, sourceSubmissionId: submissionId, title: "Review", turnCount: 1, lastQuestion: "Review", createdAt: 1, updatedAt: 2 };
+        state.turns.value = [{ turnId: "turn-1", conversationId, turnIndex: 1, runId: "run-1",
+          status: status === "legacy" ? "completed" : status, question: "Review", answer: null,
+          citations: [], trace: [], failureReason: null, cancelRequested: status === "cancelled",
+          eventSeq: 9, createdAt: 1, updatedAt: 2,
+          ...(status === "legacy" ? {} : { stages: [
+            ...stages.map((event) => ({ ...event, runId: "run-1" })),
+            { seq: 10, runId: "old-run", kind: "stage_started", detail: { stage: "verification" }, createdAt: 10 },
+          ] }),
+        }];
+      });
+      mocks.route.query = { conversationId };
+      const wrapper = mount(AgentConversationWorkspace, {
+        global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+      });
+      await flushPromises();
+      const progress = wrapper.find('[aria-label="agent.workspace.stageProgress"]');
+      expect(progress.exists()).toBe(status !== "legacy");
+      if (status !== "legacy") {
+        expect(progress.text()).toContain("agent.workspace.stageEvidence");
+        expect(progress.findAll('[data-slot="trace-line"]')).toHaveLength(2);
+        const analysis = progress.findAll('[data-slot="trace-line"]').at(-1)!;
+        expect(analysis.text()).toContain(status === "cancelled" ? "agent.workspace.stageInterrupted" :
+          status === "completed" ? "agent.workspace.stageCompleted" : `agent.statuses.${status}`);
+        expect(progress.text()).not.toContain("stageVerification");
+      }
+      expect(wrapper.html()).not.toContain("onerror=alert(1)");
+      wrapper.unmount();
+    },
+  );
+
 });

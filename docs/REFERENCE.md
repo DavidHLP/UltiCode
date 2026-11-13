@@ -254,3 +254,9 @@ Adding/switching returns the existing login response and applies session cookies
 会话选材引用沿用现有 citation 字段；题目、题解评论与论坛评论分别标为 `problem-statement`、`solution-comment`、`forum-comment`，访问范围为 `session-authorized-current-run`，版本标识为本轮 `runId`，不表示上游历史版本或公开访问权限。`source_position` 给出本轮所选文本的字符范围，并在题目截断时注明；位置由服务端产生，不把模型提供的地址作为导航。题面保留 8,000 字上限，评论合计最多三条且单条超过 2,000 字拒绝；检索片段最多 1,200 字，查询可使用资料目录中的精确 `doc_id` 获取尚未见过的正文，或使用正文关键词；每次命中与每份回答引用仍最多三条。正文只在本轮内存中使用，持久化会话引用去除 `text`。引用必须实际命中本轮资料并通过完整性及语义核验；评论只支持对评论内容的归因，不支持实现诊断或算法正确性。无命中可以解释已知状态或给一般建议，不能补造引用；在线路径不使用合成语料回落。
 
 答案仍严格使用 `text` 与 `citations`，结论和依据沿用 `citation.claim` 关联；不增加 claims 数组、额外分析存储或双版本解析。已知事实、判断、假设与下一步在正文按需区分；一般建议不是证据，没有源码时“可能”或“假设”也不授权具体实现诊断。核验失败保持失败，不静默删除主张后报告成功，也不自动重试模型。
+
+### Agent 会话阶段事件
+
+会话 SSE 沿用 `workflow` 帧和 `runId + seq`，增加 `stage_started` 与 `stage_finished`。`detail.stage` 仅为 `evidence`、`analysis`、`verification`；结束事件的 `outcome` 为 `completed` 或 `failed`，失败时 `reason` 固定为 `stage_failed`，具体轮次失败原因仍从 `failureReason` 读取。阶段载荷不含正文、引用主张、来源路径、提示词或私有推理。取消栅栏建立后不再写结束事件，当前轮的终态说明中断，不伪造阶段完成。
+
+会话轮次响应的 `stages` 数组由当前 owner/current-run 的既有事件投影，不增加表或存储字段。桌面工作区按各阶段最新事件展示进度；历史轮次可恢复阶段，旧历史缺少该字段或无阶段事件时仍可读取。具体模型和工具事件保留；重连继续使用 `after` 游标，重复或乱序事件按序号合并，旧运行事件不进入当前阶段。

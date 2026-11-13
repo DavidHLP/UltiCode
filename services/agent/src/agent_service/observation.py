@@ -4,6 +4,8 @@ import asyncio
 import re
 import time
 import uuid
+from contextlib import contextmanager
+from typing import Literal
 
 from deepseek_model import ModelBudgetExceeded, ModelProtocolError
 
@@ -57,3 +59,19 @@ class ObservedModel:
                 "reason": reason,
                 "model": model, "attemptId": attempt, "usage": tokens,
                 "usageStatus": "known" if all(value is not None for value in tokens.values()) else "unavailable"})
+
+
+@contextmanager
+def observed_stage(record, stage: Literal["evidence", "analysis", "verification"]):
+    """Record execution boundaries without private inputs or inferred progress."""
+    record("stage_started", {"stage": stage})
+    try:
+        yield
+    except asyncio.CancelledError:
+        # Cancellation fences reject later events; the canonical turn supplies its terminal state.
+        raise
+    except Exception:
+        record("stage_finished", {"stage": stage, "outcome": "failed", "reason": "stage_failed"})
+        raise
+    else:
+        record("stage_finished", {"stage": stage, "outcome": "completed"})

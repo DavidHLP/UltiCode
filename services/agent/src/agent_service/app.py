@@ -26,7 +26,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from agent_service.graph import ainvoke_untraced, build_workflow_graph
 from agent_service.state import WorkflowAction, make_draft, params_digest
 from agent_service.store import Conflict, NotFound, WorkflowStore
-from agent_service.observation import ObservedModel
+from agent_service.observation import ObservedModel, observed_stage
 from agent_prompts import MANUAL_ANALYSIS_INSTRUCTIONS
 from sourced_analysis import _ALLOWED_STATUSES, validate_submission_facts
 from ulticode_client import (
@@ -1072,6 +1072,9 @@ def create_app(
             "answer": row["answer"],
             "citations": row["citations"],
             "trace": row["trace"],
+            "stages": workflow_store.conversation_stages(
+                str(row["conversation_id"]), str(row["turn_id"]), str(row["owner_id"]), str(row["run_id"]),
+            ),
             "failureReason": row["failure_reason"],
             "cancelRequested": bool(row["cancel_requested"]),
             "eventSeq": int(row["event_seq"]),
@@ -1091,108 +1094,109 @@ def create_app(
     ) -> tuple[str, list[dict[str, object]], list[dict[str, object]]]:
         if source_consent and not analysis_only_test_mode:
             raise AgentError(400, "validation_error")
-        submission, source_id, status = await _source_submission(
-            client, str(conversation["source_submission_id"]),
-        )
-        facts = {"id": source_id, "status": status}
-        from dataclasses import asdict
-        from retrieval import context_documents
-
-        selected_context = await _selected_context(client, submission, turn["context"])
-        try:
-            selected_documents = context_documents(selected_context, str(turn["run_id"]))
-        except (ValueError, UnicodeError):
-            raise AgentError(422, "context_unavailable", 42200) from None
-        facts["evidence_catalog"] = [
-            {**{key: value for key, value in asdict(document).items() if key != "text"},
-             "source_trust": "untrusted-data", "truncated": "truncated" in document.source_position}
-            for document in selected_documents
-        ]
-        source_required = analysis_only_test_mode and source_consent
-        source_document = _manual_source_document(submission) if source_required else None
-        retrieved: list[dict[str, object]] = []
-        documents = ()
-        search_results: list[dict[str, object]] = []
-
-        if offline_model_factory is not None:
-            runtime_value = offline_model_factory()
-            if hasattr(runtime_value, "__await__"):
-                runtime_value = await runtime_value
-            if not isinstance(runtime_value, tuple) or len(runtime_value) not in {2, 4}:
-                raise ValueError("invalid offline runtime")
-            model, tools = runtime_value[:2]
-            if len(runtime_value) == 4:
-                documents = tuple(runtime_value[2])
-                retrieved = runtime_value[3]
-                if not isinstance(retrieved, list):
-                    raise ValueError("invalid offline evidence recorder")
-            else:
-                tools = dict(tools)
-            judge_model = model
-            if analysis_only_test_mode:
-                tools = dict(tools)
-                if source_required:
-                    documents = (*documents, source_document)
-                    tools["get_submission_source"] = _manual_source_tool(source_document, retrieved)
-                else:
-                    tools.pop("get_submission_source", None)
-        else:
-            _require_analysis_authorization()
-            if analysis_only_test_mode:
-                documents = (source_document,) if source_required else ()
-                tools = ({
-                    "get_submission_source": _manual_source_tool(source_document, retrieved),
-                } if source_required else {})
-                specs = {"get_submission_source": OWNER_SOURCE_TOOL_SPEC} if source_required else {}
-            else:
-                tools, specs = {}, {}
-            from boundary_evaluation import SEARCH_EVIDENCE_SPEC
-            specs = {**specs, "search_evidence": SEARCH_EVIDENCE_SPEC}
-            model = _authorized_model_for_purpose(
-                expected_period, "u03_analysis", budget_guard, specs,
-                unbudgeted_development_mode=unbudgeted_development_mode,
+        with observed_stage(record_event, "evidence"):
+            submission, source_id, status = await _source_submission(
+                client, str(conversation["source_submission_id"]),
             )
-            judge_model = _authorized_model_for_purpose(
-                expected_period, "u03_citation_judge", budget_guard, {},
-                unbudgeted_development_mode=unbudgeted_development_mode,
-            )
+            facts = {"id": source_id, "status": status}
+            from dataclasses import asdict
+            from retrieval import context_documents
 
-        from boundary_evaluation import search_evidence_tool
-
-        documents = (*selected_documents, *documents)
-        tools = dict(tools)
-        search_handler = tools.get("search_evidence") or search_evidence_tool(documents)
-
-        async def recorded_search(arguments):
+            selected_context = await _selected_context(client, submission, turn["context"])
             try:
-                result = await search_handler(arguments)
-                hits = result.get("hits") if isinstance(result, dict) else None
-                if not isinstance(hits, list):
-                    raise ValueError("invalid evidence tool result")
-                retrieved.extend(hit for hit in hits if isinstance(hit, dict))
-                search_results.append(result)
-                return result
-            except Exception:
-                search_results.append({"error": "tool_failed"})
-                raise
+                selected_documents = context_documents(selected_context, str(turn["run_id"]))
+            except (ValueError, UnicodeError):
+                raise AgentError(422, "context_unavailable", 42200) from None
+            facts["evidence_catalog"] = [
+                {**{key: value for key, value in asdict(document).items() if key != "text"},
+                 "source_trust": "untrusted-data", "truncated": "truncated" in document.source_position}
+                for document in selected_documents
+            ]
+            source_required = analysis_only_test_mode and source_consent
+            source_document = _manual_source_document(submission) if source_required else None
+            retrieved: list[dict[str, object]] = []
+            documents = ()
+            search_results: list[dict[str, object]] = []
 
-        tools["search_evidence"] = recorded_search
+            if offline_model_factory is not None:
+                runtime_value = offline_model_factory()
+                if hasattr(runtime_value, "__await__"):
+                    runtime_value = await runtime_value
+                if not isinstance(runtime_value, tuple) or len(runtime_value) not in {2, 4}:
+                    raise ValueError("invalid offline runtime")
+                model, tools = runtime_value[:2]
+                if len(runtime_value) == 4:
+                    documents = tuple(runtime_value[2])
+                    retrieved = runtime_value[3]
+                    if not isinstance(retrieved, list):
+                        raise ValueError("invalid offline evidence recorder")
+                else:
+                    tools = dict(tools)
+                judge_model = model
+                if analysis_only_test_mode:
+                    tools = dict(tools)
+                    if source_required:
+                        documents = (*documents, source_document)
+                        tools["get_submission_source"] = _manual_source_tool(source_document, retrieved)
+                    else:
+                        tools.pop("get_submission_source", None)
+            else:
+                _require_analysis_authorization()
+                if analysis_only_test_mode:
+                    documents = (source_document,) if source_required else ()
+                    tools = ({
+                        "get_submission_source": _manual_source_tool(source_document, retrieved),
+                    } if source_required else {})
+                    specs = {"get_submission_source": OWNER_SOURCE_TOOL_SPEC} if source_required else {}
+                else:
+                    tools, specs = {}, {}
+                from boundary_evaluation import SEARCH_EVIDENCE_SPEC
+                specs = {**specs, "search_evidence": SEARCH_EVIDENCE_SPEC}
+                model = _authorized_model_for_purpose(
+                    expected_period, "u03_analysis", budget_guard, specs,
+                    unbudgeted_development_mode=unbudgeted_development_mode,
+                )
+                judge_model = _authorized_model_for_purpose(
+                    expected_period, "u03_citation_judge", budget_guard, {},
+                    unbudgeted_development_mode=unbudgeted_development_mode,
+                )
 
-        def observed_tool(name, handler):
-            async def invoke(arguments):
-                record_event("tool_started", {"toolName": name})
-                failed = True
+            from boundary_evaluation import search_evidence_tool
+
+            documents = (*selected_documents, *documents)
+            tools = dict(tools)
+            search_handler = tools.get("search_evidence") or search_evidence_tool(documents)
+
+            async def recorded_search(arguments):
                 try:
-                    result = await handler(arguments)
-                    failed = isinstance(result, dict) and "error" in result
+                    result = await search_handler(arguments)
+                    hits = result.get("hits") if isinstance(result, dict) else None
+                    if not isinstance(hits, list):
+                        raise ValueError("invalid evidence tool result")
+                    retrieved.extend(hit for hit in hits if isinstance(hit, dict))
+                    search_results.append(result)
                     return result
-                finally:
-                    record_event("tool_completed", {"toolName": name, "failed": failed})
-            return invoke
+                except Exception:
+                    search_results.append({"error": "tool_failed"})
+                    raise
 
-        tools = {name: observed_tool(name, handler) for name, handler in tools.items()}
-        if source_required:
-            facts["authorized_source"] = await tools["get_submission_source"]({})
+            tools["search_evidence"] = recorded_search
+
+            def observed_tool(name, handler):
+                async def invoke(arguments):
+                    record_event("tool_started", {"toolName": name})
+                    failed = True
+                    try:
+                        result = await handler(arguments)
+                        failed = isinstance(result, dict) and "error" in result
+                        return result
+                    finally:
+                        record_event("tool_completed", {"toolName": name, "failed": failed})
+                return invoke
+
+            tools = {name: observed_tool(name, handler) for name, handler in tools.items()}
+            if source_required:
+                facts["authorized_source"] = await tools["get_submission_source"]({})
         resources = {id(value): value for value in (model, judge_model) if value is not None}
         entered: list[object] = []
         failure_stage = "analysis_setup"
@@ -1203,53 +1207,54 @@ def create_app(
                     entered.append(resource)
             from agent_service.graph import run_readonly_graph
 
-            conversation_model = _ConversationModel(
-                model, str(turn["question"]), facts, history, source_required,
-            )
-            prompt = conversation_model.prompt([])
-            failure_stage = "analysis_model"
-            record_event("model_started", {})
-            loop = await run_readonly_graph(
-                ObservedModel(conversation_model, record_event, node="model"), tools, prompt,
-                max_rounds=4, total_timeout=30.0,
-            )
-            failure_stage = "answer_parsing"
-            parsed = parse_model_answer(loop.answer)
-            trace = list(loop.trace)
-            if source_required and not any(event.get("tool_name") == "get_submission_source" for event in trace):
-                trace.insert(0, {"tool_name": "get_submission_source", "failed": False})
-            trace_results = []
-            search_index = 0
-            for event in trace:
-                if event.get("tool_name") == "search_evidence":
-                    observed = (search_results[search_index]
-                                if search_index < len(search_results)
-                                else {"error": "tool_failed"})
-                    trace_results.append({
-                        "tool": "search_evidence", "failed": bool(event.get("failed")),
-                        "result": observed,
-                    })
-                    search_index += 1
-            failure_stage = "answer_boundary"
-            _verify_answer_boundary(
-                parsed, (facts,), documents, trace, trace_results,
-                question=str(turn["question"]), source_required=source_required,
-            )
-            if source_required and _contains_source_line(
-                parsed["text"] + " " + " ".join(item["claim"] for item in parsed["citations"]),
-                documents,
-            ):
-                raise ValueError("answer_source_reference_unverified")
-            failure_stage = "citation_verification"
-            citation_checks = await _verify_citations(
-                parsed, retrieved, documents, (facts,),
-                ObservedModel(judge_model, record_event, node="citation_judge"),
-                include_cited_excerpt_in_facts=source_required,
-            )
-            safe_citations = [
-                {key: value for key, value in citation.items() if key != "text"}
-                for citation in parsed["citations"]
-            ]
+            with observed_stage(record_event, "analysis"):
+                conversation_model = _ConversationModel(
+                    model, str(turn["question"]), facts, history, source_required,
+                )
+                prompt = conversation_model.prompt([])
+                failure_stage = "analysis_model"
+                loop = await run_readonly_graph(
+                    ObservedModel(conversation_model, record_event, node="model"), tools, prompt,
+                    max_rounds=4, total_timeout=30.0,
+                )
+            with observed_stage(record_event, "verification"):
+                failure_stage = "answer_parsing"
+                parsed = parse_model_answer(loop.answer)
+                trace = list(loop.trace)
+                if source_required and not any(event.get("tool_name") == "get_submission_source" for event in trace):
+                    trace.insert(0, {"tool_name": "get_submission_source", "failed": False})
+                trace_results = []
+                search_index = 0
+                for event in trace:
+                    if event.get("tool_name") == "search_evidence":
+                        observed = (search_results[search_index]
+                                    if search_index < len(search_results)
+                                    else {"error": "tool_failed"})
+                        trace_results.append({
+                            "tool": "search_evidence", "failed": bool(event.get("failed")),
+                            "result": observed,
+                        })
+                        search_index += 1
+                failure_stage = "answer_boundary"
+                _verify_answer_boundary(
+                    parsed, (facts,), documents, trace, trace_results,
+                    question=str(turn["question"]), source_required=source_required,
+                )
+                if source_required and _contains_source_line(
+                    parsed["text"] + " " + " ".join(item["claim"] for item in parsed["citations"]),
+                    documents,
+                ):
+                    raise ValueError("answer_source_reference_unverified")
+                failure_stage = "citation_verification"
+                citation_checks = await _verify_citations(
+                    parsed, retrieved, documents, (facts,),
+                    ObservedModel(judge_model, record_event, node="citation_judge"),
+                    include_cited_excerpt_in_facts=source_required,
+                )
+                safe_citations = [
+                    {key: value for key, value in citation.items() if key != "text"}
+                    for citation in parsed["citations"]
+                ]
             return parsed["text"], safe_citations, trace
         except Exception as exc:
             _LOGGER.warning(

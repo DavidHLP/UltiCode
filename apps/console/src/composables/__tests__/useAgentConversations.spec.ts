@@ -14,7 +14,9 @@ const api = vi.hoisted(() => ({
   conversationEventStreamUrl: vi.fn(() => "/api/events"),
 }));
 
-vi.mock("@/api/agent", () => ({ agentApi: api }));
+vi.mock("@/api/agent", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/api/agent")>(), agentApi: api,
+}));
 
 import { useAgentConversations } from "../useAgentConversations";
 import { ApiError } from "@/utils/request";
@@ -1034,4 +1036,57 @@ describe("useAgentConversations", () => {
     expect(api.deleteConversation).toHaveBeenCalledWith("conversation-1");
     scope.stop();
   });
+  it("merges stage replay by seq and rejects old-run or unknown stages", async () => {
+    const running = { ...firstTurn, status: "running" };
+    api.getConversation.mockResolvedValue({ conversation, turns: [running], hasMore: false });
+    api.recoverConversationTurn.mockResolvedValue(running);
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const stream = TestEventSource.instances[0];
+    const started = { runId: firstTurn.runId, seq: 1, kind: "stage_started", detail: { stage: "evidence" }, createdAt: 1 };
+    const finished = { ...started, seq: 2, kind: "stage_finished", detail: { stage: "evidence", outcome: "completed" } };
+    stream.emit("workflow", finished);
+    stream.emit("workflow", started);
+    stream.emit("workflow", finished);
+    stream.emit("workflow", { ...started, seq: 3, runId: "old-run" });
+    stream.emit("workflow", { ...started, seq: 4, detail: { stage: "PRIVATE_UNKNOWN_STAGE" } });
+    expect(workspace.turns.value[0].stages).toEqual([started, finished]);
+    const completed = { ...running, status: "completed", answer: "Verified", stages: [started, finished] };
+    api.getConversation.mockResolvedValue({ conversation, turns: [completed], hasMore: false });
+    stream.emit("terminal", { runId: firstTurn.runId });
+    await flushPromises();
+    expect(workspace.turns.value[0].stages).toEqual([started, finished]);
+    scope.stop();
+  });
+
+  it("preserves observed stages across stale refreshes and repairs projection on replay", async () => {
+    const started = { runId: firstTurn.runId, seq: 1, kind: "stage_started" as const, detail: { stage: "evidence" as const }, createdAt: 1 };
+    const finished = { ...started, seq: 2, kind: "stage_finished" as const, detail: { stage: "evidence" as const, outcome: "completed" as const } };
+    const analysis = { ...started, seq: 3, detail: { stage: "analysis" as const } };
+    const running = { ...firstTurn, status: "running", stages: [started], eventSeq: 1 };
+    api.getConversation.mockResolvedValue({ conversation, turns: [running], hasMore: false });
+    api.recoverConversationTurn.mockResolvedValue(running);
+    const scope = effectScope();
+    const workspace = scope.run(() => useAgentConversations())!;
+    await workspace.openConversation(conversation.conversationId);
+    const stream = TestEventSource.instances[0];
+    stream.emit("workflow", finished);
+    stream.emit("workflow", analysis);
+    stream.emit("stream_closed", { reason: "stream_timeout" });
+    await flushPromises();
+    expect(workspace.turns.value[0].stages).toEqual([started, finished, analysis]);
+    // Replayed events can restore a missing projection even if the trace saw them.
+    workspace.turns.value[0].stages = [started];
+    const reconnected = TestEventSource.instances[1];
+    reconnected.emit("workflow", finished);
+    reconnected.emit("workflow", analysis);
+    expect(workspace.turns.value[0].stages).toEqual([started, finished, analysis]);
+    api.getConversation.mockResolvedValue({ conversation, turns: [{ ...running, runId: "new-run", stages: [] }], hasMore: false });
+    reconnected.emit("stream_closed", { reason: "run_replaced" });
+    await flushPromises();
+    expect(workspace.turns.value[0].stages).toEqual([]);
+    scope.stop();
+  });
+
 });

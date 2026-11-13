@@ -19,6 +19,8 @@ import { useAuthStore } from "@/stores/auth";
 import { isAgentReviewEligible } from "@/views/problems/submissions/agentReviewPolicy";
 import {
   agentApi,
+  isAgentAnalysisStageEvent,
+  type AgentAnalysisStageEvent,
   type AgentCapabilities,
   type AgentConversationTurn,
   type AgentAnalysisContext,
@@ -212,6 +214,34 @@ function toolLabel(name: unknown) {
   if (name === "get_submission_source") return t("agent.workspace.readSource");
   if (name === "search_evidence") return t("agent.workspace.searchEvidence");
   return typeof name === "string" ? name : t("agent.workspace.analysisStep");
+}
+const activityEvents = computed(() => workspace.events.value.filter(
+  (event) => !["stage_started", "stage_finished"].includes(event.kind),
+));
+const stageLabels = {
+  evidence: "agent.workspace.stageEvidence",
+  analysis: "agent.workspace.stageAnalysis",
+  verification: "agent.workspace.stageVerification",
+};
+function stageProgress(turn: AgentConversationTurn) {
+  const latest = new Map<string, AgentAnalysisStageEvent>();
+  for (const event of turn.stages ?? []) {
+    if (!isAgentAnalysisStageEvent(event) || event.runId !== turn.runId) continue;
+    const prior = latest.get(event.detail.stage);
+    if (!prior || event.seq > prior.seq) latest.set(event.detail.stage, event);
+  }
+  return [...latest.values()].sort((left, right) => left.seq - right.seq).map((event) => {
+    const running = event.kind === "stage_started";
+    const failed = event.detail.outcome === "failed" || (running && turn.status === "failed");
+    const active = running && ["queued", "running"].includes(turn.status);
+    return {
+      stage: event.detail.stage,
+      label: stageLabels[event.detail.stage],
+      status: failed ? "error" as const : active ? "running" as const : undefined,
+      outcome: failed ? "agent.statuses.failed" : active ? "agent.statuses.running" :
+        running ? "agent.workspace.stageInterrupted" : "agent.workspace.stageCompleted",
+    };
+  });
 }
 function failureMessage(turn: AgentConversationTurn) {
   const reason = turn.failureReason ?? "";
@@ -1395,11 +1425,16 @@ function formatDate(value: string | number) {
                           </TraceCollapsible>
                         </Trace>
                       </div>
+                      <Trace v-if="stageProgress(turn).length" :aria-label="t('agent.workspace.stageProgress')">
+                        <TraceLine v-for="stage in stageProgress(turn)" :key="stage.stage" :status="stage.status">
+                          <TraceTitle>{{ t(stage.label) }} · {{ t(stage.outcome) }}</TraceTitle>
+                        </TraceLine>
+                      </Trace>
                       <Trace
                         v-if="
                           workspace.busy.value &&
                           workspace.currentTurn.value?.turnId === turn.turnId &&
-                          workspace.events.value.length
+                          activityEvents.length
                         "
                       >
                         <TraceCollapsible default-open>
@@ -1417,7 +1452,7 @@ function formatDate(value: string | number) {
                           <TraceCollapsibleContent>
                             <Trace>
                               <TraceLine
-                                v-for="event in workspace.events.value"
+                                v-for="event in activityEvents"
                                 :key="event.seq"
                                 :status="
                                   event.kind === 'turn_failed'

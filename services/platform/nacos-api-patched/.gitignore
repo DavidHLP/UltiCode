@@ -1,0 +1,6 @@
+# This build directory contains reviewed build-tool source, not build output.
+!build/
+build/*
+!build/PatchNacosApi.java
+!build/inputs.sha256.properties
+!build/protoc.sha256.properties

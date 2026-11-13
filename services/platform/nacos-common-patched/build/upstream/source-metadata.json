@@ -1,0 +1,14 @@
+{
+  "RpcClient": {
+    "encoding": "base64",
+    "sha": "b9065ef539141857ae24a7b33e858521f9e5ca21",
+    "display_url": "https://github.com/alibaba/nacos/blob/8d49753ba2b723fbd6946390feb57213957e7f2d/common/src/main/java/com/alibaba/nacos/common/remote/client/RpcClient.java",
+    "display_title": "RpcClient.java"
+  },
+  "grpc/GrpcClient": {
+    "encoding": "base64",
+    "sha": "e6827d10d1f6866dbd40509fb297bb951e74e707",
+    "display_url": "https://github.com/alibaba/nacos/blob/8d49753ba2b723fbd6946390feb57213957e7f2d/common/src/main/java/com/alibaba/nacos/common/remote/client/grpc/GrpcClient.java",
+    "display_title": "GrpcClient.java"
+  }
+}

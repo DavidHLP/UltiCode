@@ -1,0 +1,5 @@
+* text eol=lf
+# Preserve the byte-verified vendor whitespace rather than rewriting upstream history.
+src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java whitespace=-blank-at-eol
+build/upstream/ClientWorker.java whitespace=-blank-at-eol
+build/listener-lifecycle.patch whitespace=-blank-at-eol

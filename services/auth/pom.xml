@@ -13,7 +13,7 @@
 		<!-- Authoritative release version of this owner service; bump independently
 		     to release it without touching other services. Cross-service test
 		     dependencies resolve the default copy in the root pom. -->
-		<service.version.auth>1.0.5</service.version.auth>
+		<service.version.auth>1.0.8</service.version.auth>
 	</properties>
 	<artifactId>backend-auth</artifactId>
 	<version>${service.version.auth}</version>
@@ -221,7 +221,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.15</version>
+				<version>0.8.16</version>
 				<configuration>
 					<excludes>
 						<exclude>**/*Application.class</exclude>

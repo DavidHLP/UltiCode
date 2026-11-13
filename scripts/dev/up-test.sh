@@ -84,4 +84,5 @@ if ((failures > 0)); then
   echo "up-test.sh: $failures failure(s)" >&2
   exit 1
 fi
+python3 "$ROOT_DIR/scripts/test/test_pm2_startup_order.py"
 echo "up-test.sh: all assertions passed"

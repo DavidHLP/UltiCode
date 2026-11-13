@@ -1,0 +1,16 @@
+UltiCode patched Nacos API
+
+Derived from Alibaba Nacos API 2.5.3, Apache License 2.0.
+Copyright 1999-2020 Alibaba Group Holding Ltd.
+
+UltiCode modification: regenerate Metadata, MetadataOrBuilder, Payload,
+PayloadOrBuilder and NacosGrpcService from the unchanged upstream schema
+with official protoc 3.25.6. Original gRPC stubs and all other upstream
+class bytes are retained. This is not an official Alibaba Nacos release.
+
+See META-INF/nacos-patch/UPSTREAM-NOTICE for the original distribution
+notice, and META-INF/nacos-patch/proto/google/protobuf for imported
+descriptor copyright and BSD license notices. The original artifact and
+POM hashes, schema provenance and CycloneDX pedigree are included under
+META-INF/nacos-patch/. Original Maven metadata is retained only under
+META-INF/nacos-upstream/, not as this artifact's Maven identity.

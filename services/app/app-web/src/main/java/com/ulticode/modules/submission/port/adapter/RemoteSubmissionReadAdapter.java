@@ -16,6 +16,7 @@ import java.util.List;
 public class RemoteSubmissionReadAdapter implements SubmissionReadPort {
 
     @DubboReference(group = "backend-submission", version = "1.0.0",
+            providedBy = "${ulticode.rpc.providers.submission:backend-submission}",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionReadPort submissionReadPort;
 

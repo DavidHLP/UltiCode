@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup JDK 17
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
@@ -35,6 +35,108 @@ jobs:
 
       - name: Build with Maven
         run: cd services && ./mvnw compile -B
+
+      - name: Verify reproducible patched Nacos generation
+        run: cd services && ./mvnw -B -pl platform/nacos-api-patched -Pverify-nacos-generation verify
+
+      - name: Verify upstream Nacos SBOM identity
+        run: |
+          python3 -m unittest discover -s scripts/test -p test_nacos_sbom.py -v
+          python3 scripts/ci/check-nacos-sbom.py services/platform/nacos-api-patched/src/main/resources/META-INF/nacos-patch/bom.json
+
+      - name: Scan upstream Nacos SBOM identity
+        id: nacos-sbom-scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (Trivy v0.74.0)
+        with:
+          scan-type: sbom
+          list-all-pkgs: 'true'
+          scan-ref: services/platform/nacos-api-patched/src/main/resources/META-INF/nacos-patch/bom.json
+          scanners: vuln
+          vuln-type: library
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: json
+          output: ${{ runner.temp }}/nacos-api-pedigree.trivy.json
+          version: v0.74.0
+
+      - name: Verify Trivy recognized upstream Nacos
+        if: ${{ always() && steps.nacos-sbom-scan.outcome != 'skipped' && steps.nacos-sbom-scan.outcome != '' }}
+        run: python3 scripts/ci/check-nacos-sbom.py services/platform/nacos-api-patched/src/main/resources/META-INF/nacos-patch/bom.json --report "$RUNNER_TEMP/nacos-api-pedigree.trivy.json"
+
+      - name: Upload upstream Nacos scan inventory
+        if: ${{ always() && steps.nacos-sbom-scan.outcome != 'skipped' && steps.nacos-sbom-scan.outcome != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: nacos-api-pedigree-scan
+          path: ${{ runner.temp }}/nacos-api-pedigree.trivy.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Verify upstream Nacos client SBOM identity
+        run: |
+          python3 -m unittest discover -s scripts/test -p test_nacos_sbom.py -v
+          python3 scripts/ci/check-nacos-sbom.py services/platform/nacos-client-patched/src/main/resources/META-INF/nacos-client-patch/bom.json --artifact nacos-client
+
+      - name: Scan upstream Nacos client SBOM identity
+        id: nacos-client-sbom-scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (Trivy v0.74.0)
+        with:
+          scan-type: sbom
+          list-all-pkgs: 'true'
+          scan-ref: services/platform/nacos-client-patched/src/main/resources/META-INF/nacos-client-patch/bom.json
+          scanners: vuln
+          vuln-type: library
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: json
+          output: ${{ runner.temp }}/nacos-client-pedigree.trivy.json
+          version: v0.74.0
+
+      - name: Verify Trivy recognized upstream Nacos client
+        if: ${{ always() && steps.nacos-client-sbom-scan.outcome != 'skipped' && steps.nacos-client-sbom-scan.outcome != '' }}
+        run: python3 scripts/ci/check-nacos-sbom.py services/platform/nacos-client-patched/src/main/resources/META-INF/nacos-client-patch/bom.json --artifact nacos-client --report "$RUNNER_TEMP/nacos-client-pedigree.trivy.json"
+
+      - name: Upload upstream Nacos client scan inventory
+        if: ${{ always() && steps.nacos-client-sbom-scan.outcome != 'skipped' && steps.nacos-client-sbom-scan.outcome != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: nacos-client-pedigree-scan
+          path: ${{ runner.temp }}/nacos-client-pedigree.trivy.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Verify upstream Nacos common SBOM identity
+        run: |
+          python3 -m unittest discover -s scripts/test -p test_nacos_sbom.py -v
+          python3 scripts/ci/check-nacos-sbom.py services/platform/nacos-common-patched/src/main/resources/META-INF/nacos-common-patch/bom.json --artifact nacos-common
+
+      - name: Scan upstream Nacos common SBOM identity
+        id: nacos-common-sbom-scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 (Trivy v0.74.0)
+        with:
+          scan-type: sbom
+          list-all-pkgs: 'true'
+          scan-ref: services/platform/nacos-common-patched/src/main/resources/META-INF/nacos-common-patch/bom.json
+          scanners: vuln
+          vuln-type: library
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: json
+          output: ${{ runner.temp }}/nacos-common-pedigree.trivy.json
+          version: v0.74.0
+
+      - name: Verify Trivy recognized upstream Nacos common
+        if: ${{ always() && steps.nacos-common-sbom-scan.outcome != 'skipped' && steps.nacos-common-sbom-scan.outcome != '' }}
+        run: python3 scripts/ci/check-nacos-sbom.py services/platform/nacos-common-patched/src/main/resources/META-INF/nacos-common-patch/bom.json --artifact nacos-common --report "$RUNNER_TEMP/nacos-common-pedigree.trivy.json"
+
+      - name: Upload upstream Nacos common scan inventory
+        if: ${{ always() && steps.nacos-common-sbom-scan.outcome != 'skipped' && steps.nacos-common-sbom-scan.outcome != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: nacos-common-pedigree-scan
+          path: ${{ runner.temp }}/nacos-common-pedigree.trivy.json
+          if-no-files-found: error
+          retention-days: 30
 
   backend-test:
     name: Backend Test
@@ -81,7 +183,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup JDK 17
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
@@ -95,6 +197,11 @@ jobs:
 
       - name: Run tests with CI profile
         run: cd services && ./mvnw verify -Dspring.profiles.active=ci -Dtest='!*IT' -B
+
+      - name: Verify patched client against disposable authenticated Nacos
+        run: |
+          python3 -m unittest discover -s scripts/test -p test_nacos_client_integration.py -v
+          bash scripts/test/nacos-client-integration.sh
 
       - name: Upload test results on failure
         if: failure()
@@ -165,7 +272,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup JDK 17
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
@@ -244,10 +351,10 @@ jobs:
           persist-credentials: false
 
       - name: Setup mise for repository toolchain
-        uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
 
       - name: Setup JDK 17 for registry contracts
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
@@ -315,6 +422,15 @@ jobs:
           }
           trap cleanup EXIT
           cp .env.example "$env_file"
+          # Synthetic values for config-only validation; runtime templates stay empty.
+          printf '%s\n' \
+            "MYSQL_ROOT_PASSWORD=config-only-synthetic-mysql-root-password" \
+            "DB_PASSWORD=config-only-synthetic-db-password" \
+            "HEALTH_REDIS_PASSWORD=config-only-synthetic-health-redis-password" \
+            "NACOS_AUTH_TOKEN=config-only-synthetic-nacos-auth-token" \
+            "NACOS_AUTH_IDENTITY_KEY=config-only-synthetic-nacos-auth-identity-key" \
+            "NACOS_AUTH_IDENTITY_VALUE=config-only-synthetic-nacos-auth-identity-value" \
+            "MEILI_MASTER_KEY=config-only-synthetic-meili-master-key" >> "$env_file"
           replication_password="$(openssl rand -hex 16)"
           sentinel_password="$(openssl rand -hex 16)"
           printf '\nNACOS_DB_USER=nacos_rw\nNACOS_DB_PASSWORD=ci-ha-config\nNACOS_SERVERS=nacos:8848 nacos-2:8848 nacos-3:8848\nREDIS_HA_CONFIG_DIR=%s\nREDIS_REPLICATION_PASSWORD=%s\nREDIS_SENTINEL_PASSWORD=%s\n' \

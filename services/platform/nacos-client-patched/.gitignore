@@ -1,0 +1,9 @@
+# Reviewed build inputs, not generated build output.
+!build/
+build/*
+!build/PatchNacosClient.java
+!build/inputs.sha256.properties
+!build/listener-lifecycle.patch
+!build/upstream/
+build/upstream/*
+!build/upstream/ClientWorker.java

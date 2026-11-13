@@ -11,10 +11,18 @@ if ! [[ -v __ULTICODE_PM2_SOURCED ]]; then
 
   pm2_load_records() {
     PM2_RECORDS=""
+    if [[ "${ACCEPTANCE_DISPOSABLE:-}" == true ]]; then
+      ACCEPTANCE_PM2_JSON=""
+      ACCEPTANCE_PM2_COLLECTION=failed
+    fi
     command -v pm2 >/dev/null 2>&1 || return 0
 
     local raw parsed
     raw="$(pm2 jlist 2>/dev/null)" || return 0
+    if [[ "${ACCEPTANCE_DISPOSABLE:-}" == true ]]; then
+      ACCEPTANCE_PM2_JSON="$raw"
+      ACCEPTANCE_PM2_COLLECTION=ok
+    fi
     [[ -n "$raw" && "$raw" != "[]" ]] || return 0
     command -v node >/dev/null 2>&1 || return 0
 

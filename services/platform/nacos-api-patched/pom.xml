@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.ulticode</groupId>
+        <artifactId>ulticode-backend</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <artifactId>nacos-api-patched</artifactId>
+    <version>2.5.3-ulticode-1</version>
+    <name>UltiCode patched Nacos API</name>
+    <description>Nacos API 2.5.3 with five protobuf sources regenerated using protoc 3.25.6.
+        This independently versioned derivative retains all other upstream class bytes.
+        Upstream hashes, Apache licensing and CycloneDX pedigree are included in the jar.</description>
+    <url>https://github.com/DavidHLP/UltiCode</url>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <properties>
+        <project.build.outputTimestamp>2025-03-11T13:53:00Z</project.build.outputTimestamp>
+        <nacos.protoc.classifier>linux-x86_64</nacos.protoc.classifier>
+        <argLine/>
+    </properties>
+
+    <!-- Retain the upstream API dependency surface while allowing the reactor's
+         Jackson 2, gRPC and protobuf runtime management to select fixed versions.
+         Upstream nacos-api is a build input only, NEVER a runtime dependency. -->
+    <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty-shaded</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.api.grpc</groupId>
+            <artifactId>proto-google-common-protos</artifactId>
+            <version>2.17.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.7.0</version>
+                <executions>
+                    <execution>
+                        <id>require-compatible-nacos-sdk</id>
+                        <phase>validate</phase>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules>
+                                <requireProperty>
+                                    <property>nacos-client.version</property>
+                                    <regex>2[.]5[.]3</regex>
+                                    <regexMessage>This API derivative preserves Nacos 2.5.3 classes. Keep nacos-client and nacos-common at 2.5.3; upgrade the API derivative and verify provenance, protocol and registry integration together.</regexMessage>
+                                </requireProperty>
+                                <requireProperty>
+                                    <property>nacos-api-patched.version</property>
+                                    <regex>2[.]5[.]3-ulticode-1</regex>
+                                    <regexMessage>The runtime API dependency must select this exact 2.5.3-ulticode-1 derivative.</regexMessage>
+                                </requireProperty>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.8.1</version>
+                <executions>
+                    <execution>
+                        <id>fetch-pinned-upstream-inputs</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>copy</goal></goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.alibaba.nacos</groupId>
+                                    <artifactId>nacos-api</artifactId>
+                                    <version>2.5.3</version>
+                                    <type>jar</type>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.alibaba.nacos</groupId>
+                                    <artifactId>nacos-api</artifactId>
+                                    <version>2.5.3</version>
+                                    <type>pom</type>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}/upstream</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-and-prepare-patched-api</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.build.directory}/patch-tool"/>
+                                <javac srcdir="${project.basedir}/build"
+                                       destdir="${project.build.directory}/patch-tool"
+                                       release="17" encoding="UTF-8" includeantruntime="false"/>
+                                <java classname="PatchNacosApi" fork="true" failonerror="true">
+                                    <classpath><pathelement location="${project.build.directory}/patch-tool"/></classpath>
+                                    <arg value="prepare"/>
+                                    <arg value="${project.basedir}"/>
+                                    <arg value="${project.build.directory}"/>
+                                </java>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>verify-packaged-api</id>
+                        <phase>package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <java classname="PatchNacosApi" fork="true" failonerror="true">
+                                    <classpath><pathelement location="${project.build.directory}/patch-tool"/></classpath>
+                                    <arg value="verify"/>
+                                    <arg value="${project.basedir}"/>
+                                    <arg value="${project.build.directory}"/>
+                                    <arg value="${project.build.directory}/${project.build.finalName}.jar"/>
+                                </java>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+                <configuration>
+                    <proc>none</proc>
+                    <release>8</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Implementation-Title>UltiCode patched Nacos API</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Nacos-Upstream-Version>2.5.3</Nacos-Upstream-Version>
+                            <Nacos-Protoc-Version>3.25.6</Nacos-Protoc-Version>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-upstream-pedigree</id>
+                        <phase>package</phase>
+                        <goals><goal>attach-artifact</goal></goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>${project.basedir}/src/main/resources/META-INF/nacos-patch/bom.json</file>
+                                    <type>json</type>
+                                    <classifier>cyclonedx</classifier>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Normal builds need only JDK 17 and Maven. CI also regenerates and compares
+         all source bytes. Override classifier for other pinned native platforms. -->
+    <profiles>
+        <profile>
+            <id>verify-nacos-generation</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>fetch-pinned-protoc</id>
+                                <phase>generate-sources</phase>
+                                <goals><goal>copy</goal></goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>com.google.protobuf</groupId>
+                                            <artifactId>protoc</artifactId>
+                                            <version>3.25.6</version>
+                                            <classifier>${nacos.protoc.classifier}</classifier>
+                                            <type>exe</type>
+                                            <destFileName>protoc.exe</destFileName>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <outputDirectory>${project.build.directory}/toolchain</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>verify-generated-sources</id>
+                                <phase>process-sources</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <java sourcefile="${project.basedir}/build/PatchNacosApi.java"
+                                              fork="true" failonerror="true">
+                                            <arg value="regenerate"/>
+                                            <arg value="${project.basedir}"/>
+                                            <arg value="${project.build.directory}"/>
+                                            <arg value="${project.build.directory}/toolchain/protoc.exe"/>
+                                        </java>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

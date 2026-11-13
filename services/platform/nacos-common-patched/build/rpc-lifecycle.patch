@@ -1,0 +1,838 @@
+--- a/RpcClient.java
++++ b/RpcClient.java
+@@ -13,6 +13,8 @@
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
++
++// Modified by UltiCode: terminal RPC lifecycle and owned-resource cleanup.
+ 
+ package com.alibaba.nacos.common.remote.client;
+ 
+@@ -46,11 +48,16 @@
+ 
+ import java.util.ArrayList;
+ import java.util.List;
++import java.util.Collections;
++import java.util.IdentityHashMap;
++import java.util.Set;
+ import java.util.Map;
+ import java.util.Random;
+ import java.util.concurrent.ArrayBlockingQueue;
+ import java.util.concurrent.BlockingQueue;
+ import java.util.concurrent.LinkedBlockingQueue;
++import java.util.concurrent.CopyOnWriteArrayList;
++import java.util.concurrent.RejectedExecutionException;
+ import java.util.concurrent.ScheduledExecutorService;
+ import java.util.concurrent.ScheduledThreadPoolExecutor;
+ import java.util.concurrent.TimeUnit;
+@@ -71,6 +78,13 @@
+     
+     private static final Logger LOGGER = LoggerFactory.getLogger("com.alibaba.nacos.common.remote.client");
+     
++    // Only state publication is guarded here. Never invoke external code while holding this monitor.
++    private final Object lifecycleLock = new Object();
++
++    private final Set<Connection> ownedConnections = Collections.newSetFromMap(new IdentityHashMap<>());
++
++    private final Set<ScheduledExecutorService> ownedEventExecutors = Collections.newSetFromMap(new IdentityHashMap<>());
++
+     private ServerListFactory serverListFactory;
+     
+     protected BlockingQueue<ConnectionEvent> eventLinkedBlockingQueue = new LinkedBlockingQueue<>();
+@@ -91,12 +105,12 @@
+     /**
+      * listener called where connection's status changed.
+      */
+-    protected List<ConnectionEventListener> connectionEventListeners = new ArrayList<>();
++    protected List<ConnectionEventListener> connectionEventListeners = new CopyOnWriteArrayList<>();
+     
+     /**
+      * handlers to process server push request.
+      */
+-    protected List<ServerRequestHandler> serverRequestHandlers = new ArrayList<>();
++    protected List<ServerRequestHandler> serverRequestHandlers = new CopyOnWriteArrayList<>();
+     
+     private static final Pattern EXCLUDE_PROTOCOL_PATTERN = Pattern.compile("(?<=\\w{1,5}://)(.*)");
+     
+@@ -238,107 +252,128 @@
+      */
+     public final void start() throws NacosException {
+         
+-        boolean success = rpcClientStatus.compareAndSet(RpcClientStatus.INITIALIZED, RpcClientStatus.STARTING);
+-        if (!success) {
++        synchronized (lifecycleLock) {
++            if (!rpcClientStatus.compareAndSet(RpcClientStatus.INITIALIZED, RpcClientStatus.STARTING)) {
++                return;
++            }
++        }
++        final ScheduledExecutorService eventExecutor = new ScheduledThreadPoolExecutor(2,
++                new NameThreadFactory("com.alibaba.nacos.client.remote.worker"));
++        boolean admitted;
++        synchronized (lifecycleLock) {
++            ownedEventExecutors.add(eventExecutor);
++            admitted = !isShutdown();
++            if (admitted) {
++                clientEventExecutor = eventExecutor;
++            }
++        }
++        if (!admitted) {
++            Throwable failure = closeEventExecutor(eventExecutor);
++            if (failure != null) {
++                throw new NacosException(SERVER_ERROR, failure);
++            }
+             return;
+         }
+-        
+-        clientEventExecutor = new ScheduledThreadPoolExecutor(2,
+-                new NameThreadFactory("com.alibaba.nacos.client.remote.worker"));
+-        
+-        // connection event consumer.
+-        clientEventExecutor.submit(() -> {
+-            while (!clientEventExecutor.isTerminated() && !clientEventExecutor.isShutdown()) {
+-                ConnectionEvent take;
+-                try {
+-                    take = eventLinkedBlockingQueue.take();
+-                    if (take.isConnected()) {
+-                        notifyConnected(take.connection);
+-                    } else if (take.isDisConnected()) {
+-                        notifyDisConnected(take.connection);
++        try {
++            // connection event consumer.
++            eventExecutor.submit(() -> {
++                while (!eventExecutor.isTerminated() && !eventExecutor.isShutdown()) {
++                    ConnectionEvent take;
++                    try {
++                        take = eventLinkedBlockingQueue.take();
++                        if (take.isConnected()) {
++                            notifyConnected(take.connection);
++                        } else if (take.isDisConnected()) {
++                            notifyDisConnected(take.connection);
++                        }
++                    } catch (Throwable e) {
++                        // Do nothing
+                     }
+-                } catch (Throwable e) {
+-                    // Do nothing
+-                }
+-            }
+-        });
+-        
+-        clientEventExecutor.submit(() -> {
+-            while (true) {
+-                try {
+-                    if (isShutdown()) {
+-                        break;
+-                    }
+-                    ReconnectContext reconnectContext = reconnectionSignal
+-                            .poll(rpcClientConfig.connectionKeepAlive(), TimeUnit.MILLISECONDS);
+-                    if (reconnectContext == null) {
+-                        // check alive time.
+-                        if (System.currentTimeMillis() - lastActiveTimeStamp >= rpcClientConfig.connectionKeepAlive()) {
+-                            boolean isHealthy = healthCheck();
+-                            if (!isHealthy) {
+-                                if (currentConnection == null) {
++                }
++            });
++        
++            eventExecutor.submit(() -> {
++                while (true) {
++                    try {
++                        if (isShutdown()) {
++                            break;
++                        }
++                        ReconnectContext reconnectContext = reconnectionSignal
++                                .poll(rpcClientConfig.connectionKeepAlive(), TimeUnit.MILLISECONDS);
++                        if (reconnectContext == null) {
++                            // check alive time.
++                            if (System.currentTimeMillis() - lastActiveTimeStamp >= rpcClientConfig.connectionKeepAlive()) {
++                                boolean isHealthy = healthCheck();
++                                if (!isHealthy) {
++                                    if (currentConnection == null) {
++                                        continue;
++                                    }
++                                    LoggerUtils.printIfInfoEnabled(LOGGER,
++                                            "[{}] Server healthy check fail, currentConnection = {}",
++                                            rpcClientConfig.name(), currentConnection.getConnectionId());
++                                
++                                    RpcClientStatus rpcClientStatus = RpcClient.this.rpcClientStatus.get();
++                                    if (RpcClientStatus.SHUTDOWN.equals(rpcClientStatus)) {
++                                        break;
++                                    }
++                                
++                                    boolean statusFLowSuccess = RpcClient.this.rpcClientStatus
++                                            .compareAndSet(rpcClientStatus, RpcClientStatus.UNHEALTHY);
++                                    if (statusFLowSuccess) {
++                                        reconnectContext = new ReconnectContext(null, false);
++                                    } else {
++                                        continue;
++                                    }
++                                
++                                } else {
++                                    lastActiveTimeStamp = System.currentTimeMillis();
+                                     continue;
+                                 }
+-                                LoggerUtils.printIfInfoEnabled(LOGGER,
+-                                        "[{}] Server healthy check fail, currentConnection = {}",
+-                                        rpcClientConfig.name(), currentConnection.getConnectionId());
+-                                
+-                                RpcClientStatus rpcClientStatus = RpcClient.this.rpcClientStatus.get();
+-                                if (RpcClientStatus.SHUTDOWN.equals(rpcClientStatus)) {
++                            } else {
++                                continue;
++                            }
++                        
++                        }
++                    
++                        if (reconnectContext.serverInfo != null) {
++                            // clear recommend server if server is not in server list.
++                            boolean serverExist = false;
++                            for (String server : getServerListFactory().getServerList()) {
++                                ServerInfo serverInfo = resolveServerInfo(server);
++                                if (serverInfo.getServerIp().equals(reconnectContext.serverInfo.getServerIp())) {
++                                    serverExist = true;
++                                    reconnectContext.serverInfo.serverPort = serverInfo.serverPort;
+                                     break;
+                                 }
+-                                
+-                                boolean statusFLowSuccess = RpcClient.this.rpcClientStatus
+-                                        .compareAndSet(rpcClientStatus, RpcClientStatus.UNHEALTHY);
+-                                if (statusFLowSuccess) {
+-                                    reconnectContext = new ReconnectContext(null, false);
+-                                } else {
+-                                    continue;
+-                                }
+-                                
+-                            } else {
+-                                lastActiveTimeStamp = System.currentTimeMillis();
+-                                continue;
+                             }
+-                        } else {
+-                            continue;
+-                        }
+-                        
+-                    }
+-                    
+-                    if (reconnectContext.serverInfo != null) {
+-                        // clear recommend server if server is not in server list.
+-                        boolean serverExist = false;
+-                        for (String server : getServerListFactory().getServerList()) {
+-                            ServerInfo serverInfo = resolveServerInfo(server);
+-                            if (serverInfo.getServerIp().equals(reconnectContext.serverInfo.getServerIp())) {
+-                                serverExist = true;
+-                                reconnectContext.serverInfo.serverPort = serverInfo.serverPort;
+-                                break;
++                            if (!serverExist) {
++                                LoggerUtils.printIfInfoEnabled(LOGGER,
++                                        "[{}] Recommend server is not in server list, ignore recommend server {}",
++                                        rpcClientConfig.name(), reconnectContext.serverInfo.getAddress());
++                            
++                                reconnectContext.serverInfo = null;
++                            
+                             }
+                         }
+-                        if (!serverExist) {
+-                            LoggerUtils.printIfInfoEnabled(LOGGER,
+-                                    "[{}] Recommend server is not in server list, ignore recommend server {}",
+-                                    rpcClientConfig.name(), reconnectContext.serverInfo.getAddress());
+-                            
+-                            reconnectContext.serverInfo = null;
+-                            
+-                        }
++                        reconnect(reconnectContext.serverInfo, reconnectContext.onRequestFail);
++                    } catch (Throwable throwable) {
++                        // Do nothing
+                     }
+-                    reconnect(reconnectContext.serverInfo, reconnectContext.onRequestFail);
+-                } catch (Throwable throwable) {
+-                    // Do nothing
+-                }
+-            }
+-        });
+-        
++                }
++            });
++        
++        } catch (RejectedExecutionException e) {
++            if (!isShutdown()) {
++                throw e;
++            }
++            return;
++        }
++
+         // connect to server, try to connect to server sync retryTimes times, async starting if failed.
+         Connection connectToServer = null;
+-        rpcClientStatus.set(RpcClientStatus.STARTING);
+         
+         int startUpRetryTimes = rpcClientConfig.retryTimes();
+-        while (startUpRetryTimes >= 0 && connectToServer == null) {
++        while (startUpRetryTimes >= 0 && connectToServer == null && !isShutdown()) {
+             try {
+                 startUpRetryTimes--;
+                 ServerInfo serverInfo = nextRpcServer();
+@@ -360,9 +395,9 @@
+                     .printIfInfoEnabled(LOGGER, "[{}] Success to connect to server [{}] on start up, connectionId = {}",
+                             rpcClientConfig.name(), connectToServer.serverInfo.getAddress(),
+                             connectToServer.getConnectionId());
+-            this.currentConnection = connectToServer;
+-            rpcClientStatus.set(RpcClientStatus.RUNNING);
+-            eventLinkedBlockingQueue.offer(new ConnectionEvent(ConnectionEvent.CONNECTED, currentConnection));
++            if (!acceptConnection(connectToServer)) {
++                return;
++            }
+         } else {
+             switchServerAsync();
+         }
+@@ -422,13 +457,83 @@
+     
+     @Override
+     public void shutdown() throws NacosException {
+-        LOGGER.info("Shutdown rpc client, set status to shutdown");
+-        rpcClientStatus.set(RpcClientStatus.SHUTDOWN);
+-        LOGGER.info("Shutdown client event executor " + clientEventExecutor);
+-        if (clientEventExecutor != null) {
+-            clientEventExecutor.shutdownNow();
+-        }
+-        closeConnection(currentConnection);
++        List<Connection> connections;
++        List<ScheduledExecutorService> executors;
++        synchronized (lifecycleLock) {
++            rpcClientStatus.set(RpcClientStatus.SHUTDOWN);
++            if (clientEventExecutor != null) {
++                ownedEventExecutors.add(clientEventExecutor);
++            }
++            executors = new ArrayList<>(ownedEventExecutors);
++            if (currentConnection != null) {
++                ownedConnections.add(currentConnection);
++            }
++            currentConnection = null;
++            connections = new ArrayList<>(ownedConnections);
++        }
++        // A failure in one resource must not prevent cleanup of its peers. Retain failures for retry.
++        Throwable failure = null;
++        for (ScheduledExecutorService executor : executors) {
++            Throwable closeFailure = closeEventExecutor(executor);
++            if (closeFailure != null) {
++                if (failure == null) {
++                    failure = closeFailure;
++                } else if (failure != closeFailure) {
++                    failure.addSuppressed(closeFailure);
++                }
++            }
++        }
++        for (Connection connection : connections) {
++            Throwable closeFailure = closeConnection(connection);
++            if (closeFailure != null) {
++                if (failure == null) {
++                    failure = closeFailure;
++                } else if (failure != closeFailure) {
++                    failure.addSuppressed(closeFailure);
++                }
++            }
++        }
++        if (failure != null) {
++            throw new NacosException(SERVER_ERROR, failure);
++        }
++    }
++
++    private Throwable closeEventExecutor(ScheduledExecutorService executor) {
++        try {
++            executor.shutdownNow();
++            synchronized (lifecycleLock) {
++                ownedEventExecutors.remove(executor);
++            }
++            return null;
++        } catch (Throwable failure) {
++            return failure;
++        }
++    }
++
++    private boolean acceptConnection(Connection connection) {
++        Connection previous = null;
++        boolean accepted;
++        synchronized (lifecycleLock) {
++            ownedConnections.add(connection);
++            accepted = !isShutdown();
++            if (accepted) {
++                previous = currentConnection;
++                currentConnection = connection;
++                rpcClientStatus.set(RpcClientStatus.RUNNING);
++            }
++        }
++        if (!accepted) {
++            closeConnection(connection);
++            return false;
++        }
++        if (previous != null && previous != connection) {
++            previous.setAbandon(true);
++            closeConnection(previous);
++        }
++        if (!isShutdown()) {
++            eventLinkedBlockingQueue.offer(new ConnectionEvent(ConnectionEvent.CONNECTED, connection));
++        }
++        return true;
+     }
+     
+     private boolean healthCheck() {
+@@ -478,7 +583,11 @@
+             if (onRequestFail && healthCheck()) {
+                 LoggerUtils.printIfInfoEnabled(LOGGER, "[{}] Server check success, currentServer is {} ",
+                         rpcClientConfig.name(), currentConnection.serverInfo.getAddress());
+-                rpcClientStatus.set(RpcClientStatus.RUNNING);
++                synchronized (lifecycleLock) {
++                    if (!isShutdown()) {
++                        rpcClientStatus.set(RpcClientStatus.RUNNING);
++                    }
++                }
+                 return;
+             }
+             
+@@ -505,26 +614,11 @@
+                                 .printIfInfoEnabled(LOGGER, "[{}] Success to connect a server [{}], connectionId = {}",
+                                         rpcClientConfig.name(), serverInfo.getAddress(),
+                                         connectionNew.getConnectionId());
+-                        // successfully create a new connect.
+-                        if (currentConnection != null) {
+-                            LoggerUtils.printIfInfoEnabled(LOGGER,
+-                                    "[{}] Abandon prev connection, server is {}, connectionId is {}",
+-                                    rpcClientConfig.name(), currentConnection.serverInfo.getAddress(),
+-                                    currentConnection.getConnectionId());
+-                            // set current connection to enable connection event.
+-                            currentConnection.setAbandon(true);
+-                            closeConnection(currentConnection);
+-                        }
+-                        currentConnection = connectionNew;
+-                        rpcClientStatus.set(RpcClientStatus.RUNNING);
+-                        switchSuccess = true;
+-                        eventLinkedBlockingQueue.add(new ConnectionEvent(ConnectionEvent.CONNECTED, currentConnection));
++                        switchSuccess = acceptConnection(connectionNew);
+                         return;
+                     }
+-                    
+-                    // close connection if client is already shutdown.
+                     if (isShutdown()) {
+-                        closeConnection(currentConnection);
++                        return;
+                     }
+                     
+                     lastException = null;
+@@ -580,14 +674,26 @@
+         }
+     }
+     
+-    private void closeConnection(Connection connection) {
+-        if (connection != null) {
+-            LOGGER.info("Close current connection " + connection.getConnectionId());
++    private Throwable closeConnection(Connection connection) {
++        if (connection == null) {
++            return null;
++        }
++        synchronized (lifecycleLock) {
++            ownedConnections.add(connection);
++        }
++        try {
+             connection.close();
+-            eventLinkedBlockingQueue.add(new ConnectionEvent(ConnectionEvent.DISCONNECTED, connection));
+-        }
+-    }
+-    
++            synchronized (lifecycleLock) {
++                ownedConnections.remove(connection);
++            }
++            eventLinkedBlockingQueue.offer(new ConnectionEvent(ConnectionEvent.DISCONNECTED, connection));
++        } catch (Throwable failure) {
++            LOGGER.warn("Connection cleanup failed; retained for shutdown retry", failure);
++            return failure;
++        }
++        return null;
++    }
++
+     /**
+      * get connection type of this client.
+      *
+--- a/grpc/GrpcClient.java
++++ b/grpc/GrpcClient.java
+@@ -13,6 +13,8 @@
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
++
++// Modified by UltiCode: terminal RPC lifecycle and owned-resource cleanup.
+ 
+ package com.alibaba.nacos.common.remote.client.grpc;
+ 
+@@ -62,6 +64,11 @@
+ import org.slf4j.LoggerFactory;
+ 
+ import java.util.Arrays;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Collections;
++import java.util.IdentityHashMap;
++import java.util.Set;
+ import java.util.HashMap;
+ import java.util.Map;
+ import java.util.Optional;
+@@ -83,7 +90,16 @@
+     
+     private final GrpcClientConfig clientConfig;
+     
+-    private ThreadPoolExecutor grpcExecutor;
++    private volatile ThreadPoolExecutor grpcExecutor;
++
++    // Independent of RpcClient's publication monitor; neither monitor is nested with the other.
++    private final Object resourceLock = new Object();
++
++    private final Map<ManagedChannel, StreamObserver<Payload>> ownedChannels = new IdentityHashMap<>();
++
++    private final Set<ThreadPoolExecutor> ownedExecutors = Collections.newSetFromMap(new IdentityHashMap<>());
++
++    private final Set<RecAbilityContext> pendingAbilities = Collections.newSetFromMap(new IdentityHashMap<>());
+     
+     /**
+      * Block to wait setup success response.
+@@ -173,13 +189,95 @@
+     
+     @Override
+     public void shutdown() throws NacosException {
+-        super.shutdown();
+-        if (grpcExecutor != null) {
+-            LOGGER.info("Shutdown grpc executor " + grpcExecutor);
+-            grpcExecutor.shutdown();
+-        }
+-    }
+-    
++        Throwable failure = null;
++        try {
++            super.shutdown();
++        } catch (Throwable e) {
++            failure = e;
++        }
++        List<ManagedChannel> channels;
++        List<ThreadPoolExecutor> executors;
++        List<RecAbilityContext> abilities;
++        synchronized (resourceLock) {
++            channels = new ArrayList<>(ownedChannels.keySet());
++            executors = new ArrayList<>(ownedExecutors);
++            abilities = new ArrayList<>(pendingAbilities);
++        }
++        for (RecAbilityContext ability : abilities) {
++            ability.release(null);
++        }
++        for (ManagedChannel channel : channels) {
++            failure = combineFailure(failure, disposeChannel(channel));
++        }
++        for (ThreadPoolExecutor executor : executors) {
++            failure = combineFailure(failure, disposeExecutor(executor));
++        }
++        if (failure != null) {
++            throw new NacosException(NacosException.SERVER_ERROR, failure);
++        }
++    }
++
++    private Throwable combineFailure(Throwable first, Throwable next) {
++        if (first == null) {
++            return next;
++        }
++        if (next != null && first != next) {
++            first.addSuppressed(next);
++        }
++        return first;
++    }
++
++    private Throwable disposeExecutor(ThreadPoolExecutor executor) {
++        try {
++            executor.shutdownNow();
++            synchronized (resourceLock) {
++                ownedExecutors.remove(executor);
++            }
++            return null;
++        } catch (Throwable failure) {
++            LOGGER.warn("Executor cleanup failed; retained for shutdown retry", failure);
++            return failure;
++        }
++    }
++
++    private Throwable disposeChannel(ManagedChannel channel) {
++        StreamObserver<Payload> stream;
++        synchronized (resourceLock) {
++            stream = ownedChannels.get(channel);
++        }
++        Throwable failure = null;
++        // A shut-down channel already owns transport cancellation of its stream. In particular,
++        // RpcClient may have closed the GrpcConnection before this ownership sweep.
++        if (stream != null && !channel.isShutdown()) {
++            try {
++                stream.onCompleted();
++            } catch (Throwable e) {
++                failure = e;
++            }
++        }
++        boolean channelClosed = false;
++        try {
++            shuntDownChannel(channel);
++            channelClosed = channel.isShutdown();
++        } catch (Throwable e) {
++            failure = combineFailure(failure, e);
++        }
++        if (channelClosed) {
++            // onCompleted may reject a duplicate completion; transport cancellation is sufficient.
++            failure = null;
++            synchronized (resourceLock) {
++                // Do not discard a stream that was attached concurrently after this snapshot.
++                if (ownedChannels.get(channel) == stream) {
++                    ownedChannels.remove(channel);
++                }
++            }
++        }
++        if (failure != null) {
++            LOGGER.warn("Channel/stream cleanup failed; retained for shutdown retry", failure);
++        }
++        return failure;
++    }
++
+     /**
+      * Create a stub using a channel.
+      *
+@@ -235,6 +333,9 @@
+             //receive connection unregister response here,not check response is success.
+             return (Response) GrpcUtils.parse(response);
+         } catch (Exception e) {
++            if (e instanceof InterruptedException) {
++                Thread.currentThread().interrupt();
++            }
+             LoggerUtils.printIfErrorEnabled(LOGGER,
+                     "Server check fail, please check server {} ,port {} is available , error ={}", ip, port, e);
+             if (this.clientConfig != null && this.clientConfig.tlsConfig() != null && this.clientConfig.tlsConfig()
+@@ -247,7 +348,8 @@
+     }
+     
+     private StreamObserver<Payload> bindRequestStream(final BiRequestStreamGrpc.BiRequestStreamStub streamStub,
+-            final GrpcConnection grpcConn) {
++            final GrpcConnection grpcConn, final RecAbilityContext abilityContext) {
++        final SetupRequestHandler attemptSetupHandler = new SetupRequestHandler(abilityContext);
+         
+         return streamStub.requestBiStream(new StreamObserver<Payload>() {
+             
+@@ -264,7 +366,7 @@
+                         try {
+                             if (request instanceof SetupAckRequest) {
+                                 // there is no connection ready this time
+-                                setupRequestHandler.requestReply(request, null);
++                                attemptSetupHandler.requestReply(request, null);
+                                 return;
+                             }
+                             Response response = handleServerRequest(request);
+@@ -292,7 +394,7 @@
+                     LoggerUtils.printIfErrorEnabled(LOGGER, "[{}]Error to process server push response: {}",
+                             grpcConn.getConnectionId(), payload.getBody().getValue().toStringUtf8());
+                     // remove and notify
+-                    recAbilityContext.release(null);
++                    abilityContext.release(null);
+                 }
+             }
+             
+@@ -345,77 +447,120 @@
+     
+     @Override
+     public Connection connectToServer(ServerInfo serverInfo) {
+-        // the newest connection id
+-        String connectionId = "";
++        if (isShutdown()) {
++            return null;
++        }
++        // Retire previous connections closed by RpcClient without retaining every reconnect forever.
++        // Snapshot under the monitor; gRPC methods and stream callbacks run outside it.
++        List<ManagedChannel> previousChannels;
++        synchronized (resourceLock) {
++            previousChannels = new ArrayList<>(ownedChannels.keySet());
++        }
++        for (ManagedChannel previous : previousChannels) {
++            if (previous.isShutdown()) {
++                disposeChannel(previous);
++            }
++        }
++        ManagedChannel managedChannel = null;
++        GrpcConnection grpcConn = null;
++        RecAbilityContext abilityContext = new RecAbilityContext(null);
++        boolean returned = false;
+         try {
+-            if (grpcExecutor == null) {
+-                this.grpcExecutor = createGrpcExecutor(serverInfo.getServerIp());
++            ThreadPoolExecutor executor = grpcExecutor;
++            if (executor == null) {
++                ThreadPoolExecutor candidate = createGrpcExecutor(serverInfo.getServerIp());
++                boolean selected;
++                synchronized (resourceLock) {
++                    ownedExecutors.add(candidate);
++                    selected = !isShutdown() && grpcExecutor == null;
++                    if (selected) {
++                        grpcExecutor = candidate;
++                    }
++                    executor = grpcExecutor;
++                }
++                if (!selected) {
++                    disposeExecutor(candidate);
++                }
++            }
++            if (isShutdown() || executor == null) {
++                return null;
+             }
+             int port = serverInfo.getServerPort() + rpcPortOffset();
+-            ManagedChannel managedChannel = createNewManagedChannel(serverInfo.getServerIp(), port);
++            managedChannel = createNewManagedChannel(serverInfo.getServerIp(), port);
++            synchronized (resourceLock) {
++                ownedChannels.put(managedChannel, null);
++                pendingAbilities.add(abilityContext);
++            }
++            if (isShutdown()) {
++                return null;
++            }
+             RequestGrpc.RequestFutureStub newChannelStubTemp = createNewChannelStub(managedChannel);
+-            
+             Response response = serverCheck(serverInfo.getServerIp(), port, newChannelStubTemp);
+-            if (!(response instanceof ServerCheckResponse)) {
+-                shuntDownChannel(managedChannel);
++            if (!(response instanceof ServerCheckResponse) || isShutdown() || Thread.currentThread().isInterrupted()) {
+                 return null;
+             }
+-            // submit ability table as soon as possible
+-            // ability table will be null if server doesn't support ability table
+             ServerCheckResponse serverCheckResponse = (ServerCheckResponse) response;
+-            connectionId = serverCheckResponse.getConnectionId();
+-            
+             BiRequestStreamGrpc.BiRequestStreamStub biRequestStreamStub = BiRequestStreamGrpc.newStub(
+                     newChannelStubTemp.getChannel());
+-            GrpcConnection grpcConn = new GrpcConnection(serverInfo, grpcExecutor);
+-            grpcConn.setConnectionId(connectionId);
+-            // if not supported, it will be false
+-            if (serverCheckResponse.isSupportAbilityNegotiation()) {
+-                // mark
+-                this.recAbilityContext.reset(grpcConn);
+-                // promise null if no abilities receive
+-                grpcConn.setAbilityTable(null);
+-            }
+-            
+-            //create stream request and bind connection event to this connection.
+-            StreamObserver<Payload> payloadStreamObserver = bindRequestStream(biRequestStreamStub, grpcConn);
+-            
+-            // stream observer to send response to server
+-            grpcConn.setPayloadStreamObserver(payloadStreamObserver);
++            grpcConn = new GrpcConnection(serverInfo, executor);
++            grpcConn.setConnectionId(serverCheckResponse.getConnectionId());
+             grpcConn.setGrpcFutureServiceStub(newChannelStubTemp);
+             grpcConn.setChannel(managedChannel);
+-            //send a  setup request.
++            if (serverCheckResponse.isSupportAbilityNegotiation()) {
++                abilityContext.reset(grpcConn);
++                grpcConn.setAbilityTable(null);
++            }
++            StreamObserver<Payload> stream = bindRequestStream(biRequestStreamStub, grpcConn, abilityContext);
++            grpcConn.setPayloadStreamObserver(stream);
++            synchronized (resourceLock) {
++                ownedChannels.put(managedChannel, stream);
++            }
++            if (isShutdown()) {
++                return null;
++            }
+             ConnectionSetupRequest conSetupRequest = new ConnectionSetupRequest();
+             conSetupRequest.setClientVersion(getClientVersion());
+             conSetupRequest.setLabels(super.getLabels());
+-            // set ability table
+             conSetupRequest.setAbilityTable(
+                     NacosAbilityManagerHolder.getInstance().getCurrentNodeAbilities(abilityMode()));
+             conSetupRequest.setTenant(super.getTenant());
+             grpcConn.sendRequest(conSetupRequest);
+-            // wait for response
+-            if (recAbilityContext.isNeedToSync()) {
+-                // try to wait for notify response
+-                recAbilityContext.await(this.clientConfig.capabilityNegotiationTimeout(), TimeUnit.MILLISECONDS);
+-                // if no server abilities receiving, then reconnect
+-                if (!recAbilityContext.check(grpcConn)) {
++            if (serverCheckResponse.isSupportAbilityNegotiation()) {
++                abilityContext.await(this.clientConfig.capabilityNegotiationTimeout(), TimeUnit.MILLISECONDS);
++                if (!abilityContext.check(grpcConn)) {
+                     return null;
+                 }
+             } else {
+-                // leave for adapting old version server
+-                // registration is considered successful by default after 100ms
+-                // wait to register connection setup
+                 Thread.sleep(100L);
+             }
++            if (isShutdown()) {
++                return null;
++            }
++            // Ownership deliberately survives return, including a subclass hook before base publication.
++            returned = true;
+             return grpcConn;
++        } catch (InterruptedException e) {
++            Thread.currentThread().interrupt();
++            LOGGER.warn("Interrupted while connecting to server", e);
+         } catch (Exception e) {
+             LOGGER.error("[{}]Fail to connect to server!,error={}", GrpcClient.this.getName(), e);
+-            // remove and notify
+-            recAbilityContext.release(null);
++        } finally {
++            synchronized (resourceLock) {
++                pendingAbilities.remove(abilityContext);
++            }
++            if (!returned || isShutdown()) {
++                abilityContext.release(null);
++                if (grpcConn != null) {
++                    grpcConn.setAbandon(true);
++                }
++                if (managedChannel != null) {
++                    disposeChannel(managedChannel);
++                }
++            }
+         }
+         return null;
+     }
+-    
++
+     protected String getClientVersion() {
+         return VersionUtils.getFullClientVersion();
+     }
+@@ -429,7 +574,13 @@
+     
+     @Override
+     protected void afterReset(ConnectResetRequest request) {
+-        recAbilityContext.release(null);
++        List<RecAbilityContext> abilities;
++        synchronized (resourceLock) {
++            abilities = new ArrayList<>(pendingAbilities);
++        }
++        for (RecAbilityContext ability : abilities) {
++            ability.release(null);
++        }
+     }
+     
+     /**
+@@ -468,7 +619,7 @@
+          *
+          * @param connection new connection which is waiting for ability table.
+          */
+-        public void reset(Connection connection) {
++        public synchronized void reset(Connection connection) {
+             this.connection = connection;
+             this.blocker = new CountDownLatch(1);
+             this.needToSync = true;
+@@ -479,7 +630,7 @@
+          *
+          * @param abilities abilities.
+          */
+-        public void release(Map<String, Boolean> abilities) {
++        public synchronized void release(Map<String, Boolean> abilities) {
+             if (this.connection != null) {
+                 this.connection.setAbilityTable(abilities);
+                 // avoid repeat setting
+@@ -597,7 +748,7 @@
+             if (request instanceof SetupAckRequest) {
+                 SetupAckRequest setupAckRequest = (SetupAckRequest) request;
+                 // remove and count down
+-                recAbilityContext.release(
++                abilityContext.release(
+                         Optional.ofNullable(setupAckRequest.getAbilityTable()).orElse(new HashMap<>(0)));
+                 return new SetupAckResponse();
+             }

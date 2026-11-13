@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 public class RemoteSubmissionStreakAdapter implements SubmissionStreakPort {
 
     @DubboReference(group = "backend-submission", version = "1.0.0",
+            providedBy = "${ulticode.rpc.providers.submission:backend-submission}",
             timeout = RpcPolicy.QUERY_TIMEOUT_MS, retries = RpcPolicy.QUERY_RETRIES, check = false)
     private SubmissionStreakPort submissionStreakPort;
 

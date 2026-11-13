@@ -1,0 +1,120 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "library",
+      "bom-ref": "pkg:maven/com.ulticode/nacos-common-patched@2.5.3-ulticode-1",
+      "group": "com.ulticode",
+      "name": "nacos-common-patched",
+      "version": "2.5.3-ulticode-1",
+      "purl": "pkg:maven/com.ulticode/nacos-common-patched@2.5.3-ulticode-1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "pedigree": {
+        "ancestors": [
+          {
+            "type": "library",
+            "group": "com.alibaba.nacos",
+            "name": "nacos-common",
+            "version": "2.5.3",
+            "purl": "pkg:maven/com.alibaba.nacos/nacos-common@2.5.3",
+            "licenses": [
+              {
+                "license": {
+                  "id": "Apache-2.0"
+                }
+              }
+            ],
+            "hashes": [
+              {
+                "alg": "SHA-256",
+                "content": "c943d01cc2a6791fabc2f862a8456501b6ffc934d5a915fd9b413fddd08e1d46"
+              }
+            ],
+            "externalReferences": [
+              {
+                "type": "distribution",
+                "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-common/2.5.3/nacos-common-2.5.3.jar"
+              },
+              {
+                "type": "vcs",
+                "url": "https://github.com/alibaba/nacos/tree/8d49753ba2b723fbd6946390feb57213957e7f2d"
+              }
+            ]
+          }
+        ],
+        "notes": "Recompile RpcClient and GrpcClient families for RPC lifecycle ownership. Preserve all other upstream entries byte-for-byte. See embedded exact patch."
+      },
+      "properties": [
+        {
+          "name": "ulticode:upstream-pom-sha256",
+          "value": "985ce3b5620dc860f6ac959392cda22ecf1048fd57524d75104f2c5e4a47a72b"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/DavidHLP/UltiCode"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "group": "com.alibaba.nacos",
+      "name": "nacos-common",
+      "version": "2.5.3",
+      "purl": "pkg:maven/com.alibaba.nacos/nacos-common@2.5.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c943d01cc2a6791fabc2f862a8456501b6ffc934d5a915fd9b413fddd08e1d46"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://repo.maven.apache.org/maven2/com/alibaba/nacos/nacos-common/2.5.3/nacos-common-2.5.3.jar"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/alibaba/nacos/tree/8d49753ba2b723fbd6946390feb57213957e7f2d"
+        }
+      ],
+      "bom-ref": "pkg:maven/com.alibaba.nacos/nacos-common@2.5.3",
+      "properties": [
+        {
+          "name": "ulticode:relationship",
+          "value": "Upstream code incorporated into this derivative, not a second runtime jar; retained for ordinary SBOM vulnerability attribution."
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:maven/com.ulticode/nacos-common-patched@2.5.3-ulticode-1",
+      "dependsOn": [
+        "pkg:maven/com.alibaba.nacos/nacos-common@2.5.3"
+      ]
+    },
+    {
+      "ref": "pkg:maven/com.alibaba.nacos/nacos-common@2.5.3",
+      "dependsOn": []
+    }
+  ]
+}

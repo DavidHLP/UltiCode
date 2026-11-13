@@ -71,5 +71,26 @@ class NacosClientSbomTest(unittest.TestCase):
                 CHECK.validate(broken, self.report, "nacos-client")
 
 
+class NacosCommonSbomTest(unittest.TestCase):
+    def setUp(self):
+        self.sbom = json.loads((ROOT / "services/platform/nacos-common-patched/src/main/resources/META-INF/nacos-common-patch/bom.json").read_text())
+        self.report = {"Results": [{"Packages": [{"Name": "com.alibaba.nacos:nacos-common", "Version": "2.5.3",
+                                                "Identifier": {"PURL": "pkg:maven/com.alibaba.nacos/nacos-common@2.5.3"}}]}]}
+
+    def test_actual_sbom_and_recognized_package(self):
+        CHECK.validate(self.sbom, self.report, "nacos-common")
+
+    def test_common_negative_inventory(self):
+        for report in ({}, {"Results": []}, {"Results": [{"Packages": [{"Name": "com.alibaba.nacos:nacos-api", "Version": "2.5.3"}]}]},
+                       {"Results": [{"Packages": [{"Name": "com.alibaba.nacos:nacos-common", "Version": "2.5.1"}]}]}):
+            with self.subTest(report=report), self.assertRaises(ValueError):
+                CHECK.validate(self.sbom, report, "nacos-common")
+        for mutation in ("components", "dependencies"):
+            broken = copy.deepcopy(self.sbom)
+            broken[mutation] = []
+            with self.assertRaises(ValueError):
+                CHECK.validate(broken, self.report, "nacos-common")
+
+
 if __name__ == "__main__":
     unittest.main()

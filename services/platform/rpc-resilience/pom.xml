@@ -20,9 +20,8 @@
             <artifactId>nacos-client-patched</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.nacos</groupId>
-            <artifactId>nacos-common</artifactId>
-            <version>${nacos-client.version}</version>
+            <groupId>com.ulticode</groupId>
+            <artifactId>nacos-common-patched</artifactId>
         </dependency>
         <dependency>
             <groupId>com.ulticode</groupId>

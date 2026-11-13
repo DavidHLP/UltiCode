@@ -124,7 +124,7 @@ public final class PatchNacosClient {
                 patched.get("META-INF/maven/com.ulticode/nacos-client-patched/pom.properties")));
         require("com.ulticode".equals(identity.getProperty("groupId"))
                         && "nacos-client-patched".equals(identity.getProperty("artifactId"))
-                        && "2.5.3-ulticode-1".equals(identity.getProperty("version")),
+                        && "2.5.3-ulticode-2".equals(identity.getProperty("version")),
                 "Incorrect owned Maven identity");
         require(patched.containsKey("META-INF/nacos-client-patch/bom.json"), "Missing upstream SBOM pedigree");
         try (var paths = Files.walk(base.resolve("src/main/resources"))) {

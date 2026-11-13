@@ -23,6 +23,7 @@
 		<module>platform/common</module>
 		<module>platform/storage</module>
 		<module>platform/nacos-api-patched</module>
+		<module>platform/nacos-common-patched</module>
 		<module>platform/nacos-client-patched</module>
 		<module>platform/rpc-resilience</module>
 		<module>platform/web-security</module>
@@ -71,7 +72,8 @@
 		     Any upstream baseline upgrade requires rebuilding and verifying the derivative. -->
 		<nacos-client.version>2.5.3</nacos-client.version>
 		<nacos-api-patched.version>2.5.3-ulticode-1</nacos-api-patched.version>
-		<nacos-client-patched.version>2.5.3-ulticode-1</nacos-client-patched.version>
+		<nacos-client-patched.version>2.5.3-ulticode-2</nacos-client-patched.version>
+		<nacos-common-patched.version>2.5.3-ulticode-1</nacos-common-patched.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<mybatis-plus.version>3.5.18.1</mybatis-plus.version>
 		<jjwt.version>0.13.0</jjwt.version>
@@ -105,6 +107,7 @@
 
 	<dependencyManagement>
 		<dependencies>
+            <dependency><groupId>com.ulticode</groupId><artifactId>nacos-common-patched</artifactId><version>${nacos-common-patched.version}</version></dependency>
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-common</artifactId>

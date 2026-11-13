@@ -80,23 +80,11 @@ Nacos 2.3.2 对标准 SDK 的批量监听请求使用 namespace 级配置读取�
 当前 client/common 与衍生 API 上游基线同步迁移到官方 2.5.3；
 [上游 #15449](https://github.com/alibaba/nacos/pull/15449) 已加入正常 shutdown
 和同 task id 原子创建修复，包含于 [2.5.3](https://github.com/alibaba/nacos/releases/tag/2.5.3)。
-衍生 API 仍仅重建 protobuf 生成类；独立 `nacos-client-patched` 衍生包仅修改 ClientWorker 的 listener 生命周期，保留所有其他上游内容。
+衍生 API 仍仅重建 protobuf 生成类；独立 `nacos-client-patched` 修改 `ClientWorker` admission 与所属资源清理，独立 `nacos-common-patched` 修改 `RpcClient` / `GrpcClient` 发布和临时通道所有权，均保留其他上游内容与独立来源/扫描门禁。
 
-衍生 client 对关闭后新/旧 task id、创建/关闭竞争及父安全清理异常增加有界回归：
-关闭入口先在分配 monitor 内停止接收并取池快照，再在 monitor 外逐池关闭，最后执行原清理；
-重复/并发关闭仍重试所有池及原清理。已接收回调可自然完成，不等待或强制打断。
-本项保持 OPEN：RPC、handler、subscriber 创建仍未被该 listener 边界封闭，
-安全清理异常后原 scheduler/RPC 清理仍需重试，真实启动、回调、重连和长期生命周期尚未验收。
-共享 JVM shutdown hook、事件发布线程的上游改动也不等于本项目已完成运行验收。
-长期存活 JVM 的反复创建、监听、移除、关闭及异常/并发路径仍需独立验证。
+client 关闭入口先停止 listener/RPC admission。每个 task id 单一初始化任务，外部启动与清理不持有 admission monitor，同线程初始化重入拒绝；每个 RPC/subscriber 独立跟踪，失败清理可重试，迟到创建自行回收，factory 仅比较移除所属实例。common 的 `SHUTDOWN` 为终态，拒绝迟到连接发布；临时通道覆盖启动、协商、返回和发布交接，独立能力协商上下文避免并行串扰，正常重连不无限保留旧通道。
 
-生命周期门禁必须在关闭前捕获原 RPC、通道、主执行器和 listener 池，
-验证 SDK 自身关闭和实际终止、factory 移除，并单独记录未关闭池数量。
-不得手动清理 SDK 池来伪造通过，不得以测试 JVM 退出代替资源释放断言。
-关闭后不要再调用配置客户端 `getServerStatus()`，它可能经
-`ensureRpcClient("0")` 新建 RPC 客户端，具有观察副作用。
-真实认证注册中心、回调、重连与同 JVM 多轮生命周期验收仍须完成；
-一次隔离进程的协议兼容通过不能关闭本项。
+listener 已接收回调仍可自然完成，不等待或强制打断；安全清理异常后原主 scheduler 仍需重试。清理异常不等于释放成功；测试必须在兜底清理前捕获原资源并验证实际关闭、终止和 factory 移除。合成 localhost peer 下的实际 SDK 并发测试不替代真实认证注册中心、配置/命名业务回调、断网重连、共享通知线程及长期同 JVM 生命周期验收；也不保证强制终止不合作的外部回调。因此本项整体保持 OPEN。
 
 ## CLOSED
 

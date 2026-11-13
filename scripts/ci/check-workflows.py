@@ -190,6 +190,32 @@ def check_repository(root):
                            step.get("with", {}).get("path") == "${{ runner.temp }}/nacos-client-pedigree.trivy.json" and
                            step.get("with", {}).get("if-no-files-found") == "error" for step in steps):
                     reject("upstream Nacos client scan inventory must be retained on success and failure")
+                scans = [step for step in steps if step.get("id") == "nacos-common-sbom-scan"]
+                expected_scan = {
+                    "scan-type": "sbom", "list-all-pkgs": "true",
+                    "scan-ref": "services/platform/nacos-common-patched/src/main/resources/META-INF/nacos-common-patch/bom.json",
+                    "scanners": "vuln", "vuln-type": "library", "severity": "HIGH,CRITICAL",
+                    "exit-code": "1", "format": "json", "version": "v0.74.0",
+                    "output": "${{ runner.temp }}/nacos-common-pedigree.trivy.json",
+                }
+                if (len(scans) != 1 or build.get("if") is not None
+                        or scans[0].get("if") is not None
+                        or scans[0].get("uses") != "aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+                        or any(scans[0].get("with", {}).get(key) != value for key, value in expected_scan.items())
+                        or scans[0].get("with", {}).get("ignore-unfixed") not in (None, False, "false")):
+                    reject("upstream Nacos common SBOM scan must remain pinned, unconditional and fail closed")
+                scan_ran = "${{ always() && steps.nacos-common-sbom-scan.outcome != 'skipped' && steps.nacos-common-sbom-scan.outcome != '' }}"
+                if not any(step.get("if") == scan_ran and
+                           'check-nacos-sbom.py' in step.get("run", "") and
+                           '--artifact nacos-common' in step.get("run", "") and
+                           '--report "$RUNNER_TEMP/nacos-common-pedigree.trivy.json"' in step.get("run", "")
+                           for step in steps):
+                    reject("upstream Nacos common scan must verify actual scanner package recognition")
+                if not any(step.get("if") == scan_ran and
+                           step.get("uses", "").startswith("actions/upload-artifact@") and
+                           step.get("with", {}).get("path") == "${{ runner.temp }}/nacos-common-pedigree.trivy.json" and
+                           step.get("with", {}).get("if-no-files-found") == "error" for step in steps):
+                    reject("upstream Nacos common scan inventory must be retained on success and failure")
             for name, job in data.get("jobs", {}).items():
                 if "permissions" in job:
                     check_permissions(job["permissions"], WRITE_PERMISSIONS.get((path.name, name), set()), f"job {name} permissions")

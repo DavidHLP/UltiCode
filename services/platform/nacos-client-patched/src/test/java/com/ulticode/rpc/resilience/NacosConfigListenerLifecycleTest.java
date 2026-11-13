@@ -368,12 +368,12 @@ class NacosConfigListenerLifecycleTest {
             String version = System.getProperty("nacos.lifecycle.expectedVersion", "2.5.3");
             assertThat(version).as("supported private fixture layouts").isIn("2.5.1", "2.5.3");
             String source = ClientWorker.class.getProtectionDomain().getCodeSource().getLocation().toString();
-            assertThat(source.endsWith("/nacos-client-patched-2.5.3-ulticode-1.jar")
+            assertThat(source.endsWith("/nacos-client-patched-2.5.3-ulticode-2.jar")
                     || source.endsWith("/nacos-client-patched/target/classes/")).isTrue();
             String root = source.endsWith(".jar") ? "jar:" + source + "!/" : source;
             try (var input = new java.net.URL(root + "META-INF/nacos-client-patch/provenance.json").openStream()) {
                 assertThat(new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8))
-                        .contains("pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-1",
+                        .contains("pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2",
                                 "com.alibaba.nacos:nacos-client:jar:pure:2.5.3",
                                 "a991843c4d991fc68d4acb82c3bd9a43fe1deee3a76f1bd66260d81d08d03fa6");
             }

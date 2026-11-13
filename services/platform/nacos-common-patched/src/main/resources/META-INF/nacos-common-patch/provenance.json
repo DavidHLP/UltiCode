@@ -1,0 +1,29 @@
+{
+  "artifact": "pkg:maven/com.ulticode/nacos-common-patched@2.5.3-ulticode-1",
+  "upstream": {
+    "coordinates": "com.alibaba.nacos:nacos-common:jar:2.5.3",
+    "sha256": "c943d01cc2a6791fabc2f862a8456501b6ffc934d5a915fd9b413fddd08e1d46",
+    "pomSha256": "985ce3b5620dc860f6ac959392cda22ecf1048fd57524d75104f2c5e4a47a72b"
+  },
+  "source": {
+    "gitCommit": "8d49753ba2b723fbd6946390feb57213957e7f2d",
+    "files": {
+      "RpcClient": {
+        "encoding": "base64",
+        "sha": "b9065ef539141857ae24a7b33e858521f9e5ca21",
+        "display_url": "https://github.com/alibaba/nacos/blob/8d49753ba2b723fbd6946390feb57213957e7f2d/common/src/main/java/com/alibaba/nacos/common/remote/client/RpcClient.java",
+        "display_title": "RpcClient.java",
+        "sha256": "92a53e6a792a1b95a491587a6714eccccf8b83edecb0f939dbeeb6b27b407772"
+      },
+      "grpc/GrpcClient": {
+        "encoding": "base64",
+        "sha": "e6827d10d1f6866dbd40509fb297bb951e74e707",
+        "display_url": "https://github.com/alibaba/nacos/blob/8d49753ba2b723fbd6946390feb57213957e7f2d/common/src/main/java/com/alibaba/nacos/common/remote/client/grpc/GrpcClient.java",
+        "display_title": "GrpcClient.java",
+        "sha256": "9916f24e12df2a752f4a81936e48e9dd562267116d01d73a1a84ca0e1b0a139f"
+      }
+    }
+  },
+  "modification": "Recompile RpcClient and GrpcClient families for RPC lifecycle ownership. Preserve all other upstream entries byte-for-byte. See embedded exact patch.",
+  "scope": "Local RPC lifecycle derivative; real registry integration and release acceptance are separate checks."
+}

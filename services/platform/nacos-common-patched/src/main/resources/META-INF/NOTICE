@@ -1,0 +1,8 @@
+UltiCode Nacos common derivative
+Copyright 2026 UltiCode contributors
+
+Derived from Alibaba Nacos 2.5.3, Apache License 2.0.
+RpcClient and GrpcClient lifecycle modifications are recorded in
+META-INF/nacos-common-patch/rpc-lifecycle.patch.
+All other upstream content is preserved byte-for-byte.
+See nacos-common-patch/UPSTREAM-NOTICE for upstream notices.

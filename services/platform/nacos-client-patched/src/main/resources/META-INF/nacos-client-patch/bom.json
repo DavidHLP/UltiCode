@@ -5,11 +5,11 @@
   "metadata": {
     "component": {
       "type": "library",
-      "bom-ref": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-1",
+      "bom-ref": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2",
       "group": "com.ulticode",
       "name": "nacos-client-patched",
-      "version": "2.5.3-ulticode-1",
-      "purl": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-1",
+      "version": "2.5.3-ulticode-2",
+      "purl": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2",
       "licenses": [
         {
           "license": {
@@ -50,7 +50,7 @@
             ]
           }
         ],
-        "notes": "Recompile only ClientWorker and its four inner classes. Atomic listener admission/close, external cleanup outside the monitor, graceful pool shutdown before security cleanup, retryable failures. Preserve every other upstream entry byte-for-byte; relocate upstream Maven identity."
+        "notes": "Recompile only ClientWorker and its four inner classes. Seal listener/RPC admission, use per-task single-flight startup outside the monitor, reject same-thread reentry, retain exact RPC/subscriber cleanup ownership, and compare-remove factory identities. Preserve every other upstream entry byte-for-byte; relocate upstream Maven identity."
       },
       "properties": [
         {
@@ -115,7 +115,7 @@
   ],
   "dependencies": [
     {
-      "ref": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-1",
+      "ref": "pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2",
       "dependsOn": [
         "pkg:maven/com.alibaba.nacos/nacos-client@2.5.3"
       ]

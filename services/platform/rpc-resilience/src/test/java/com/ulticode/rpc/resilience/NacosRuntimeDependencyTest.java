@@ -66,7 +66,32 @@ class NacosRuntimeDependencyTest {
     static void requiresSafeGencodeWithoutAnUnsafeOverride() {
         assertThat(System.getProperty("com.google.protobuf.error_on_unsafe_pre22_gencode"))
                 .as("the forked test JVM must reject legacy vulnerable generated code").isEqualTo("true");
-        assertThat(Boolean.getBoolean("com.google.protobuf.use_unsafe_pre22_gencode")).isFalse();
+        assertThat(System.getProperty("com.google.protobuf.use_unsafe_pre22_gencode"))
+                .as("even a false-valued unsafe override disables the upstream guard").isNull();
+    }
+
+    @Test
+    void rejectsEvenFalseValuedUnsafeOverrideInAFreshJvm() throws Exception {
+        String javaCommand = java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString();
+        String classpath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path"));
+        Process child = new ProcessBuilder(javaCommand,
+                "-Dcom.google.protobuf.error_on_unsafe_pre22_gencode=true",
+                "-Dcom.google.protobuf.use_unsafe_pre22_gencode=false", "-cp", classpath,
+                UnsafeOverrideProbe.class.getName()).redirectErrorStream(true).start();
+        try {
+            assertThat(child.waitFor(10, TimeUnit.SECONDS)).as("bounded negative guard process").isTrue();
+            String output = new String(child.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(child.exitValue()).isNotZero();
+            assertThat(output).contains("even a false-valued unsafe override disables the upstream guard");
+        } finally {
+            child.destroyForcibly();
+        }
+    }
+
+    public static final class UnsafeOverrideProbe {
+        public static void main(String[] ignored) {
+            requiresSafeGencodeWithoutAnUnsafeOverride();
+        }
     }
 
     @Test
@@ -77,7 +102,7 @@ class NacosRuntimeDependencyTest {
     static void assertPinnedNacosRuntime() throws Exception {
         ClassLoader loader = NacosRuntimeDependencyTest.class.getClassLoader();
         String clientSource = NacosNamingService.class.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
-        assertThat(clientSource.endsWith("nacos-client-patched-2.5.3-ulticode-1.jar")
+        assertThat(clientSource.endsWith("nacos-client-patched-2.5.3-ulticode-2.jar")
                 || clientSource.endsWith("/nacos-client-patched/target/classes/"))
                 .as("Client must originate from the exact owned derivative: %s", clientSource).isTrue();
         for (Class<?> clientClass : List.of(NacosNamingService.class, NacosConfigService.class, ClientWorker.class)) {
@@ -93,7 +118,7 @@ class NacosRuntimeDependencyTest {
         assertThat(loader.getResource(provenance).toExternalForm()).isEqualTo(clientRoot + provenance);
         try (InputStream input = new java.net.URL(clientRoot + provenance).openStream()) {
             assertThat(new String(input.readAllBytes(), StandardCharsets.UTF_8))
-                    .contains("\"artifact\": \"pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-1\"",
+                    .contains("\"artifact\": \"pkg:maven/com.ulticode/nacos-client-patched@2.5.3-ulticode-2\"",
                             "\"coordinates\": \"com.alibaba.nacos:nacos-client:jar:pure:2.5.3\"",
                             "\"sha256\": \"a991843c4d991fc68d4acb82c3bd9a43fe1deee3a76f1bd66260d81d08d03fa6\"");
         }
@@ -111,11 +136,36 @@ class NacosRuntimeDependencyTest {
             }
             assertThat(owned.getProperty("groupId")).isEqualTo("com.ulticode");
             assertThat(owned.getProperty("artifactId")).isEqualTo("nacos-client-patched");
-            assertThat(owned.getProperty("version")).isEqualTo("2.5.3-ulticode-1");
+            assertThat(owned.getProperty("version")).isEqualTo("2.5.3-ulticode-2");
         }
-        assertThat(ConnectionType.class.getProtectionDomain().getCodeSource().getLocation().toString())
-                .as("common and client must use the patched API's upstream baseline")
-                .endsWith("nacos-common-2.5.3.jar");
+        String commonSource = ConnectionType.class.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
+        assertThat(commonSource.endsWith("nacos-common-patched-2.5.3-ulticode-1.jar")
+                || commonSource.endsWith("/nacos-common-patched/target/classes/"))
+                .as("Common must originate from the exact independently identified derivative").isTrue();
+        for (Class<?> commonClass : List.of(ConnectionType.class, RpcClient.class, RpcClientFactory.class,
+                com.alibaba.nacos.common.remote.client.grpc.GrpcClient.class)) {
+            assertThat(commonClass.getProtectionDomain().getCodeSource().getLocation().toExternalForm()).isEqualTo(commonSource);
+            assertThat(loader.getResources(commonClass.getName().replace('.', '/') + ".class").asIterator()).toIterable().hasSize(1);
+        }
+        assertThat(loader.getResource("META-INF/maven/com.alibaba.nacos/nacos-common/pom.properties")).isNull();
+        String commonRoot = commonSource.endsWith(".jar") ? "jar:" + commonSource + "!/" : commonSource;
+        String commonProvenance = "META-INF/nacos-common-patch/provenance.json";
+        assertThat(loader.getResources(commonProvenance).asIterator()).toIterable().hasSize(1);
+        assertThat(loader.getResource(commonProvenance).toExternalForm()).isEqualTo(commonRoot + commonProvenance);
+        try (InputStream input = new java.net.URL(commonRoot + commonProvenance).openStream()) {
+            assertThat(new String(input.readAllBytes(), StandardCharsets.UTF_8))
+                    .contains("pkg:maven/com.ulticode/nacos-common-patched@2.5.3-ulticode-1",
+                            "c943d01cc2a6791fabc2f862a8456501b6ffc934d5a915fd9b413fddd08e1d46");
+        }
+        if (commonSource.endsWith(".jar")) {
+            Properties commonIdentity = new Properties();
+            try (InputStream input = new java.net.URL(commonRoot + "META-INF/maven/com.ulticode/nacos-common-patched/pom.properties").openStream()) {
+                commonIdentity.load(input);
+            }
+            assertThat(commonIdentity.getProperty("groupId")).isEqualTo("com.ulticode");
+            assertThat(commonIdentity.getProperty("artifactId")).isEqualTo("nacos-common-patched");
+            assertThat(commonIdentity.getProperty("version")).isEqualTo("2.5.3-ulticode-1");
+        }
         assertSinglePatchedApi();
         assertThat(NacosRuntimeDependencyTest.class.getClassLoader().getResource(
                 "com/alibaba/nacos/shaded/com/google/common/collect/ImmutableList.class")).isNull();

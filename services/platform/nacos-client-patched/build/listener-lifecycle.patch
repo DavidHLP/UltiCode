@@ -1,29 +1,65 @@
 --- a/client/src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java
 +++ b/client/src/main/java/com/alibaba/nacos/client/config/impl/ClientWorker.java
-@@ -611,6 +611,9 @@
+@@ -78,6 +78,9 @@
+ import java.io.File;
+ import java.util.ArrayList;
+ import java.util.Collection;
++import java.util.Collections;
++import java.util.IdentityHashMap;
++import java.util.AbstractMap;
+ import java.util.HashMap;
+ import java.util.HashSet;
+ import java.util.Iterator;
+@@ -93,6 +96,9 @@
+ import java.util.concurrent.ExecutorService;
+ import java.util.concurrent.Executors;
+ import java.util.concurrent.Future;
++import java.util.concurrent.FutureTask;
++import java.util.concurrent.ExecutionException;
++import java.util.concurrent.CancellationException;
+ import java.util.concurrent.LinkedBlockingQueue;
+ import java.util.concurrent.ScheduledExecutorService;
+ import java.util.concurrent.ThreadPoolExecutor;
+@@ -611,6 +617,15 @@
      public class ConfigRpcTransportClient extends ConfigTransportClient {
          
          Map<String, ExecutorService> multiTaskExecutor = new ConcurrentHashMap<>();
 +
 +        // UltiCode change: guarded by this transport's monitor, shared with allocation.
 +        private boolean listenerExecutorsClosed;
++
++        // The same monitor owns admission and creator identities, never external startup/cleanup.
++        private final Map<String, FutureTask<RpcClient>> rpcCreationTasks = new HashMap<>();
++        private final Map<String, Thread> rpcCreationOwners = new HashMap<>();
++        private final Set<RpcClient> ownedRpcClients = Collections.newSetFromMap(new IdentityHashMap<>());
++        private final Map<RpcClient, Subscriber> rpcSubscribers = new IdentityHashMap<>();
          
          private final BlockingQueue<Object> listenExecutebell = new ArrayBlockingQueue<>(1);
          
-@@ -635,6 +638,46 @@
+@@ -635,45 +650,124 @@
          
          @Override
          public void shutdown() throws NacosException {
 +            // Stop listener allocation before security or RPC cleanup can block/fail.
 +            // Every caller retries the snapshot: a concurrent closer may still be in progress.
 +            RuntimeException listenerFailure = shutdownListenerExecutors();
++            Exception rpcFailure = shutdownRpcClients();
 +            try {
 +                shutdownTransport();
 +            } catch (NacosException | RuntimeException | Error failure) {
 +                if (listenerFailure != null && listenerFailure != failure) {
 +                    failure.addSuppressed(listenerFailure);
 +                }
++                if (rpcFailure != null && rpcFailure != failure) {
++                    failure.addSuppressed(rpcFailure);
++                }
 +                throw failure;
++            }
++            if (rpcFailure != null) {
++                if (listenerFailure != null && listenerFailure != rpcFailure) {
++                    rpcFailure.addSuppressed(listenerFailure);
++                }
++                throwRpcFailure(rpcFailure);
 +            }
 +            if (listenerFailure != null) {
 +                throw listenerFailure;
@@ -53,25 +89,147 @@
 +            return firstFailure;
 +        }
 +
++        private Exception shutdownRpcClients() {
++            final List<RpcClient> clients;
++            final List<FutureTask<RpcClient>> creators;
++            synchronized (this) {
++                clients = ownedRpcClients == null ? Collections.emptyList() : new ArrayList<>(ownedRpcClients);
++                creators = rpcCreationTasks == null ? Collections.emptyList() : new ArrayList<>(rpcCreationTasks.values());
++            }
++            // Wake waiting callers without interrupting a creator or waiting for its callback.
++            // A creator that returns late must observe the seal and dispose its own result.
++            for (FutureTask<RpcClient> creator : creators) {
++                creator.cancel(false);
++            }
++            Exception firstFailure = null;
++            for (RpcClient client : clients) {
++                firstFailure = appendFailure(firstFailure, disposeRpcClient(client));
++            }
++            return firstFailure;
++        }
++
++        private Exception disposeRpcClient(RpcClient client) {
++            Exception failure = null;
++            try {
++                client.shutdown();
++                // Never destroy a replacement that happens to have the same factory name.
++                RpcClientFactory.getAllClientEntries().remove(new AbstractMap.SimpleImmutableEntry<>(client.getName(), client));
++            } catch (NacosException | RuntimeException closeFailure) {
++                failure = closeFailure;
++            }
++            final Subscriber registered;
++            synchronized (this) {
++                registered = rpcSubscribers.get(client);
++            }
++            if (registered != null) {
++                try {
++                    NotifyCenter.deregisterSubscriber(registered);
++                } catch (RuntimeException closeFailure) {
++                    failure = appendFailure(failure, closeFailure);
++                }
++            }
++            // Retain identities for retry, including registration still in flight during close.
++            return failure;
++        }
++
++        private Exception appendFailure(Exception first, Exception next) {
++            if (first == null) {
++                return next;
++            }
++            if (next != null && first != next) {
++                first.addSuppressed(next);
++            }
++            return first;
++        }
++
++        private void throwRpcFailure(Exception failure) throws NacosException {
++            if (failure instanceof NacosException) {
++                throw (NacosException) failure;
++            }
++            throw (RuntimeException) failure;
++        }
++
 +        private void shutdownTransport() throws NacosException {
              super.shutdown();
-             synchronized (RpcClientFactory.getAllClientEntries()) {
-                 LOGGER.info("Trying to shutdown transport client {}", this);
-@@ -657,12 +700,7 @@
-                 
-                 LOGGER.info("Shutdown executor {}", executor);
-                 executor.shutdown();
+-            synchronized (RpcClientFactory.getAllClientEntries()) {
+-                LOGGER.info("Trying to shutdown transport client {}", this);
+-                Set<Map.Entry<String, RpcClient>> allClientEntries = RpcClientFactory.getAllClientEntries();
+-                Iterator<Map.Entry<String, RpcClient>> iterator = allClientEntries.iterator();
+-                while (iterator.hasNext()) {
+-                    Map.Entry<String, RpcClient> entry = iterator.next();
+-                    if (entry.getKey().startsWith(uuid)) {
+-                        LOGGER.info("Trying to shutdown rpc client {}", entry.getKey());
+-                        
+-                        try {
+-                            entry.getValue().shutdown();
+-                        } catch (NacosException nacosException) {
+-                            nacosException.printStackTrace();
+-                        }
+-                        LOGGER.info("Remove rpc client {}", entry.getKey());
+-                        iterator.remove();
+-                    }
+-                }
+-                
+-                LOGGER.info("Shutdown executor {}", executor);
+-                executor.shutdown();
 -                multiTaskExecutor.values().forEach((taskExecutor) -> {
 -                    if (taskExecutor != null && !taskExecutor.isShutdown()) {
 -                        LOGGER.info("Shutdown multi task executor {}", taskExecutor);
 -                        taskExecutor.shutdown();
 -                    }
 -                });
+-                Map<String, CacheData> stringCacheDataMap = cacheMap.get();
+-                for (Map.Entry<String, CacheData> entry : stringCacheDataMap.entrySet()) {
+-                    entry.getValue().setConsistentWithServer(false);
+-                }
+-                if (subscriber != null) {
+-                    NotifyCenter.deregisterSubscriber(subscriber);
+-                }
+-            }
+-            
+-        }
+-        
++            LOGGER.info("Shutdown executor {}", executor);
++            executor.shutdown();
++            for (CacheData cacheData : cacheMap.get().values()) {
++                cacheData.setConsistentWithServer(false);
++            }
++        }
 +
-                 Map<String, CacheData> stringCacheDataMap = cacheMap.get();
-                 for (Map.Entry<String, CacheData> entry : stringCacheDataMap.entrySet()) {
-                     entry.getValue().setConsistentWithServer(false);
-@@ -937,7 +975,10 @@
+         private Map<String, String> getLabels() {
+             
+             Map<String, String> labels = new HashMap<>(2, 1);
+@@ -786,7 +880,7 @@
+                 }
+             });
+             
+-            subscriber = new Subscriber() {
++            Subscriber rpcSubscriber = new Subscriber() {
+                 @Override
+                 public void onEvent(Event event) {
+                     rpcClientInner.onServerListChange();
+@@ -797,7 +891,19 @@
+                     return ServerListChangeEvent.class;
+                 }
+             };
+-            NotifyCenter.registerSubscriber(subscriber);
++            synchronized (this) {
++                rpcSubscribers.put(rpcClientInner, rpcSubscriber);
++                subscriber = rpcSubscriber;
++            }
++            NotifyCenter.registerSubscriber(rpcSubscriber);
++            boolean closed;
++            synchronized (this) {
++                closed = listenerExecutorsClosed;
++            }
++            if (closed) {
++                // Close may have deregistered before the external registration completed.
++                NotifyCenter.deregisterSubscriber(rpcSubscriber);
++            }
+         }
+         
+         @Override
+@@ -937,7 +1043,10 @@
              }
          }
          
@@ -83,3 +241,126 @@
              return multiTaskExecutor.computeIfAbsent(taskId, k -> new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
                      new LinkedBlockingQueue<>(), r -> {
                  Thread thread = new Thread(r, "nacos.client.config.listener.task-" + taskId);
+@@ -1114,25 +1223,113 @@
+             return hasChangedKeys.get();
+         }
+         
++        private NacosException closedRpcClient() {
++            return new NacosException(NacosException.CLIENT_DISCONNECT, "Config transport is closed");
++        }
++
++        private void checkRpcAdmission() throws NacosException {
++            synchronized (this) {
++                if (listenerExecutorsClosed) {
++                    throw closedRpcClient();
++                }
++            }
++        }
++
+         private RpcClient ensureRpcClient(String taskId) throws NacosException {
+-            synchronized (ClientWorker.this) {
+-                Map<String, String> labels = getLabels();
+-                Map<String, String> newLabels = new HashMap<>(labels);
++            final FutureTask<RpcClient> creator;
++            final boolean owner;
++            synchronized (this) {
++                if (listenerExecutorsClosed) {
++                    throw closedRpcClient();
++                }
++                FutureTask<RpcClient> existing = rpcCreationTasks.get(taskId);
++                if (existing == null) {
++                    creator = new FutureTask<>(() -> createRpcClient(taskId));
++                    rpcCreationTasks.put(taskId, creator);
++                    rpcCreationOwners.put(taskId, Thread.currentThread());
++                    owner = true;
++                } else {
++                    if (!existing.isDone() && rpcCreationOwners.get(taskId) == Thread.currentThread()) {
++                        throw new NacosException(NacosException.CLIENT_ERROR, "Reentrant RPC initialization: " + taskId);
++                    }
++                    creator = existing;
++                    owner = false;
++                }
++            }
++            if (owner) {
++                try {
++                    creator.run();
++                } finally {
++                    synchronized (this) {
++                        if (rpcCreationOwners.get(taskId) == Thread.currentThread()) {
++                            rpcCreationOwners.remove(taskId);
++                        }
++                    }
++                }
++            }
++            try {
++                RpcClient client = creator.get();
++                checkRpcAdmission();
++                return client;
++            } catch (InterruptedException interrupted) {
++                Thread.currentThread().interrupt();
++                throw new NacosException(NacosException.CLIENT_ERROR, "Interrupted waiting for RPC initialization", interrupted);
++            } catch (CancellationException closed) {
++                throw closedRpcClient();
++            } catch (ExecutionException failed) {
++                Throwable cause = failed.getCause();
++                if (cause instanceof NacosException) {
++                    throw (NacosException) cause;
++                }
++                if (cause instanceof RuntimeException) {
++                    throw (RuntimeException) cause;
++                }
++                if (cause instanceof Error) {
++                    throw (Error) cause;
++                }
++                throw new NacosException(NacosException.CLIENT_ERROR, "RPC initialization failed", cause);
++            }
++        }
++
++        private RpcClient createRpcClient(String taskId) throws NacosException {
++            RpcClient rpcClient = null;
++            try {
++                checkRpcAdmission();
++                Map<String, String> newLabels = new HashMap<>(getLabels());
+                 newLabels.put("taskId", taskId);
+                 GrpcClientConfig grpcClientConfig = RpcClientConfigFactory.getInstance()
+                         .createGrpcClientConfig(properties, newLabels);
+-                RpcClient rpcClient = RpcClientFactory.createClient(uuid + "_config-" + taskId, getConnectionType(), grpcClientConfig);
++                rpcClient = RpcClientFactory.createClient(uuid + "_config-" + taskId, getConnectionType(), grpcClientConfig);
++                synchronized (this) {
++                    ownedRpcClients.add(rpcClient);
++                }
++                checkRpcAdmission();
+                 if (rpcClient.isWaitInitiated()) {
+                     initRpcClientHandler(rpcClient);
+                     rpcClient.setTenant(getTenant());
++                    checkRpcAdmission();
+                     rpcClient.start();
+                 }
+-    
++                checkRpcAdmission();
+                 return rpcClient;
+-            }
+-            
+-        }
+-        
++            } catch (NacosException | RuntimeException | Error failure) {
++                Exception cleanupFailure = rpcClient == null ? null : disposeRpcClient(rpcClient);
++                if (cleanupFailure == null) {
++                    synchronized (this) {
++                        // Retry only after this attempt has disposed all of its external state.
++                        rpcCreationTasks.remove(taskId);
++                        if (rpcClient != null) {
++                            ownedRpcClients.remove(rpcClient);
++                            rpcSubscribers.remove(rpcClient);
++                        }
++                    }
++                } else if (cleanupFailure != failure) {
++                    failure.addSuppressed(cleanupFailure);
++                }
++                throw failure;
++            }
++        }
++
+         /**
+          * build config string.
+          *

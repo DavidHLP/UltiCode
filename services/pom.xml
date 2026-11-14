@@ -70,7 +70,7 @@
 		<guava.version>33.8.0-jre</guava.version>
 		<!-- Keep client/common aligned with the patched API upstream baseline.
 		     Any upstream baseline upgrade requires rebuilding and verifying the derivative. -->
-		<nacos-client.version>2.5.3</nacos-client.version>
+		<nacos-client.version>3.3.0</nacos-client.version>
 		<nacos-api-patched.version>2.5.3-ulticode-1</nacos-api-patched.version>
 		<nacos-client-patched.version>2.5.3-ulticode-2</nacos-client-patched.version>
 		<nacos-common-patched.version>2.5.3-ulticode-1</nacos-common-patched.version>
@@ -79,14 +79,14 @@
 		<jjwt.version>0.13.0</jjwt.version>
 		<redisson.version>4.8.0</redisson.version>
 		<springdoc.version>3.2.0</springdoc.version>
-		<dubbo.version>3.3.6</dubbo.version>
+		<dubbo.version>3.3.7</dubbo.version>
 		<hutool.version>5.8.48</hutool.version>
 		<lombok.version>1.18.48</lombok.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<!-- OkHttp 5 ships an empty jar to Maven consumers; see the okhttp
 		     entry in dependencyManagement. -->
 		<okhttp.version>4.12.1</okhttp.version>
-		<japicmp.version>0.26.5</japicmp.version>
+		<japicmp.version>0.27.0</japicmp.version>
 		<coverage.bundle.minimum>0.50</coverage.bundle.minimum>
 		<!-- Submission has an explicit owner-specific floor because its current
 		     source-inclusive baseline is lower than the shared service floor. -->
@@ -360,7 +360,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>flatten-maven-plugin</artifactId>
-				<version>1.8.0</version>
+				<version>1.9.0</version>
 				<configuration>
 					<updatePomFile>true</updatePomFile>
 				</configuration>

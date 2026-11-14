@@ -8,7 +8,7 @@ ARG SERVICE_HEALTH_PATH=/api/v1/auth/health
 ARG INSTALL_DOCKER_CLI=false
 ARG SERVICE_HEALTHCHECK=true
 
-FROM eclipse-temurin:24-jdk-alpine@sha256:8fdbcb6bc6b846640cea7058e6eeb56c311fae4efaa506a213789134065c6b90 AS builder
+FROM eclipse-temurin:25-jdk-alpine@sha256:c7c3d0bdf7f2bbc5a05a6712ed334d198360105634ea9adf76fca94f381b1e3f AS builder
 
 ARG SERVICE_MODULE
 ARG SERVICE_ARTIFACT
@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/root/.m2 chmod +x ./mvnw \
     && ./mvnw -pl "${SERVICE_MODULE}" -am -B -DskipTests package \
     && cp "${SERVICE_MODULE}/target/${SERVICE_ARTIFACT}" /app/service.jar
 
-FROM eclipse-temurin:24-jre-alpine@sha256:4044b6c87cb088885bcd0220f7dc7a8a4aab76577605fa471945d2e98270741f AS runtime
+FROM eclipse-temurin:25-jre-alpine@sha256:e1898fd6a11fc965a994d8ace186fd3585aeb636cf8f05f47a723fcfee0b0918 AS runtime
 
 ARG SERVICE_VERSION=
 ARG SERVICE_PORT

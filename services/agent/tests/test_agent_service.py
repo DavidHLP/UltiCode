@@ -163,6 +163,29 @@ def test_manual_source_answer_allows_inline_complexity_formatting(caveat):
             question="请解释算法。", source_required=True,
         )
 
+@pytest.mark.parametrize("scope,kind", [
+    ("authorized-reference", "problem-statement"),
+    ("session-authorized-current-run", "synthetic"),
+    ("owner-authorized-current-thread", "owner-submission"),
+])
+def test_source_refusal_does_not_accept_other_evidence_scopes(scope, kind):
+    from agent_service.app import _verify_answer_boundary
+    from retrieval import keyword_search
+
+    document = SourceDocument(
+        doc_id="reference", version="current", source_path="reference.md",
+        access_scope=scope, sample_kind=kind, text="A reference suggests boundary examples.",
+        source_position="lines 1-1",
+    )
+    citation = {**keyword_search("reference", documents=(document,))[0].as_model_dict(),
+                "claim": "The reference suggests boundary examples."}
+    with pytest.raises(ValueError, match="answer_source_refusal_has_reference"):
+        _verify_answer_boundary(
+            {"text": "I cannot access submitted source code.", "citations": [citation]},
+            [{"status": "Accepted"}], (document,), (), (), question="Explain the result",
+        )
+
+
 def test_manual_source_answer_rejects_uncited_source_line():
     from agent_service.app import _verify_answer_boundary
 
@@ -2578,7 +2601,7 @@ def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path
     asyncio.run(with_client(app, scenario))
 
 
-@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing", "numeric", "short_lines"])
+@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing", "numeric", "short_lines", "problem_refusal", "comment_refusal", "old_run_refusal", "unattributed_refusal"])
 def test_product_conversation_retrieves_only_current_authorized_context(tmp_path, monkeypatch, kind):
     import agent_service.app as app_module
     import retrieval
@@ -2623,15 +2646,16 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
             hit = hits[0]
             assert hit["source_trust"] == "untrusted-data" and hit["access_scope"] == "session-authorized-current-run"
             assert hit["sample_kind"] != "synthetic"
-            if kind == "old_run":
+            if kind in {"old_run", "old_run_refusal"}:
                 hit["version"] = "old-run"
-            claim = ("The selected comment suggests reasoning about the statement." if kind == "comment"
+            claim = ("The selected comment suggests reasoning about the statement." if kind in {"comment", "comment_refusal", "unattributed_refusal"}
                      else "The selected statement mentions a boundary token.")
-            if kind == "unattributed":
+            if kind in {"unattributed", "unattributed_refusal"}:
                 claim = "The implementation is correct according to the comment."
             from boundary_evaluation import CITATION_FIELDS
             citation = {field: hit[field] for field in CITATION_FIELDS if field != "claim"}
-            return ModelDecision(text=json.dumps({"text": claim, "citations": [{**citation, "claim": claim}]}))
+            answer = claim + (" I cannot access submitted source code." if kind.endswith("_refusal") else "")
+            return ModelDecision(text=json.dumps({"text": answer, "citations": [{**citation, "claim": claim}]}))
 
     class Judge:
         def __init__(self):
@@ -2641,12 +2665,12 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
             judge_calls.append(messages)
             prompt = messages[0]["content"]
             payload = json.loads(prompt.rsplit("\nINPUT_JSON ", 1)[1])
-            assert payload["REFERENCE_KIND"] == ("forum-comment" if kind in {"comment", "unattributed"} else "problem-statement")
+            assert payload["REFERENCE_KIND"] == ("forum-comment" if kind in {"comment", "unattributed", "comment_refusal", "unattributed_refusal"} else "problem-statement")
             assert "only explicitly attributed comment content" in prompt
             assert text not in str(payload["SUBMISSION_FACTS"])
-            assert payload["ANSWER"] == payload["CLAIM"]
+            assert payload["ANSWER"] == payload["CLAIM"] + (" I cannot access submitted source code." if kind.endswith("_refusal") else "")
             self.usage.append({"prompt_tokens": 1, "completion_tokens": 1})
-            return ModelDecision(text=json.dumps({"supports": True, "derivable": kind != "unattributed"}))
+            return ModelDecision(text=json.dumps({"supports": True, "derivable": kind not in {"unattributed", "unattributed_refusal"}}))
 
     model, judge = Model(), Judge()
     monkeypatch.setattr(app_module, "_authorized_model_for_purpose", lambda _period, purpose, *_a, **_kw: model if purpose == "u03_analysis" else judge)
@@ -2654,7 +2678,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
     app = create_app(state_path=tmp_path / "product.sqlite3", client_factory=Client,
                      unbudgeted_development_mode=True)
     context = ({"comments": [{"postId": "post-1", "commentId": "comment-1"}]}
-               if kind in {"comment", "unattributed"} else {"includeProblem": True})
+               if kind in {"comment", "unattributed", "comment_refusal", "unattributed_refusal"} else {"includeProblem": True})
 
     async def scenario(client):
         conversation_id = str(uuid.uuid4())
@@ -2665,7 +2689,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
         turn = created.json()["data"]["turn"]
         response = await client.post(f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/run", headers=HEADERS,
                                      json={"sourceConsent": False, "expectedRunId": turn["runId"]})
-        assert response.status_code == (404 if kind == "missing" else 502 if kind in {"old_run", "unattributed"} else 200)
+        assert response.status_code == (404 if kind == "missing" else 502 if kind in {"old_run", "unattributed", "old_run_refusal", "unattributed_refusal"} else 200)
         page = (await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)).json()["data"]
         stages = page["turns"][0]["stages"]
         assert [event["detail"]["stage"] for event in stages if event["kind"] == "stage_started"] == (
@@ -2673,7 +2697,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
         )
         assert all(event["runId"] == turn["runId"] for event in stages)
         assert all(set(event["detail"]) <= {"stage", "outcome", "reason"} for event in stages)
-        assert stages[-1]["detail"]["outcome"] == ("failed" if kind in {"missing", "old_run", "unattributed"} else "completed")
+        assert stages[-1]["detail"]["outcome"] == ("failed" if kind in {"missing", "old_run", "unattributed", "old_run_refusal", "unattributed_refusal"} else "completed")
         stream = await client.get(f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/events/stream?after={stages[0]['seq']}", headers=HEADERS)
         replay = [json.loads(frame.split("\ndata: ", 1)[1]) for frame in stream.text.split("\n\n") if "\nevent: workflow\n" in frame]
         replay_stages = [event for event in replay if event["kind"].startswith("stage_")]
@@ -2681,10 +2705,10 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
         assert private not in json.dumps(page)
         if kind == "missing":
             assert not calls and not judge_calls
-        elif kind == "old_run":
+        elif kind in {"old_run", "old_run_refusal"}:
             assert not judge_calls
-            assert page["turns"][0]["failureReason"] == "citation_not_retrieved_in_run"
-        elif kind == "unattributed":
+            assert page["turns"][0]["failureReason"] == ("answer_source_refusal_has_reference" if kind == "old_run_refusal" else "citation_not_retrieved_in_run")
+        elif kind in {"unattributed", "unattributed_refusal"}:
             assert len(judge_calls) == 1
             assert page["turns"][0]["failureReason"] == "citation_claim_unverified"
         elif kind not in {"no_hit", "numeric", "short_lines"}:

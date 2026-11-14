@@ -61,7 +61,7 @@
         <dependency>
             <groupId>com.google.api.grpc</groupId>
             <artifactId>proto-google-common-protos</artifactId>
-            <version>2.17.0</version>
+            <version>2.81.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -105,7 +105,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
                 <executions>
                     <execution>
                         <id>fetch-pinned-upstream-inputs</id>
@@ -116,13 +116,13 @@
                                 <artifactItem>
                                     <groupId>com.alibaba.nacos</groupId>
                                     <artifactId>nacos-api</artifactId>
-                                    <version>2.5.3</version>
+                                    <version>3.3.0</version>
                                     <type>jar</type>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>com.alibaba.nacos</groupId>
                                     <artifactId>nacos-api</artifactId>
-                                    <version>2.5.3</version>
+                                    <version>3.3.0</version>
                                     <type>pom</type>
                                 </artifactItem>
                             </artifactItems>
@@ -176,7 +176,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.14.1</version>
+                <version>3.16.0</version>
                 <configuration>
                     <proc>none</proc>
                     <release>8</release>
@@ -185,7 +185,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.4.2</version>
+                <version>3.5.1</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -200,7 +200,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.8.0</version>
                 <executions>
                     <execution>
                         <id>attach-upstream-pedigree</id>
@@ -241,7 +241,7 @@
                                         <artifactItem>
                                             <groupId>com.google.protobuf</groupId>
                                             <artifactId>protoc</artifactId>
-                                            <version>3.25.6</version>
+                                            <version>4.36.2</version>
                                             <classifier>${nacos.protoc.classifier}</classifier>
                                             <type>exe</type>
                                             <destFileName>protoc.exe</destFileName>

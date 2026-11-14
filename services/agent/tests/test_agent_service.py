@@ -84,19 +84,113 @@ async def with_client(app, callback):
             await callback(client)
 
 
-@pytest.mark.parametrize("status", ["Wrong Answer", "Time Limit Exceeded", "Runtime Error"])
-def test_complete_submission_status_claim(status):
+@pytest.mark.parametrize("status,label", [
+    ("Wrong Answer", "答案错误"), ("Time Limit Exceeded", "超时"), ("Runtime Error", "运行时错误"),
+])
+def test_complete_submission_status_claim(status, label):
     from agent_service.app import _verify_answer_boundary
 
-    for text in (f"The submission status is {status}.", f"提交状态为 {status}。"):
+    for text in (f"The submission status is {status}.", f"提交状态为 {status}。",
+                 f"The verdict is {status}. The verdict is an observed fact.", f"判定结果为 {status}（{label}）。",
+                 f"本次提交被判为 {status}，判题结果为 {status}。",
+                 f"判定结果为 {status}。{status}（{label}）只是已观测结果。"):
         parsed = {"text": text, "citations": []}
         _verify_answer_boundary(parsed, [{"status": status}], (), (), (), question="如何复盘？")
         with pytest.raises(ValueError, match="answer_submission_fact_mismatch"):
             _verify_answer_boundary(parsed, [{"status": "Accepted"}], (), (), (), question="如何复盘？")
-        for diagnosis in ("根因是数组越界。", "假设：根因是数组越界。", "可能根因是数组越界。"):
+        for diagnosis in ("根因是数组越界。", "假设：根因是数组越界。", "可能根因是数组越界。",
+                          f"Your code produces {status}.",
+                          f"This code returns the {status.lower()} whenever the input contains duplicate values."):
             with pytest.raises(ValueError, match="answer_source_diagnosis_unverified"):
                 _verify_answer_boundary({"text": text + diagnosis, "citations": []},
                                         [{"status": status}], (), (), (), question="如何复盘？")
+
+    _verify_answer_boundary(
+        {"text": f"评测系统给出的判定是{label}。{status}只是评测结论，不能推断具体缺陷。", "citations": []},
+        [{"status": status}], (), (), (), question="如何复盘？",
+    )
+    _verify_answer_boundary(
+        {"text": f"本轮没有源码，因此无法确定该提交为何得到 {status}。", "citations": []},
+        [{"status": status}], (), (), (), question="如何复盘？",
+    )
+
+
+
+@pytest.mark.parametrize("text", [
+    "Wrong Answer is only caused by using the same element twice.",
+    "Wrong Answer只是重复使用同一个元素导致的。",
+])
+def test_verdict_description_cannot_hide_a_causal_diagnosis(text):
+    from agent_service.app import _verify_answer_boundary, _verify_answer_with_review
+
+    with pytest.raises(ValueError, match="answer_source_diagnosis_unverified"):
+        _verify_answer_boundary(
+            {"text": text, "citations": []}, [{"status": "Wrong Answer"}], (), (), (), question="Explain",
+        )
+
+
+
+    class Judge:
+        async def decide(self, messages):
+            pytest.fail("Explicit causal diagnoses must not be overridden by semantic review")
+
+    with pytest.raises(ValueError, match="answer_source_diagnosis_unverified"):
+        asyncio.run(_verify_answer_with_review(
+            {"text": text, "citations": []}, [{"status": "Wrong Answer"}], (), (), (), Judge(), question="Explain",
+        ))
+
+
+@pytest.mark.parametrize("case", ["explanation", "diagnosis", "promise", "reference", "unknown_usage", "malformed"])
+def test_uncited_diagnosis_review_is_bounded_and_keeps_other_guards(case):
+    from agent_service.app import _verify_answer_with_review
+
+    answer = "The status is Accepted. Future non-passing verdicts may include Wrong Answer."
+    if case == "diagnosis":
+        answer = "The status is Wrong Answer. This code returns the wrong answer for duplicate values."
+    if case == "promise":
+        answer = "I will retrieve evidence and analyze the Wrong Answer later."
+    if case == "reference":
+        answer += " [1]"
+    calls = []
+
+    class Judge:
+        def __init__(self):
+            self.usage = []
+
+        async def decide(self, messages):
+            calls.append(messages)
+            payload = json.loads(messages[0]["content"].rsplit("INPUT_JSON ", 1)[1])
+            assert payload["ANSWER"] == answer
+            assert payload["SUBMISSION_FACTS"] == [{"status": "Wrong Answer" if case in {"diagnosis", "promise"} else "Accepted"}]
+            assert "SECRET" not in str(messages)
+            self.usage.append({"prompt_tokens": None if case == "unknown_usage" else 1, "completion_tokens": 1})
+            if case == "malformed":
+                return ModelDecision(text='{"supports":true}')
+            return ModelDecision(text=json.dumps({"supports": True, "derivable": case not in {"diagnosis", "promise"}}))
+
+    run = _verify_answer_with_review(
+        {"text": answer, "citations": []},
+        ({"status": "Wrong Answer" if case in {"diagnosis", "promise"} else "Accepted", "unused_private_field": "SECRET"},),
+        (), (), (), Judge(), question="Explain the result",
+    )
+    if case == "explanation":
+        asyncio.run(run)
+    else:
+        expected = ("answer_source_reference_unverified" if case == "reference" else
+                    "citation_judge_usage_unknown" if case == "unknown_usage" else "answer_source_diagnosis_unverified")
+        with pytest.raises(ValueError, match=expected):
+            asyncio.run(run)
+    assert len(calls) == (0 if case == "diagnosis" else 1)
+
+
+def test_multiple_submission_verdict_claims_must_all_match():
+    from agent_service.app import _verify_answer_boundary
+
+    with pytest.raises(ValueError, match="answer_submission_fact_mismatch"):
+        _verify_answer_boundary(
+            {"text": "The status is Accepted. The verdict is Wrong Answer.", "citations": []},
+            [{"status": "Accepted"}], (), (), (), question="Explain the result",
+        )
 
 
 def test_metadata_answer_allows_inline_code_but_rejects_uncited_retrieved_text():
@@ -105,6 +199,11 @@ def test_metadata_answer_allows_inline_code_but_rejects_uncited_retrieved_text()
     facts = [{"id": "submission-1", "status": "Accepted"}]
     _verify_answer_boundary(
         {"text": "提交状态为 Accepted。请用边界样例核验 `O(n)` 与“边界假设”的关系。", "citations": []},
+        facts, (), (), (), question="如何复盘？",
+    )
+
+    _verify_answer_boundary(
+        {"text": "本轮无法访问提交源码；任何关于“可能是哪里写错了”的说法都缺乏证据支持。", "citations": []},
         facts, (), (), (), question="如何复盘？",
     )
 
@@ -118,6 +217,39 @@ def test_metadata_answer_allows_inline_code_but_rejects_uncited_retrieved_text()
             {"text": "This exact authorized note was retrieved.", "citations": []},
             facts, (document,), (), (), question="如何复盘？",
         )
+
+
+def test_metadata_sections_are_not_source_references():
+    from agent_service.app import _verify_answer_boundary
+
+    for heading in ("事实", "判断", "假设", "下一步", "限制", "题意", "下一步（可自行核对）",
+                    "事实（题面）", "事实：评论归因", "Facts", "Judgment", "Hypothesis", "Next steps", "Limitations"):
+        _verify_answer_boundary(
+            {"text": f"【{heading}】提交状态为 Accepted。本轮无法访问提交源码。", "citations": []},
+            [{"status": "Accepted"}], (), (), (), question="Explain the result",
+        )
+    _verify_answer_boundary(
+        {"text": "提交状态为 Accepted。可用 nums=[3,3], target=6 自测，例如 [3,3]，返回 [0,1] 或 [1,0]。", "citations": []},
+        [{"status": "Accepted"}], (), (), (), question="Explain the result",
+    )
+    document = SourceDocument(
+        doc_id="problem:1", version="current", source_path="app:/problems/1",
+        access_scope="session-authorized-current-run", sample_kind="problem-statement",
+        text="nums=[3,3]\n返回 [0,1]", source_position="chars 1-19",
+    )
+    for excerpt in ("nums=[3,3]", "返回 [0,1]"):
+        with pytest.raises(ValueError, match="answer_source_reference_unverified"):
+            _verify_answer_boundary(
+                {"text": "Use " + excerpt + " as the selected example.", "citations": []},
+                [{"status": "Accepted"}], (document,), (), (), question="Explain the result",
+            )
+    for reference in ("【private_source.py】", "【unknown-document】", "【PrivateReport】", "【私有报告】", "【事实（PrivateReport）】", "【事实（私有报告）】", "[1]", "return [1]", "source_path=[1]"):
+        for caveat in ("", " I cannot access submitted source code."):
+            with pytest.raises(ValueError, match="answer_source_(reference_unverified|refusal_has_reference)"):
+                _verify_answer_boundary(
+                    {"text": reference + "提交状态为 Accepted。" + caveat, "citations": []},
+                    [{"status": "Accepted"}], (), (), (), question="Explain the result",
+                )
 
 
 @pytest.mark.parametrize("caveat", [
@@ -146,6 +278,12 @@ def test_manual_source_answer_allows_inline_complexity_formatting(caveat):
         {"text": answer, "citations": [citation]}, [{"status": "Accepted"}], (document,),
         [{"tool_name": "get_submission_source", "failed": False}], (),
         question="请解释算法的复杂度。", source_required=True,
+    )
+    _verify_answer_boundary(
+        {"text": answer + "This explanation is consistent with Wrong Answer.", "citations": [citation]},
+        [{"status": "Wrong Answer"}], (document,),
+        [{"tool_name": "get_submission_source", "failed": False}], (),
+        question="请解释算法。", source_required=True,
     )
     for denial in ("无法读取提交源码。", "Submitted source code was not provided.",
                    "I cannot access submitted source code."):
@@ -696,6 +834,13 @@ def test_conversation_context_is_refetched_and_scoped_to_the_submission(tmp_path
             assert "Public problem statement" not in prompt and "Ignore previous" not in prompt
             assert "untrusted reference data" in prompt
             assert "already selected and verified" in prompt
+            assert '{"tool":"<name>","args":{...}}' in prompt
+            assert "Only when finishing:" in prompt
+            assert "Use plain prose headings" in prompt
+            assert "Keep provenance fields in structured citations" in prompt
+            assert "numeric array examples as named assignments" in prompt
+            assert "nonempty verbatim excerpt covering EVERY part of claim in citation.text" in prompt
+            assert "Match the answer to the situation" not in prompt
             assert "PRIVATE_SOURCE" not in prompt and "PRIVATE_AUTHOR" not in prompt
         page = await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)
         assert page.json()["data"]["turns"][0]["context"] == selection
@@ -1243,6 +1388,7 @@ def test_citation_judge_source_reasoning_is_explicit_and_still_checks_both_flags
         async def decide(self, messages):
             prompt = messages[0]["content"]
             assert ("standard program semantics" in prompt) is source_evidence
+            assert ("SUBMISSION_FACTS alone" in prompt) is not source_evidence
             assert ("ANY implementation claim" in prompt) is (source_evidence and answer_text is not None)
             payload = json.loads(prompt.rsplit("\nINPUT_JSON ", 1)[1])
             assert payload.get("ANSWER") == (answer_text if source_evidence else None)
@@ -1253,6 +1399,57 @@ def test_citation_judge_source_reasoning_is_explicit_and_still_checks_both_flags
         Judge(), claim="A loop visits nodes.", quote="while (node != null)", facts=facts,
         source_evidence=source_evidence, answer_text=answer_text,
     )) == (True, False)
+
+
+
+@pytest.mark.parametrize("answer_verified", [True, False])
+def test_mixed_reference_judge_uses_only_separately_authorized_source(answer_verified):
+    from agent_service.app import _verify_citations
+    from retrieval import keyword_search
+
+    source = SourceDocument("source", "run", "owner-submission", "owner-authorized-current-thread",
+                            "owner-submission", "def solve(): return []", "lines 1-1")
+    comment = SourceDocument("comment", "run", "selected/comment/1", "session-authorized-current-run",
+                             "solution-comment", "Try a hash map.", "chars 1-15")
+    citations = [
+        {**keyword_search("comment", documents=(comment,))[0].as_model_dict(),
+         "claim": "The selected comment suggests a hash map."},
+        {**keyword_search("source", documents=(source,))[0].as_model_dict(),
+         "claim": "The implementation returns an empty list."},
+    ]
+    answer = "The implementation returns an empty list. The selected comment suggests a hash map."
+    if not answer_verified:
+        answer += " The implementation uses a hash map and handles duplicates correctly."
+    prompts = []
+
+    class Judge:
+        def __init__(self):
+            self.usage = []
+
+        async def decide(self, messages):
+            prompt = messages[0]["content"]
+            prompts.append(prompt)
+            payload = json.loads(prompt.rsplit("\nINPUT_JSON ", 1)[1])
+            assert payload["ANSWER"] == answer
+            evidence = payload["SUBMISSION_FACTS"][-1]
+            assert evidence["numbered_source"][0]["lines"] == [[1, source.text]]
+            assert any(item["sample_kind"] == "owner-submission" for item in evidence["verified_citations"])
+            if payload.get("REFERENCE_KIND"):
+                assert "unsupported by separately authorized source" in prompt
+                assert "matching owner-submission citation" in prompt
+            self.usage.append({"prompt_tokens": 1, "completion_tokens": 1})
+            return ModelDecision(text=json.dumps({"supports": True, "derivable": answer_verified}))
+
+    judge = Judge()
+    run = _verify_citations({"text": answer, "citations": citations}, citations, (source, comment),
+                            ({"status": "Wrong Answer"},), judge, include_cited_excerpt_in_facts=True)
+    if answer_verified:
+        assert len(asyncio.run(run)) == 2
+        assert len(prompts) == 2
+    else:
+        with pytest.raises(ValueError, match="citation_claim_unverified"):
+            asyncio.run(run)
+        assert len(prompts) == 1
 
 
 def test_source_judge_requires_server_supplied_source_excerpt():
@@ -2601,7 +2798,7 @@ def test_duplicate_queued_conversation_can_cancel_one_and_run_the_other(tmp_path
     asyncio.run(with_client(app, scenario))
 
 
-@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing", "numeric", "short_lines", "problem_refusal", "comment_refusal", "old_run_refusal", "unattributed_refusal"])
+@pytest.mark.parametrize("kind", ["problem", "comment", "no_hit", "unattributed", "old_run", "missing", "numeric", "short_lines", "problem_refusal", "comment_refusal", "old_run_refusal", "unattributed_refusal", "diagnosis"])
 def test_product_conversation_retrieves_only_current_authorized_context(tmp_path, monkeypatch, kind):
     import agent_service.app as app_module
     import retrieval
@@ -2612,7 +2809,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
 
     class Client(SessionClient):
         async def get_my_submission(self, submission_id):
-            return {"id": submission_id, "status": "Accepted", "contestSubmission": False,
+            return {"id": submission_id, "status": "Wrong Answer" if kind == "diagnosis" else "Accepted", "contestSubmission": False,
                     "problemId": 7, "code": private}
 
         async def get_problem(self, problem_id):
@@ -2648,13 +2845,17 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
             assert hit["sample_kind"] != "synthetic"
             if kind in {"old_run", "old_run_refusal"}:
                 hit["version"] = "old-run"
-            claim = ("The selected comment suggests reasoning about the statement." if kind in {"comment", "comment_refusal", "unattributed_refusal"}
+            claim = ("The selected comment suggests reasoning about the statement." if kind in {"comment", "comment_refusal", "unattributed_refusal", "diagnosis"}
                      else "The selected statement mentions a boundary token.")
-            if kind in {"unattributed", "unattributed_refusal"}:
+            if kind in {"unattributed", "unattributed_refusal", "diagnosis"}:
                 claim = "The implementation is correct according to the comment."
+            if kind == "diagnosis":
+                claim = "The selected comment suggests reasoning about the statement."
             from boundary_evaluation import CITATION_FIELDS
             citation = {field: hit[field] for field in CITATION_FIELDS if field != "claim"}
             answer = claim + (" I cannot access submitted source code." if kind.endswith("_refusal") else "")
+            if kind == "diagnosis":
+                answer += " This code returns the wrong answer whenever the input contains duplicate values."
             return ModelDecision(text=json.dumps({"text": answer, "citations": [{**citation, "claim": claim}]}))
 
     class Judge:
@@ -2665,12 +2866,18 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
             judge_calls.append(messages)
             prompt = messages[0]["content"]
             payload = json.loads(prompt.rsplit("\nINPUT_JSON ", 1)[1])
-            assert payload["REFERENCE_KIND"] == ("forum-comment" if kind in {"comment", "unattributed", "comment_refusal", "unattributed_refusal"} else "problem-statement")
+            assert payload["REFERENCE_KIND"] == ("forum-comment" if kind in {"comment", "unattributed", "comment_refusal", "unattributed_refusal", "diagnosis"} else "problem-statement")
             assert "only explicitly attributed comment content" in prompt
+            assert "contradicts explicit reference guarantees" in prompt
+            assert "SUBMISSION_FACTS alone" not in prompt
+            assert "even when called possible, hypothetical or unverified" in prompt
             assert text not in str(payload["SUBMISSION_FACTS"])
-            assert payload["ANSWER"] == payload["CLAIM"] + (" I cannot access submitted source code." if kind.endswith("_refusal") else "")
+            expected_answer = payload["CLAIM"] + (" I cannot access submitted source code." if kind.endswith("_refusal") else "")
+            if kind == "diagnosis":
+                expected_answer += " This code returns the wrong answer whenever the input contains duplicate values."
+            assert payload["ANSWER"] == expected_answer
             self.usage.append({"prompt_tokens": 1, "completion_tokens": 1})
-            return ModelDecision(text=json.dumps({"supports": True, "derivable": kind not in {"unattributed", "unattributed_refusal"}}))
+            return ModelDecision(text=json.dumps({"supports": True, "derivable": kind not in {"unattributed", "unattributed_refusal", "diagnosis"}}))
 
     model, judge = Model(), Judge()
     monkeypatch.setattr(app_module, "_authorized_model_for_purpose", lambda _period, purpose, *_a, **_kw: model if purpose == "u03_analysis" else judge)
@@ -2678,7 +2885,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
     app = create_app(state_path=tmp_path / "product.sqlite3", client_factory=Client,
                      unbudgeted_development_mode=True)
     context = ({"comments": [{"postId": "post-1", "commentId": "comment-1"}]}
-               if kind in {"comment", "unattributed", "comment_refusal", "unattributed_refusal"} else {"includeProblem": True})
+               if kind in {"comment", "unattributed", "comment_refusal", "unattributed_refusal", "diagnosis"} else {"includeProblem": True})
 
     async def scenario(client):
         conversation_id = str(uuid.uuid4())
@@ -2689,7 +2896,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
         turn = created.json()["data"]["turn"]
         response = await client.post(f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/run", headers=HEADERS,
                                      json={"sourceConsent": False, "expectedRunId": turn["runId"]})
-        assert response.status_code == (404 if kind == "missing" else 502 if kind in {"old_run", "unattributed", "old_run_refusal", "unattributed_refusal"} else 200)
+        assert response.status_code == (404 if kind == "missing" else 502 if kind in {"old_run", "unattributed", "old_run_refusal", "unattributed_refusal", "diagnosis"} else 200)
         page = (await client.get(f"/agent/conversations/{conversation_id}", headers=HEADERS)).json()["data"]
         stages = page["turns"][0]["stages"]
         assert [event["detail"]["stage"] for event in stages if event["kind"] == "stage_started"] == (
@@ -2697,7 +2904,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
         )
         assert all(event["runId"] == turn["runId"] for event in stages)
         assert all(set(event["detail"]) <= {"stage", "outcome", "reason"} for event in stages)
-        assert stages[-1]["detail"]["outcome"] == ("failed" if kind in {"missing", "old_run", "unattributed", "old_run_refusal", "unattributed_refusal"} else "completed")
+        assert stages[-1]["detail"]["outcome"] == ("failed" if kind in {"missing", "old_run", "unattributed", "old_run_refusal", "unattributed_refusal", "diagnosis"} else "completed")
         stream = await client.get(f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/events/stream?after={stages[0]['seq']}", headers=HEADERS)
         replay = [json.loads(frame.split("\ndata: ", 1)[1]) for frame in stream.text.split("\n\n") if "\nevent: workflow\n" in frame]
         replay_stages = [event for event in replay if event["kind"].startswith("stage_")]
@@ -2708,7 +2915,7 @@ def test_product_conversation_retrieves_only_current_authorized_context(tmp_path
         elif kind in {"old_run", "old_run_refusal"}:
             assert not judge_calls
             assert page["turns"][0]["failureReason"] == ("answer_source_refusal_has_reference" if kind == "old_run_refusal" else "citation_not_retrieved_in_run")
-        elif kind in {"unattributed", "unattributed_refusal"}:
+        elif kind in {"unattributed", "unattributed_refusal", "diagnosis"}:
             assert len(judge_calls) == 1
             assert page["turns"][0]["failureReason"] == "citation_claim_unverified"
         elif kind not in {"no_hit", "numeric", "short_lines"}:

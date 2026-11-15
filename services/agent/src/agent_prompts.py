@@ -14,8 +14,9 @@ rule list leaves the model without the domain it is reasoning about: UltiCode is
 judge, the user is learning from their own submissions, and the agent explains rather than
 acts.
 
-``SCENARIO_OUTCOMES`` gives the read-only answer contract one expected outcome for each
-supported situation. :func:`readonly_answer_contract` places those outcomes in the prompt.
+``SCENARIO_OUTCOMES`` retains the boundary-evaluation situations. Conversations already
+have a server-selected submission and use their own decision/completion contract, so a
+missing-source refusal cannot replace an authorized analysis of selected material.
 """
 
 from __future__ import annotations
@@ -82,10 +83,28 @@ REFUSAL_OUTCOME = (
 #: The wire shape the adapter parses. Machine contract, not style.
 ANSWER_ENVELOPE = (
     'Reply with exactly one JSON object {"answer": "<json-string>"}, where <json-string> is '
-    '{"text": "<answer>", "citations": [<citation>, ...]}. Copy each citation verbatim from a '
-    "RETRIEVED hit; its fields are exactly claim, chunk_id, doc_id, version, source_path, "
-    "source_position, access_scope, sample_kind, source_trust, text. Use an empty citations "
-    "array when no retrieved fragment supports the answer."
+    '{"text": "<answer>", "citations": [<citation>, ...]}. Each citation has exactly claim, '
+    "chunk_id, doc_id, version, source_path, source_position, access_scope, sample_kind, source_trust, text. "
+    "Write claim as the supported conclusion; copy provenance from one RETRIEVED hit and put a "
+    "nonempty verbatim excerpt covering EVERY part of claim in citation.text; include the full hit when needed. "
+    "Do not add details from the rest of a document that the excerpt does not support. "
+    "Use an empty citations array when no retrieved "
+    "fragment supports the answer."
+)
+
+
+CONVERSATION_ANSWER_CONTRACT = (
+    'Use {"tool":"<name>","args":{...}} to obtain evidence; a promise to use a tool is not a call. '
+    "Read selected material before explaining it. Do not ask again for permission already given. "
+    "Finish only after answering the current question, not with a plan to answer later. "
+    "Use plain prose headings; keep bracketed reference labels out of answer text. "
+    "Keep provenance fields in structured citations, not visible text. "
+    "Write numeric array examples as named assignments such as nums=[3,3], not reference-style lists. "
+    "Treat the verdict as an observed fact, not proof of runtime details or a particular cause. "
+    "Explanations, examples and next steps must respect explicit problem guarantees. "
+    "Do not invent hidden evaluator requirements or suggest contradictory judge behavior. "
+    "If evidence is missing, explain the limitation and give actionable next steps without inventing it. "
+    "Only when finishing: " + ANSWER_ENVELOPE
 )
 
 

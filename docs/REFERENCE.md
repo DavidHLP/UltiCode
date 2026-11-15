@@ -168,7 +168,16 @@ The workflow runs analysis through the shared checkpointed action graph and read
 kernel. Answer text must pass bounded source-fact, negation-aware boundary, source-reference, and
 tool-trace checks; those safeguards do not guarantee perfect semantic correctness. Nonempty
 citations must exactly match evidence retrieved during that run, pass document-integrity checks,
-then receive positive support and derivability judgments. A citation that was not retrieved in-run,
+then receive positive support and derivability judgments. The excerpt must support every part of its claim.
+For selected references, derivability uses the quoted problem/comment and verified facts within that
+reference’s scope; authorized-source review uses the authorized code. Both review the whole answer,
+so a valid citation cannot legitimize an unsupported implementation claim elsewhere.
+Uncited answers flagged only by verdict vocabulary receive one independent review with the verified
+status. Explicit causal and implementation markers remain mechanical rejections. Positive review reruns the remaining mechanical checks; malformed or negative judgments and
+unknown usage still reject the answer. This review never regenerates the analysis.
+In consented mixed-source analysis, selected-reference review also receives the server-numbered authorized code and integrity-checked citations with their source
+kinds; implementation claims need a matching owner-source citation, never a comment as code evidence.
+Without source, concrete implementation diagnoses remain forbidden even when labeled possible or hypothetical. A citation that was not retrieved in-run,
 fails integrity/judging, or has unknown judge usage rejects analysis. Empty citations are allowed
 only when the answer itself satisfies the boundary checks. Offline scripted-model/MockTransport
 tests are not live acceptance evidence.
@@ -253,7 +262,7 @@ Adding/switching returns the existing login response and applies session cookies
 
 会话选材引用沿用现有 citation 字段；题目、题解评论与论坛评论分别标为 `problem-statement`、`solution-comment`、`forum-comment`，访问范围为 `session-authorized-current-run`，版本标识为本轮 `runId`，不表示上游历史版本或公开访问权限。`source_position` 给出本轮所选文本的字符范围，并在题目截断时注明；位置由服务端产生，不把模型提供的地址作为导航。题面保留 8,000 字上限，评论合计最多三条且单条超过 2,000 字拒绝；检索片段最多 1,200 字，查询可使用资料目录中的精确 `doc_id` 获取尚未见过的正文，或使用正文关键词；每次命中与每份回答引用仍最多三条。正文只在本轮内存中使用，持久化会话引用去除 `text`。引用必须实际命中本轮资料并通过完整性及语义核验；评论只支持对评论内容的归因，不支持实现诊断或算法正确性。无命中可以解释已知状态或给一般建议，不能补造引用；在线路径不使用合成语料回落。未授权源码的限制说明可以与合法的本轮题面或评论引用并存；引用仍须匹配当前选材并通过完整性和语义核验，不能借此引用源码或其他语料。
 
-答案仍严格使用 `text` 与 `citations`，结论和依据沿用 `citation.claim` 关联；不增加 claims 数组、额外分析存储或双版本解析。已知事实、判断、假设与下一步在正文按需区分；一般建议不是证据，没有源码时“可能”或“假设”也不授权具体实现诊断。核验失败保持失败，不静默删除主张后报告成功，也不自动重试模型。
+答案仍严格使用 `text` 与 `citations`，结论和依据沿用 `citation.claim` 关联；不增加 claims 数组、额外分析存储或双版本解析。已知事实、判断、假设与下一步在正文按需区分；一般建议不是证据，没有源码时“可能”或“假设”也不授权具体实现诊断。核验失败保持失败，不静默删除主张后报告成功，也不自动重试模型。 会话契约将实际工具决策与最终答案分开：先读取所选材料，再完成当前解释任务，不以承诺后续检索代替回答；引用的 `claim` 是有依据的结论，`text` 必须是已检索片段中的非空原文，不能从资料目录补造。 正常的事实、判断、假设与下一步章节标签不是来源标识；明确陈述的判定状态须全部与服务端事实一致，状态标注本身不构成源码诊断。数字数组赋值示例及明确返回／输出语境中的多元素数字数组不视为引用标记，但真实文档身份及原文在展示格式归一化之前仍会核对；源码限制说明与普通回答复用同一处展示归一化。未知来源标识、未引用原文和无依据的实现结论仍被拒绝。
 
 ### Agent 会话阶段事件
 

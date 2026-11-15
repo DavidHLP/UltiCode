@@ -57,14 +57,14 @@
   },
   {
     "doc_id": "repository-reference",
-    "version": "sha256-466ecefc05757cb2f05e489196e929168b99207e2bd3450e1a7441442b0fbf57",
-    "chunk_id": "repository-reference:sha256-466ecefc05757cb2f05e489196e929168b99207e2bd3450e1a7441442b0fbf57:1",
+    "version": "sha256-c3c6ef94f310e2364843cfa15b8251ebcd66a9e5b721264e68c0bb86f249ce42",
+    "chunk_id": "repository-reference:sha256-c3c6ef94f310e2364843cfa15b8251ebcd66a9e5b721264e68c0bb86f249ce42:1",
     "source_path": "docs/REFERENCE.md",
     "access_scope": "repository-public",
     "sample_kind": "real",
     "permission": "MIT:LICENSE:sha256:2be36e9d56578c1111740b6fe339ea3619cf1f2000af718f1a59e97d2e5d995c",
     "scope": "Repository documentation; local retrieval and evaluation under the included MIT license",
-    "source_position": "lines 220-224",
+    "source_position": "lines 229-233",
     "model_input_projection": "SourceHit.as_model_dict()",
     "source_trust": "untrusted-data",
     "content_digest": "sha256:f0ae7f89aad99d930358288641139c169614cb0fb92980fb542f8b59a7ae00c1"

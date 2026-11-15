@@ -35,18 +35,24 @@ describe("SidebarNavUser", () => {
         return image;
       });
     const wrapper = mount(SidebarNavUser, {
+      // jsdom 31 computes styles only for connected elements.
+      attachTo: document.body,
       props: { user: { name: "Dan", avatar: "https://broken/x.png" } },
     });
-    await flushPromises();
-    image.dispatchEvent(new Event("load"));
-    await flushPromises();
-    expect(wrapper.find("img").exists()).toBe(true);
-    image.dispatchEvent(new Event("error"));
-    await flushPromises();
-    expect(wrapper.get("img").isVisible()).toBe(false);
-    expect(wrapper.get('[data-slot="avatar-fallback"]').text()).toBe("D");
-    wrapper.unmount();
-    imageConstructor.mockRestore();
+    try {
+      await flushPromises();
+      image.dispatchEvent(new Event("load"));
+      await flushPromises();
+      expect(wrapper.get("img").isVisible()).toBe(true);
+      image.dispatchEvent(new Event("error"));
+      await flushPromises();
+      expect(wrapper.get("img").isVisible()).toBe(false);
+      expect(wrapper.get('[data-slot="avatar-fallback"]').text()).toBe("D");
+      expect(wrapper.get('[data-slot="avatar-fallback"]').isVisible()).toBe(true);
+    } finally {
+      wrapper.unmount();
+      imageConstructor.mockRestore();
+    }
   });
 
   it("handles an empty name without crashing", () => {

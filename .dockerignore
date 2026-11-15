@@ -48,3 +48,8 @@ graphify-out/
 **/.mypy_cache/
 **/.ruff_cache/
 **/.uv/
+
+# The Maven builder does not consume service runbooks or the standalone Python agent.
+# Keep these outside COPY services/ so their changes cannot alter Java image inputs.
+services/docs/
+services/agent/

@@ -89,6 +89,32 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(any(chosen[key] for key in selection.GATES))
         self.assertFalse(chosen["release"])
 
+    def test_documentation_rename_and_gitignore_do_not_publish(self):
+        chosen = selection.select({".gitignore", "CONTEXT.md", "GLOSSARY.md",
+                                   "services/docs/SERVICES_ISSUES.md",
+                                   "services/agent/data/repository_corpus_manifest.json",
+                                   "scripts/ci/select-checks.py", "scripts/dev/docs-contract-test.sh"})
+        self.assertFalse(chosen["release"])
+        self.assertFalse(chosen["full"])
+        self.assertTrue(chosen["agent"])
+        self.assertTrue(chosen["backend"])
+
+    def test_service_runbooks_keep_validation_without_publication(self):
+        for path in ("services/docs/CONTRACT_COMPAT_GATE.md",
+                     "services/docs/OBSERVABILITY_RUNBOOK.md"):
+            chosen = selection.select({path})
+            self.assertFalse(chosen["release"])
+            self.assertTrue(chosen["backend"])
+            self.assertTrue(chosen["docker"])
+        self.assertTrue(selection.select({"services/docs/CONTRACT_COMPAT_GATE.md"})["contract"])
+
+    def test_non_maven_content_excluded_from_image_context(self):
+        ignored = (ROOT / ".dockerignore").read_text().splitlines()
+        for path in ("services/docs/", "services/agent/"):
+            self.assertIn(path, ignored)
+        self.assertTrue(selection.select({".dockerignore"})["release"])
+        self.assertTrue(selection.select({"services/pom.xml"})["release"])
+
     def test_corpus_document_changes_run_agent_integrity_tests(self):
         for path in ("docs/PRODUCT.md", "docs/ARCHITECTURE.md", "docs/DEVELOPMENT.md",
                      "docs/OPERATIONS.md", "docs/REFERENCE.md", "LICENSE"):

@@ -80,9 +80,9 @@ def select(paths: set[str] | None) -> dict[str, bool]:
     known = (
         ".github/**", "scripts/**", "services/**", "init-db/**", "docker/**", "infrastructure/**",
         "apps/console/**", "apps/management/**", "apps/landing/**", "packages/**", "shared/**",
-        "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".dockerignore",
+        "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".dockerignore", ".gitignore",
         "pyproject.toml", "uv.lock", "mise.toml", ".mise.toml",
-        "docs/**", "assets/**", "README*", "AGENTS.md", "GLOSSARY.md", "LICENSE", ".gitleaks.toml",
+        "docs/**", "assets/**", "README*", "AGENTS.md", "CONTEXT.md", "GLOSSARY.md", "LICENSE", ".gitleaks.toml",
         "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
     )
     if not paths or any(not matches(path, *known) for path in paths):
@@ -119,7 +119,7 @@ def select(paths: set[str] | None) -> dict[str, bool]:
                 ".dockerignore", "infrastructure/nginx/**", ".github/services-matrix.json",
                 ".github/workflows/docker-publish.yml", "scripts/ci/release-*", "scripts/ci/candidate-*",
                 "scripts/runbooks/promote-release.*", "scripts/runbooks/fetch-buildkit-provenance.py")
-        for path in paths if not path.startswith("services/agent/")
+        for path in paths if not path.startswith(("services/agent/", "services/docs/"))
     )
     selected = dict(backend=backend, console=console, management=management, landing=landing,
                     contract=contract, docker=docker, agent=agent,

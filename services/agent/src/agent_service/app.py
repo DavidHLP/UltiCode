@@ -586,6 +586,11 @@ def _verify_answer_boundary(
         rf"\s*(?P<known_status>{status_values})\b",
         text, flags=re.IGNORECASE,
     ))
+    # Explicit future conditions are not observed facts; diagnostic wording still goes through review.
+    status_claims = [claim for claim in status_claims if not re.search(
+        r"(?:\bif\s+(?:a|the)\s+(?:future|hypothetical)\s+|(?:如果|假如|若)(?:未来|将来)的?)$",
+        text[:claim.start()], flags=re.IGNORECASE,
+    )]
     if isinstance(actual_status, str) and any(
         (claim.group("literal_status") or claim.group("known_status")).casefold() != actual_status.casefold()
         for claim in status_claims

@@ -144,7 +144,7 @@ def test_verdict_description_cannot_hide_a_causal_diagnosis(text):
 def test_uncited_diagnosis_review_is_bounded_and_keeps_other_guards(case):
     from agent_service.app import _verify_answer_with_review
 
-    answer = "The status is Accepted. Future non-passing verdicts may include Wrong Answer."
+    answer = "The status is Accepted. If a future verdict is Wrong Answer, compare your output with the expected result."
     if case == "diagnosis":
         answer = "The status is Wrong Answer. This code returns the wrong answer for duplicate values."
     if case == "promise":
@@ -181,6 +181,22 @@ def test_uncited_diagnosis_review_is_bounded_and_keeps_other_guards(case):
         with pytest.raises(ValueError, match=expected):
             asyncio.run(run)
     assert len(calls) == (0 if case == "diagnosis" else 1)
+
+
+@pytest.mark.parametrize("conditional", [
+    "If a future verdict is Pending, wait for judging to finish.",
+    "If the hypothetical status is Pending, wait for judging to finish.",
+    "如果未来的判定结果为 Pending，请等待评测完成。",
+])
+def test_future_verdict_is_not_a_current_submission_fact(conditional):
+    from agent_service.app import _verify_answer_boundary
+
+    text = "The status is Accepted. " + conditional
+    _verify_answer_boundary({"text": text, "citations": []}, [{"status": "Accepted"}],
+                            (), (), (), question="Explain the result")
+    with pytest.raises(ValueError, match="answer_submission_fact_mismatch"):
+        _verify_answer_boundary({"text": text + " The verdict is Wrong Answer.", "citations": []},
+                                [{"status": "Accepted"}], (), (), (), question="Explain the result")
 
 
 def test_multiple_submission_verdict_claims_must_all_match():

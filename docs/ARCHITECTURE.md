@@ -127,7 +127,7 @@ shutdown policies and metrics; each owner retains its Bean names and pool settin
 
 #### Auth
 
-Auth 独占 account、credential、external identity、refresh session、role/permission 和 authorization version。`users` 的 account/authz 字段归 Auth；profile 字段归 App 的 `user_profiles`。其他 Owner 通过窄的 Identity/Account contract 获取必要事实，不直接读取 Auth Mapper 或 Entity。登录和切换账号时，Auth 在锁定账号记录期间完成准入判断与会话签发，串行化角色和账号状态变更。登录在加锁后确认已验证的密码哈希仍有效，通过准入才更新最近登录时间。切换账号沿用角色规则，检测重放后检查账号启用及封禁状态，再轮换有效凭证。检测到重放时仍撤销凭证族。
+Auth 独占 account、credential、external identity、refresh session、role/permission 和 authorization version。`users` 的 account/authz 字段归 Auth；profile 字段归 App 的 `user_profiles`。其他 Owner 通过窄的 Identity/Account contract 获取必要事实，不直接读取 Auth Mapper 或 Entity。登录、刷新与切换账号时，Auth 在锁定账号记录期间完成准入判断与会话签发，串行化角色和账号状态变更。登录在加锁后确认已验证的密码哈希仍有效，通过准入才更新最近登录时间。切换账号沿用角色规则。刷新与切换账号在检测重放后检查账号启用及封禁状态，再轮换有效凭证。检测到重放时仍撤销凭证族。
 
 #### Admin
 
@@ -245,7 +245,7 @@ row、cleanup intent 与 Search publication 同成同败。
 - Submission：`judge_outbox`、`submission_result_outbox`、`submission_created_outbox`，generation/attempt fence；judge payload 由 owner-private `JudgeOutboxPayload` 统一编解码（持久 keys/顺序为兼容契约）。
 - Notification：Inbox、delivery ledger、stale lease reclaim、有限重试和幂等投递。
 - Search：文档写入模块负责每篇文档的租约和版本账本 `search:doc-version:{index}`，DELETE 使用 `D:T` tombstone。Worker 负责 ACK、PEL 重领和 DLQ。
-- Judge：Submission 原子去重并入队。Judge 从 `0-0` 创建或恢复消费组，并负责 PEL、bounded reclaim、DLQ 与 ACK-after-write。仍存在的消费组保留当前游标。
+- Judge：Submission 原子去重并入队。Judge 独占消费组创建与恢复，从 `0-0` 使用 `MKSTREAM` 建组，并负责 PEL、bounded reclaim、DLQ 与 ACK-after-write。仍存在的消费组保留当前游标。
 - Audit：Auth/App 在本地业务事务写 audit outbox，Admin 通过 `Admin-Audit` inbox 按 event id 幂等落库。
 
 事件必须带 `eventId`、`aggregateId`、`aggregateVersion`、`causationId`、`traceId`、`schemaVersion`；不支持的版本、恶意字段或非法版本在业务效果前 fail closed。ACK 只发生在持久化或明确 poison staging 成功后。

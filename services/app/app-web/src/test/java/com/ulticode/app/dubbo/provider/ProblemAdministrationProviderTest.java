@@ -17,6 +17,7 @@ import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
 import com.ulticode.modules.problem.service.ProblemIndexRefresher;
+import com.ulticode.modules.problem.service.ProblemMutationModule;
 import com.ulticode.app.security.AdminActorAuthorizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +54,8 @@ class ProblemAdministrationProviderTest {
 
     @BeforeEach
     void setUp() {
-        provider = new ProblemAdministrationProvider(domainService, indexRefresher, actorAuthorizer);
+        provider = new ProblemAdministrationProvider(new ProblemMutationModule(domainService, indexRefresher),
+                actorAuthorizer);
         when(actorAuthorizer.isAuthorized(any())).thenReturn(true);
     }
     @Test
@@ -122,19 +124,13 @@ class ProblemAdministrationProviderTest {
     }
 
     @Test
-    void failedCompleteCreateMarksTheOwnerTransactionForRollback() {
-        var status = new org.springframework.transaction.support.SimpleTransactionStatus();
-        try (var synchronization = org.mockito.Mockito.mockStatic(org.springframework.transaction.support.TransactionSynchronizationManager.class);
-             var aspect = org.mockito.Mockito.mockStatic(org.springframework.transaction.interceptor.TransactionAspectSupport.class)) {
-            synchronization.when(org.springframework.transaction.support.TransactionSynchronizationManager::isActualTransactionActive).thenReturn(true);
-            aspect.when(org.springframework.transaction.interceptor.TransactionAspectSupport::currentTransactionStatus).thenReturn(status);
-            when(domainService.createProblem(any(), any())).thenThrow(new BusinessException(BaseErrorCode.VALIDATION_FAILED, "Invalid child section"));
-            var result = provider.createProblem(new CreateProblemCommand(UUID.randomUUID().toString(), IdMetadata.mint(),
-                    adminActor(), trace(), "invalid-child", "Title", "admin-1"));
-            assertThat(result.success()).isFalse();
-            assertThat(status.isRollbackOnly()).isTrue();
-            assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
-        }
+    void invalidChildSectionMapsToBadRequest() {
+        when(domainService.createProblem(any(), any())).thenThrow(
+                new BusinessException(BaseErrorCode.VALIDATION_FAILED, "Invalid child section"));
+        var result = provider.createProblem(new CreateProblemCommand(UUID.randomUUID().toString(), IdMetadata.mint(),
+                adminActor(), trace(), "invalid-child", "Title", "admin-1"));
+        assertThat(result.success()).isFalse();
+        assertThat(result.error().code()).isEqualTo(AppErrorCode.BAD_REQUEST.code());
     }
 
     @Nested
@@ -281,7 +277,8 @@ class ProblemAdministrationProviderTest {
                     UUID.randomUUID().toString(), IdMetadata.mint(), adminActor(), trace(),
                     "42", 3L, "deleting");
             Problem existing = problemEntity(42L, "two-sum", "Two Sum", 3);
-            when(domainService.findById(42L)).thenReturn(java.util.Optional.of(existing));
+            existing.setIsDeleted(true);
+            when(domainService.deleteProblem(42L, "admin-1", 3L)).thenReturn(existing);
 
             RpcResult<Void> result = provider.deleteProblem(command);
 

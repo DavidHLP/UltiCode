@@ -7,13 +7,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -30,6 +42,8 @@ class AuthAccountPersistenceIT {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private WebApplicationContext webContext;
     @Autowired
     private com.ulticode.auth.service.AuthenticationWorkflow authentication;
     @Autowired
@@ -79,11 +93,51 @@ class AuthAccountPersistenceIT {
     }
 
     @Test
+    void adminOnlyAddDeniesOrdinaryAccountWithoutWritingSessionState() throws Exception {
+        prepareAccountCredentials();
+        jdbcTemplate.update("UPDATE users SET role = 'ADMIN' WHERE id = 'user-100'");
+        var mvc = MockMvcBuilders.webAppContextSetup(webContext).apply(springSecurity()).build();
+        var login = mvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"username":"cas_user","password":"test-password"}
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(cookie().httpOnly("access_token", true))
+                .andExpect(cookie().httpOnly("refresh_token", true))
+                .andReturn().getResponse();
+        assertThat(lastLoginAt("user-100")).isNotNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM refresh_tokens", Integer.class)).isEqualTo(1);
+
+        mvc.perform(post("/auth/accounts")
+                        .cookie(login.getCookies())
+                        .header("X-CSRF-Token", login.getCookie("csrf_token").getValue())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"username":"second_user","password":"test-password","adminOnly":true}
+                            """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(10001))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertAll(
+                () -> assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM refresh_tokens", Integer.class)).isEqualTo(1),
+                () -> assertThat(lastLoginAt("user-200")).isNull()
+        );
+        assertThat(refreshTokens.findValidUserId(login.getCookie("refresh_token").getValue())).isEqualTo("user-100");
+    }
+
+    private LocalDateTime lastLoginAt(String accountId) {
+        return jdbcTemplate.queryForObject("SELECT last_login_at FROM users WHERE id = ?", LocalDateTime.class, accountId);
+    }
+
+    @Test
     void accountSwitchRoundTripPersistsRotationAndKeepsOtherAccountAfterLogout() {
         prepareAccountCredentials();
+        jdbcTemplate.update("UPDATE users SET role = 'ADMIN' WHERE id = 'user-200'");
         java.util.Map<String, String> jar = new java.util.LinkedHashMap<>();
         accept(jar, authentication.login("cas_user", "test-password"));
-        accept(jar, sessions.add("second_user", "test-password", jar, false));
+        accept(jar, sessions.add("second_user", "test-password", jar, true));
         assertThat(sessions.list(jar)).hasSize(2);
         assertThat(sessions.list(jar)).anyMatch(a -> a.id().equals("user-200") && a.current());
         String originalSavedToken = jar.get("saved_account_dXNlci0xMDA");
@@ -96,7 +150,7 @@ class AuthAccountPersistenceIT {
                 .containsExactly("user-200");
         accept(jar, sessionIssuer.csrfSession(null));
         assertThat(jar.get("csrf_token")).isNotBlank();
-        accept(jar, sessions.switchTo("user-200", jar, false));
+        accept(jar, sessions.switchTo("user-200", jar, true));
         assertThat(refreshTokens.findValidUserId(jar.get("refresh_token"))).isEqualTo("user-200");
     }
 

@@ -94,9 +94,7 @@ public class QueueConfig {
     }
 
     /**
-     * The {@link JudgeQueue} port is backed by Redisson Streams.
-     * Dedup SETNX is delegated to Redisson {@code RBucket} so no separate
-     * Redis wrapper dependency is needed here.
+     * Wires the {@link JudgeQueue} adapter that owns the Streams consumer group's lifecycle.
      *
      * <p>Only active when {@code app.features.judge-queue.use-port=true}.
      */

@@ -1,6 +1,7 @@
 package com.ulticode.submission.api.event;
 
 import com.ulticode.common.event.IntegrationEventEnvelopeContract;
+import com.ulticode.domain.submission.enums.SubmissionStatus;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -18,7 +19,7 @@ import java.util.Set;
  * fields live in {@link IntegrationEventEnvelopeContract#FIELDS} and must not
  * be mixed into payloads. Wiring status:
  * <ul>
- *   <li>{@link #JUDGED_EVENT_TYPE} — live: App's
+ *   <li>{@link #JUDGED_EVENT_TYPE} — live: Submission's
  *       {@code SubmissionResultDispatcher} publishes schema-v1
  *       {@code SubmissionJudged} payloads exactly matching
  *       {@link #JUDGED_FIELDS} (contestId omitted when absent).</li>
@@ -71,15 +72,31 @@ public final class SubmissionLifecycleEventContract {
     private SubmissionLifecycleEventContract() {
     }
 
+    /** Read fields individually so consumers can preserve their validation order. */
+    public static String requiredJudgedString(Map<String, Object> payload, String key) {
+        String value = optionalJudgedString(payload, key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
+        }
+        return value;
+    }
+
+    public static String optionalJudgedString(Map<String, Object> payload, String key) {
+        Object value = payload.get(key);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    public static SubmissionStatus requiredJudgedStatus(Map<String, Object> payload) {
+        return SubmissionStatus.fromWire(requiredJudgedString(payload, VERDICT));
+    }
+
     public static long requiredJudgedLong(Map<String, Object> payload, String key) {
         Object value = payload.get(key);
         if (value == null) {
             throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
         }
         try {
-            long parsed = value instanceof Number number
-                    ? exactLong(number)
-                    : Long.parseLong(String.valueOf(value));
+            long parsed = parseExactJudgedLong(value);
             if (parsed < 0) {
                 throw new IllegalArgumentException("Negative SubmissionJudged field: " + key);
             }
@@ -89,11 +106,39 @@ public final class SubmissionLifecycleEventContract {
         }
     }
 
-    private static long exactLong(Number number) {
-        if (number instanceof Byte || number instanceof Short
-                || number instanceof Integer || number instanceof Long) {
-            return number.longValue();
+    /** Parse a present integer without truncation. The caller owns missing values and field bounds. */
+    public static long parseExactJudgedLong(Object value) {
+        if (value instanceof Byte || value instanceof Short
+                || value instanceof Integer || value instanceof Long) {
+            return ((Number) value).longValue();
         }
-        return new BigDecimal(String.valueOf(number)).longValueExact();
+        if (value instanceof Number number) {
+            return new BigDecimal(String.valueOf(number)).longValueExact();
+        }
+        return Long.parseLong(String.valueOf(value));
+    }
+
+    /** Read legacy delivery runtime, narrowing numeric values and clamping negatives to zero. */
+    public static long legacyJudgedRuntimeMs(Map<String, Object> payload) {
+        Object value = payload.get(RUNTIME_MS);
+        if (value instanceof Number number) {
+            return Math.max(0L, number.longValue());
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            return Math.max(0L, Long.parseLong(text));
+        }
+        return 0L;
+    }
+
+    /** Read legacy delivery memory in MB, leaving non-finite values to the caller. */
+    public static double legacyJudgedMemoryMb(Map<String, Object> payload) {
+        Object value = payload.get(MEMORY_MB);
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            return Double.parseDouble(text);
+        }
+        return 0;
     }
 }

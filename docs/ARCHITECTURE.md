@@ -127,7 +127,7 @@ shutdown policies and metrics; each owner retains its Bean names and pool settin
 
 #### Auth
 
-Auth 独占 account、credential、external identity、refresh session、role/permission 和 authorization version。`users` 的 account/authz 字段归 Auth；profile 字段归 App 的 `user_profiles`。其他 Owner 通过窄的 Identity/Account contract 获取必要事实，不直接读取 Auth Mapper 或 Entity。
+Auth 独占 account、credential、external identity、refresh session、role/permission 和 authorization version。`users` 的 account/authz 字段归 Auth；profile 字段归 App 的 `user_profiles`。其他 Owner 通过窄的 Identity/Account contract 获取必要事实，不直接读取 Auth Mapper 或 Entity。管理入口添加账号用已通过凭证校验的账号判断角色，通过后才更新最近登录时间并签发 refresh session。切换账号在轮换前执行同一角色规则。
 
 #### Admin
 
@@ -137,7 +137,7 @@ Moderation 的 `moderationStore` 是 decision seam，拥有 claim、single/batch
 
 #### App
 
-App 持有普通用户 profile、Problem/Contest/Forum/Solution/Engagement/Achievement/Subscription 和 WebSocket。Profile RPC adapter 只负责 trusted actor、command receipt、command/result/error 映射与 cache eviction；共享 `ProfileMutationModule` 负责 profile 行锁、patch/avatar replacement、cleanup intent、Search publication、结果 snapshot 和 App 事务。本地 HTTP adapter 也调用该 module；对象存储 PUT 位于数据库事务之外。它发布 `NotificationIntentCreated`、`SearchDocumentChanged` 等事件；Submission 通过 owner contract，Notification 只接收 intent 并负责投递。
+App 持有普通用户 profile、Problem/Contest/Forum/Solution/Engagement/Achievement/Subscription 和 WebSocket。Profile RPC adapter 只负责 trusted actor、command receipt、command/result/error 映射与 cache eviction；共享 `ProfileMutationModule` 负责 profile 行锁、patch/avatar replacement、cleanup intent、Search publication、结果 snapshot 和 App 事务。本地 HTTP adapter 也调用该 module；对象存储 PUT 位于数据库事务之外。普通 Problem 创建、更新、发布状态变更和软删除由 `ProblemMutationModule` 在一个 App 事务中提交，Search outbox 随业务写入一同提交。HTTP 和 Dubbo adapter 在事务退出后映射结果。它发布 `NotificationIntentCreated`、`SearchDocumentChanged` 等事件；Submission 通过 owner contract，Notification 只接收 intent 并负责投递。
 
 #### Submission
 
@@ -148,8 +148,8 @@ Submission 是唯一 mutation/fence owner。App 请求边界组装不可变 `Sub
 Notification 是 notifications、preferences、delivery ledger 和 email 的唯一持久化 owner。App 保留 intent 发布与 WebSocket relay，不保留 Notification SQL。Admin 通过 `NotificationReconciliationReadPort` 消费 500 行上限的 owner facts。
 
 App and Notification share the Submission-owned `SubmissionLifecycleEventContract`
-validation for required non-negative integer fields in `SubmissionJudged` payloads.
-Each consumer retains its own terminal-status checks and inbox retry boundary.
+for `SubmissionJudged` V1 field decoding. Each consumer retains field validation
+order, terminal-status checks and inbox retry behavior.
 
 #### Judge / Search
 
@@ -158,7 +158,9 @@ Judge 通过 Redis Streams 异步接收 Submission outbox，使用 Problem facts
 
 The Agent is a standalone consumer of existing Auth/App/LearningPlan HTTP contracts; it never connects to business databases or adds model-controlled write tools. The only bounded model/tool loop is `agent_service.graph`; `agent_loop.run_tool_loop` delegates to it. The checkpointed workflow graph dispatches server-validated actions and reuses that read-only loop for analysis. Offline scripted-model injection and guarded live-provider analysis use the same workflow and kernel. Live analysis requires an explicit runtime opt-in and provider credentials. With a loopback `ULTICODE_AGENT_ORIGIN` and no selected `ULTICODE_AGENT_BUDGET_POLICY`, local development may run without the shared cumulative ledger; per-request token and attempt limits remain, but there is no cumulative cost ceiling. Non-loopback live deployments require an existing active budget period, shared guard and authorized `u03_analysis` purpose; their citation judge uses the separate `u03_citation_judge` purpose. Manual analysis-only mode retains its fixed budget and cannot enable persistence. Historical acceptance artifacts and candidate source fingerprints are not runtime dependencies.
 
-LearningPlan drafts and workflow events live in canonical private Agent SQLite state; their LangGraph checkpoints are resumable workflow control state. Multi-turn conversations and ordered turns use independent SQLite records and run/event fences; chat analysis does not write a LangGraph checkpoint. Confirming a draft is not a Java write; only explicit save can persist a LearningPlan through Java. Uncertain writes remain `unknown` and reconcile through the original idempotency key. `/auth/me` is the identity source; unsafe Agent requests require the access/CSRF pair and matching header. Confirm/save/recover require the explicit persistence deployment setting and remain absent in manual analysis-only mode; model calls independently require budget authorization. Nonempty citations are checked against same-run retrieval, document integrity, and support/derivability; answer text also passes bounded source-fact and tool-trace checks. These safeguards do not guarantee perfect semantic correctness. Runtime configuration and retained checks are documented in [Development and testing](DEVELOPMENT.md#agent-本地运行).
+LearningPlan drafts and workflow events live in canonical private Agent SQLite state; their LangGraph checkpoints are resumable workflow control state. Multi-turn conversations and ordered turns use independent SQLite records and run/event fences; chat analysis does not write a LangGraph checkpoint. Confirming a draft is not a Java write; only explicit save can persist a LearningPlan through Java. Uncertain writes remain `unknown`. Recovery looks up the original receipt first. `/auth/me` is the identity source; unsafe Agent requests require the access/CSRF pair and matching header. Confirm/save/recover require the explicit persistence deployment setting and remain absent in manual analysis-only mode; model calls independently require budget authorization. Nonempty citations are checked against same-run retrieval, document integrity, and support/derivability; answer text also passes bounded source-fact and tool-trace checks. These safeguards do not guarantee perfect semantic correctness. Runtime configuration and retained checks are documented in [Development and testing](DEVELOPMENT.md#agent-本地运行).
+
+Initial save and explicit retry share the dispatch path that revalidates source eligibility and the confirmation fence before writing to Java.
 
 Conversation evidence is projected from server-refetched selections into request-local fragments of at most 1,200 characters, scoped and versioned by the current run. Only the catalog enters the initial prompt; retrieved text remains untrusted and comment citations establish attribution only. Live analysis never falls back to synthetic documents; the legacy plan workflow without selected material has an explicit empty corpus. Real conversation stage boundaries are recorded alongside the existing safe model/tool events; current-run stage history is a read projection of canonical events, not another workflow state machine or checkpoint.
 
@@ -240,8 +242,8 @@ row、cleanup intent 与 Search publication 同成同败。
 
 - Submission：`judge_outbox`、`submission_result_outbox`、`submission_created_outbox`，generation/attempt fence；judge payload 由 owner-private `JudgeOutboxPayload` 统一编解码（持久 keys/顺序为兼容契约）。
 - Notification：Inbox、delivery ledger、stale lease reclaim、有限重试和幂等投递。
-- Search：版本账本 `search:doc-version:{index}`，DELETE 使用 `D:T` tombstone，旧版本只 ACK 不覆盖新版本。
-- Judge：Streams PEL、`0-0` group replay、bounded reclaim、DLQ、ACK-after-write。
+- Search：文档写入模块负责每篇文档的租约和版本账本 `search:doc-version:{index}`，DELETE 使用 `D:T` tombstone。Worker 负责 ACK、PEL 重领和 DLQ。
+- Judge：Submission 原子去重并入队。Judge 从 `0-0` 创建或恢复消费组，并负责 PEL、bounded reclaim、DLQ 与 ACK-after-write。仍存在的消费组保留当前游标。
 - Audit：Auth/App 在本地业务事务写 audit outbox，Admin 通过 `Admin-Audit` inbox 按 event id 幂等落库。
 
 事件必须带 `eventId`、`aggregateId`、`aggregateVersion`、`causationId`、`traceId`、`schemaVersion`；不支持的版本、恶意字段或非法版本在业务效果前 fail closed。ACK 只发生在持久化或明确 poison staging 成功后。

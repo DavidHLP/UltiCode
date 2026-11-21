@@ -3,12 +3,10 @@ package com.ulticode.search;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.search.adapter.SearchIndex;
-import com.ulticode.search.adapter.SearchIndexUnavailableException;
 import com.ulticode.common.event.IntegrationEventEnvelopeContract;
 import com.ulticode.common.event.SearchDocumentChangedEventContract;
 import com.ulticode.common.lifecycle.DrainGate;
 import com.ulticode.common.metrics.WorkerSloMeters;
-import com.ulticode.common.resilience.DependencyGuard;
 import com.ulticode.modules.event.inbox.RedisStreamQueueHealth;
 import com.ulticode.modules.event.inbox.RedisStreamTransport;
 import com.ulticode.search.config.SearchWorkerProperties;
@@ -16,7 +14,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.ContextClosedEvent;
@@ -45,23 +42,6 @@ import org.springframework.stereotype.Component;
  * dead-lettered to {@code dlqKey}. Non-{@code SearchDocumentChanged} events
  * on the shared stream are ACKed unprocessed (per-group cursor; other groups
  * keep their own delivery). Only allowlisted indexes are written.
- *
- * <p>Version ledger (DEC-016): each UPSERT carries the document version
- * (epoch millis, {@code aggregateVersion} envelope field). The worker keeps
- * a per-index Redis hash ({@code versionKeyPrefix}:{@code index}) of the last
- * written version per document. An incoming UPSERT whose version is strictly
- * older than the ledger entry is skipped (counted, still ACKed) so a backfill
- * snapshot can never overwrite a newer live write; equal versions rewrite
- * (idempotent, content-convergent). DELETEs record a typed tombstone
- * ({@code D:T}) so an equal-or-older UPSERT cannot resurrect a deleted
- * document, including version zero. Legacy negative tombstones remain
- * readable for compatibility. The version is also embedded in the Meili
- * document as {@code _aggregateVersion} for diff watermark and observability.
- * Replicas serialize versioned operations for the same index/document with a
- * short Redis lease; lock contention defers the event in the PEL (without
- * inflating its delivery count, so contention cannot dead-letter a valid
- * event), and the ledger write is guarded by a lease-ownership re-check so a
- * slow Meili write cannot clobber a newer owner's ledger entry.
  */
 @Slf4j
 @Component
@@ -70,17 +50,12 @@ public class SearchDocumentIndexWorker {
 
     private static final String EVENT_TYPE = SearchDocumentChangedEventContract.EVENT_TYPE;
     private static final Duration CLAIM_MIN_IDLE = Duration.ofSeconds(30);
-    private static final String DOCUMENT_VERSION_FIELD = "_aggregateVersion";
-    private static final String DELETE_LEDGER_PREFIX = "D:";
     private final StringRedisTemplate redisTemplate;
-    private final SearchIndex searchIndex;
     private final ObjectMapper objectMapper;
     private final SearchWorkerProperties props;
-    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     private final io.micrometer.core.instrument.Counter processedCounter;
     private final io.micrometer.core.instrument.Counter deadLetterCounter;
-    private final io.micrometer.core.instrument.Counter staleCounter;
 
     /** Queue/consumer SLO gauges (review 2026-08-25 P1), refreshed by {@link #consume()}. */
     private final WorkerSloMeters slo;
@@ -90,8 +65,7 @@ public class SearchDocumentIndexWorker {
     private final RedisStreamTransport streamTransport;
     private final RedisStreamQueueHealth queueHealth;
     private final DrainGate drainGate = new DrainGate();
-    private final DependencyGuard meiliSearchGuard =
-            new DependencyGuard(8, 5, Duration.ofSeconds(30));
+    private final VersionedSearchDocumentWriter documentWriter;
 
     private static final RedisScript<Long> ATOMIC_DEAD_LETTER_SCRIPT = RedisScript.of("""
             local marked = redis.call('SET', KEYS[3], '1', 'NX', 'EX', ARGV[10])
@@ -115,34 +89,13 @@ public class SearchDocumentIndexWorker {
             return 1
             """, Long.class);
 
-    /** Lease covering the Redis ledger read, Meili write and ledger write. */
-    private static final Duration DOCUMENT_LOCK_TTL = Duration.ofSeconds(30);
-
     /**
      * How long a lock-busy event is deferred from reclaim/dead-lettering.
-     * Must exceed {@link #DOCUMENT_LOCK_TTL} so a crashed lock holder cannot
-     * wedge the event: after the deadline the lock has auto-expired and the
-     * event is handled normally again.
+     * Must exceed {@link VersionedSearchDocumentWriter#DOCUMENT_LOCK_TTL} so the lease of a crashed
+     * holder can expire before this event is eligible for reclaim again.
      */
-    private static final long LOCK_WAIT_MAX_MS = DOCUMENT_LOCK_TTL.toMillis() * 2;
-
-    private static final RedisScript<Long> RELEASE_DOCUMENT_LOCK_SCRIPT = RedisScript.of(
-            "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end",
-            Long.class);
-
-    /** Re-extends the lease only while we still own it. */
-    private static final RedisScript<Long> RENEW_DOCUMENT_LOCK_SCRIPT = RedisScript.of("""
-            if redis.call('GET', KEYS[1]) == ARGV[1]
-            then return redis.call('EXPIRE', KEYS[1], ARGV[2])
-            else return 0 end
-            """, Long.class);
-
-    /** Signals another replica currently holds the per-document lease. */
-    private static final class LockBusyException extends RuntimeException {
-        LockBusyException(String message) {
-            super(message);
-        }
-    }
+    private static final long LOCK_WAIT_MAX_MS =
+            VersionedSearchDocumentWriter.DOCUMENT_LOCK_TTL.toMillis() * 2;
 
     /**
      * Events deferred because another replica held the document lease
@@ -159,13 +112,12 @@ public class SearchDocumentIndexWorker {
             SearchWorkerProperties props,
             io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.redisTemplate = redisTemplate;
-        this.searchIndex = searchIndex;
         this.objectMapper = objectMapper;
         this.props = props;
-        this.meterRegistry = meterRegistry;
         this.processedCounter = meterRegistry.counter("search.worker.processed");
         this.deadLetterCounter = meterRegistry.counter("search.worker.deadlettered");
-        this.staleCounter = meterRegistry.counter("search.worker.stale_skipped");
+        this.documentWriter = new VersionedSearchDocumentWriter(redisTemplate, searchIndex, objectMapper, props,
+                meterRegistry.counter("search.worker.stale_skipped"));
         this.slo = WorkerSloMeters.register(meterRegistry, "search.worker");
         this.consumerName = props.effectiveConsumerName();
         this.streamTransport = new RedisStreamTransport(
@@ -398,25 +350,25 @@ public class SearchDocumentIndexWorker {
             }
             long incomingVersion = parseVersion(fields.get(SearchDocumentChangedEventContract.AGGREGATE_VERSION));
 
-            boolean applied = applyVersionedOperation(
-                    record, index, documentId, incomingVersion, operation, payload);
+            String recordId = record.getId().getValue();
+            VersionedSearchDocumentWriter.Result result = documentWriter.apply(
+                    index, documentId, incomingVersion, operation,
+                    payload.get(SearchDocumentChangedEventContract.DOCUMENT),
+                    consumerName + ":" + recordId, () -> lockWaitDeadline.remove(recordId));
+            if (result == VersionedSearchDocumentWriter.Result.LOCK_BUSY) {
+                // Defer reclaim and dead-lettering while another replica holds the lease.
+                lockWaitDeadline.put(recordId, System.currentTimeMillis() + LOCK_WAIT_MAX_MS);
+                log.debug("Search event {} deferred: document lock busy", recordId);
+                return false;
+            }
             if (!ack(record)) {
                 return false;
             }
-            if (!applied) {
-                return true;
+            if (result == VersionedSearchDocumentWriter.Result.APPLIED) {
+                processedCounter.increment();
             }
-            processedCounter.increment();
             return true;
 
-        } catch (LockBusyException busy) {
-            // Transient contention with another replica, not a failure:
-            // defer reclaiming/dead-lettering until the holder finishes.
-            lockWaitDeadline.put(record.getId().getValue(),
-                    System.currentTimeMillis() + LOCK_WAIT_MAX_MS);
-            log.debug("Search event {} deferred: document lock busy",
-                    record.getId().getValue());
-            return false;
         } catch (Exception e) {
             // Leave in PEL: reclaimed on the next cycle, dead-lettered after
             // maxAttempts deliveries.
@@ -426,175 +378,8 @@ public class SearchDocumentIndexWorker {
         }
     }
 
-    private boolean applyVersionedOperation(
-            MapRecord<String, String, String> record,
-            String index,
-            String documentId,
-            long incomingVersion,
-            String operation,
-            Map<String, Object> payload) throws Exception {
-        String versionKey = props.getVersionKeyPrefix() + ":" + index;
-        String lockKey = versionKey + ":lock:" + documentId;
-        String lockToken = consumerName + ":" + record.getId().getValue();
-        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(
-                lockKey, lockToken, DOCUMENT_LOCK_TTL);
-        if (!Boolean.TRUE.equals(acquired)) {
-            throw new LockBusyException("search document lock busy: " + index + "/" + documentId);
-        }
-        lockWaitDeadline.remove(record.getId().getValue());
-
-        try {
-            String existing = ledgerVersion(versionKey, documentId);
-            if (isStale(existing, incomingVersion)) {
-                staleCounter.increment();
-                return false;
-            }
-            if (SearchDocumentChangedEventContract.UPSERT.equals(operation)) {
-                Object document = payload.get(SearchDocumentChangedEventContract.DOCUMENT);
-                if (document == null) {
-                    throw new IllegalArgumentException("UPSERT search event without document");
-                }
-                Map<String, Object> doc = objectMapper.readValue(
-                        objectMapper.writeValueAsString(document), payloadType);
-                doc.put(DOCUMENT_VERSION_FIELD, incomingVersion);
-                String serializedDocument = objectMapper.writeValueAsString(doc);
-                executeMeili(() -> searchIndex.index(index).upsert(serializedDocument));
-                writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
-                        String.valueOf(incomingVersion));
-            } else if (SearchDocumentChangedEventContract.DELETE.equals(operation)) {
-                executeMeili(() -> searchIndex.index(index).delete(documentId));
-                writeLedgerIfStillOwner(lockKey, lockToken, versionKey, documentId,
-                        DELETE_LEDGER_PREFIX + incomingVersion);
-            } else {
-                throw new IllegalArgumentException("unsupported operation: " + operation);
-            }
-            return true;
-        } finally {
-            releaseDocumentLock(lockKey, lockToken);
-        }
-    }
-
-    private void executeMeili(Runnable operation) {
-        DependencyGuard.Permit permit = meiliSearchGuard.acquire();
-        try (permit) {
-            try {
-                operation.run();
-                permit.success();
-            } catch (SearchIndexUnavailableException unavailable) {
-                permit.failure();
-                throw unavailable;
-            } catch (RuntimeException failure) {
-                permit.ignore();
-                throw failure;
-            }
-        }
-    }
-
     /**
-     * Persist the ledger entry only while we still own the lease. A slow Meili
-     * write can outlive the lease and let another replica take over; writing
-     * the ledger then would clobber the new owner's entry.
-     */
-    private void writeLedgerIfStillOwner(
-            String lockKey, String lockToken, String versionKey, String documentId, String ledgerValue) {
-        if (!ownsDocumentLock(lockKey, lockToken)) {
-            log.warn("Search document lease lost before ledger write: skipping ledger update for {} in {}",
-                    documentId, versionKey);
-            return;
-        }
-        redisTemplate.opsForHash().put(versionKey, documentId, ledgerValue);
-    }
-
-    /**
-     * Whether the lease is still ours (renewing it in the same check).
-     * Redis answers 1 (renewed) or 0 (lost). A missing or failed renewal
-     * fails closed so a stale worker cannot advance the version ledger.
-     */
-    private boolean ownsDocumentLock(String lockKey, String lockToken) {
-        try {
-            Long renewed = redisTemplate.execute(
-                    RENEW_DOCUMENT_LOCK_SCRIPT,
-                    List.of(lockKey),
-                    lockToken,
-                    String.valueOf(DOCUMENT_LOCK_TTL.toSeconds()));
-            return renewed != null && renewed > 0L;
-        } catch (RuntimeException exception) {
-            throw new IllegalStateException("Search document lease renewal unavailable", exception);
-        }
-    }
-
-    private void releaseDocumentLock(String lockKey, String lockToken) {
-        try {
-            redisTemplate.execute(RELEASE_DOCUMENT_LOCK_SCRIPT, List.of(lockKey), lockToken);
-        } catch (RuntimeException exception) {
-            log.warn("Failed to release search document lock {}: {}", lockKey, exception.getMessage());
-        }
-    }
-
-    /**
-     * Whether an incoming versioned operation must be skipped because the
-     * ledger already holds a newer state for the document:
-     * <ul>
-     *   <li>positive ledger value = last written version: skip iff
-     *       existing &gt; incoming (equal rewrites, idempotent);</li>
-     *   <li>{@code D:T} = tombstone version {@code T} recorded by a DELETE:
-     *       skip iff {@code T &gt;= incoming} (including version zero);</li>
-     *   <li>negative legacy value = tombstone version {@code -T};</li>
-     *   <li>absent/corrupt ledger: never skip (first write or self-heal).</li>
-     * </ul>
-     */
-    private boolean isStale(String existing, long incomingVersion) {
-        if (existing == null) {
-            return false;
-        }
-        try {
-            if (existing.startsWith(DELETE_LEDGER_PREFIX)) {
-                long tombstoneVersion = Long.parseLong(existing.substring(DELETE_LEDGER_PREFIX.length()));
-                return tombstoneVersion >= 0L && tombstoneVersion >= incomingVersion;
-            }
-            long existingVersion = Long.parseLong(existing);
-            if (existingVersion < 0) {
-                return existingVersion == Long.MIN_VALUE
-                        || -existingVersion >= incomingVersion;
-            }
-            return existingVersion > incomingVersion;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Last-written version for a document, or {@code null} when the ledger
-     * has no entry (first write, or index rebuilt). An unparsable ledger
-     * value is treated as absent so a corrupt entry cannot wedge the stream.
-     */
-    private String ledgerVersion(String versionKey, String documentId) {
-        try {
-            Object existing = redisTemplate.opsForHash().get(versionKey, documentId);
-            if (existing == null) {
-                return null;
-            }
-            String value = String.valueOf(existing);
-            if (value.startsWith(DELETE_LEDGER_PREFIX)) {
-                long tombstoneVersion = Long.parseLong(value.substring(DELETE_LEDGER_PREFIX.length()));
-                if (tombstoneVersion < 0L) {
-                    return null;
-                }
-            } else {
-                Long.parseLong(value);
-            }
-            return value;
-        } catch (RuntimeException e) {
-            log.warn("Ignoring unparsable ledger version for {} in {}", documentId, versionKey);
-            return null;
-        }
-    }
-
-    /**
-     * Event version (epoch millis). Events published before the version
-     * semantic (aggregateVersion=0) are treated as version 0: they can
-     * never be stale-skipped and always write, which is safe for legacy
-     * replay.
+     * Event version (epoch millis). Version zero remains valid for legacy events.
      */
     private long parseVersion(String raw) {
         if (raw == null || raw.isBlank()) {

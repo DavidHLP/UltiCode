@@ -13,9 +13,13 @@ public interface AuthenticationWorkflow {
 
     AuthSession login(String username, String password);
 
+    AuthSession login(String username, String password, boolean adminOnly);
+
     AuthSession register(String username, String email, String password);
 
     AuthSession refresh(String refreshToken);
+
+    AuthSession switchAccount(String accountId, String refreshToken, boolean adminOnly);
 
     AuthSession logout(String refreshToken);
 }

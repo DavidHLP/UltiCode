@@ -12,6 +12,7 @@ import com.ulticode.auth.session.*;
 import com.ulticode.auth.util.FixedUuidGenerator;
 import java.time.*;
 import java.util.*;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,6 +42,7 @@ class AccountSessionServiceTest {
         AuthAccountRecord bob = account("bob", "USER", true, false);
         when(accounts.findByUsername("bob")).thenReturn(Optional.of(bob));
         when(passwordEncoder.matches("password", bob.password())).thenReturn(true);
+        lockedAccount(bob);
         when(issuer.completeLogin(bob)).thenReturn(session("bob", "USER"));
         AuthSession result = service.add("bob", "password", Map.of("refresh_token", "alice-token"), false);
         assertThat(result.response().getUser().id()).isEqualTo("bob");
@@ -59,7 +61,7 @@ class AccountSessionServiceTest {
         when(tokens.verifiedUserId("alice-token")).thenReturn("alice");
         when(tokens.findValidUserId("bob-token")).thenReturn("bob");
         AuthAccountRecord alice = account("alice", "SUPER_ADMIN", true, false);
-        when(accounts.findById("alice")).thenReturn(Optional.of(alice));
+        lockedAccount(alice);
         when(tokens.validateAndRotate(eq("alice-token"), any(Runnable.class))).thenAnswer(invocation -> {
             invocation.getArgument(1, Runnable.class).run();
             return new RefreshTokenService.RotationResult("alice", "rotated-token");
@@ -83,7 +85,7 @@ class AccountSessionServiceTest {
     @Test
     void revokedSavedTokenStillReachesTheExistingReplayDetection() {
         when(tokens.verifiedUserId("replayed")).thenReturn("alice");
-        when(accounts.findById("alice")).thenReturn(Optional.of(account("alice", "USER", true, false)));
+        lockedAccount(account("alice", "USER", true, false));
         when(tokens.validateAndRotate(eq("replayed"), any(Runnable.class)))
                 .thenThrow(new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
         assertThatThrownBy(() -> service.switchTo("alice", Map.of("saved_account_YWxpY2U", "replayed"), false))
@@ -100,7 +102,7 @@ class AccountSessionServiceTest {
     @Test
     void adminSwitchRejectsUserBeforeRotatingTheirSession() {
         when(tokens.verifiedUserId("alice-token")).thenReturn("alice");
-        when(accounts.findById("alice")).thenReturn(Optional.of(account("alice", "USER", true, false)));
+        lockedAccount(account("alice", "USER", true, false));
         assertThatThrownBy(() -> service.switchTo("alice", Map.of("saved_account_YWxpY2U", "alice-token"), true))
                 .isInstanceOfSatisfying(AuthBusinessException.class,
                         failure -> assertThat(failure.getErrorCode()).isEqualTo(AuthErrorCode.AUTH_INVALID_CREDENTIALS));
@@ -139,6 +141,13 @@ class AccountSessionServiceTest {
                 .isInstanceOfSatisfying(AuthBusinessException.class,
                         failure -> assertThat(failure.getErrorCode()).isEqualTo(AuthErrorCode.AUTH_INVALID_REQUEST));
         verify(accounts, never()).findByUsername("sixth");
+    }
+
+    private void lockedAccount(AuthAccountRecord account) {
+        when(accounts.withLockedAccount(eq(account.id()), any())).thenAnswer(invocation -> {
+            Function<Optional<AuthAccountRecord>, AuthSession> action = invocation.getArgument(1);
+            return action.apply(Optional.of(account));
+        });
     }
 
     private static AuthAccountRecord account(String id, String role, boolean active, boolean banned) {

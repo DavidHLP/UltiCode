@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -84,6 +85,10 @@ class DefaultAuthenticationWorkflowTest {
         void successfulLogin() {
             when(accountPort.findByUsername("alice")).thenReturn(Optional.of(activeUser));
             when(passwordEncoder.matches("secret123", "encoded-pass")).thenReturn(true);
+            when(accountPort.withLockedAccount(eq(activeUser.id()), any())).thenAnswer(invocation -> {
+                Function<Optional<AuthAccountRecord>, AuthSession> action = invocation.getArgument(1);
+                return action.apply(Optional.of(activeUser));
+            });
             when(authSessionPort.completeLogin(eq(activeUser))).thenReturn(mockSession("csrf-token-123"));
 
             AuthSession session = authenticationWorkflow.login("alice", "secret123");

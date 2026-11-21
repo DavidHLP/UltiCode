@@ -2,6 +2,7 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.account.entity.AuthAccountEntity;
 import com.ulticode.auth.account.mapper.AuthAccountMapper;
+import com.ulticode.auth.session.AuthSessionPort;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,11 +12,16 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
@@ -23,7 +29,11 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -52,8 +62,10 @@ class AuthAccountPersistenceIT {
     private com.ulticode.auth.service.AuthenticationWorkflow authentication;
     @Autowired
     private com.ulticode.auth.service.AccountSessionService sessions;
+    @MockitoSpyBean
+    private AuthSessionPort sessionIssuer;
     @Autowired
-    private com.ulticode.auth.session.AuthSessionPort sessionIssuer;
+    private PlatformTransactionManager transactionManager;
     @Autowired
     private com.ulticode.auth.refreshtoken.service.RefreshTokenService refreshTokens;
     @Autowired
@@ -156,6 +168,25 @@ class AuthAccountPersistenceIT {
         assertThat(jar.get("csrf_token")).isNotBlank();
         accept(jar, sessions.switchTo("user-200", jar, true));
         assertThat(refreshTokens.findValidUserId(jar.get("refresh_token"))).isEqualTo("user-200");
+    }
+
+    @Test
+    void holdsAccountRowLockWhileIssuingSessionForSavedAccount() {
+        String credential = refreshTokens.createToken("user-100");
+        var otherTransaction = new TransactionTemplate(transactionManager);
+        otherTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        doAnswer(invocation -> {
+            assertThatThrownBy(() -> otherTransaction.execute(status -> jdbcTemplate.queryForObject(
+                    "SELECT id FROM users WHERE id = ? FOR UPDATE NOWAIT", String.class, "user-100")))
+                    .isInstanceOf(QueryTimeoutException.class)
+                    .hasMessageContaining("Timeout trying to lock");
+            return invocation.callRealMethod();
+        }).when(sessionIssuer).completeRefresh(any(AuthAccountRecord.class), anyString());
+
+        var session = authentication.switchAccount("user-100", credential, false);
+
+        assertThat(session.response().getUser().id()).isEqualTo("user-100");
+        assertThat(refreshTokens.findValidUserId(credential)).isNull();
     }
 
     @ParameterizedTest

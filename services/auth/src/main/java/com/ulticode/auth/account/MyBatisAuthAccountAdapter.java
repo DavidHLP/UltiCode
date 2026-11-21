@@ -2,9 +2,11 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.account.entity.AuthAccountEntity;
 import com.ulticode.auth.account.mapper.AuthAccountMapper;
+import com.ulticode.auth.error.AuthBusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -13,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 /** Production MySQL-backed implementation of {@link AuthAccountPort}. */
 @Component
@@ -48,6 +51,16 @@ public class MyBatisAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    // A replay rejection must still commit the credential family revocation.
+    @Transactional(noRollbackFor = AuthBusinessException.class)
+    public <T> T withLockedAccount(String userId, Function<Optional<AuthAccountRecord>, T> action) {
+        if (userId == null || userId.isBlank()) {
+            return action.apply(Optional.empty());
+        }
+        return action.apply(Optional.ofNullable(mapper.findByIdForUpdate(userId.trim())).map(this::toRecord));
+    }
+
+    @Override
     public List<AuthAccountRecord> findByIds(Set<String> userIds) {
         if (userIds == null || userIds.isEmpty()) {
             return List.of();
@@ -71,7 +84,7 @@ public class MyBatisAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public AuthAccountRecord create(AuthAccountRecord record) {
         AuthAccountEntity entity = toEntity(record);
         mapper.insert(entity);

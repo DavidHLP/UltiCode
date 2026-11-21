@@ -777,6 +777,7 @@ class _AnalysisRun:
     ):
         self.stage = "answer_parsing"
         parsed = parse_model_answer(answer)
+        # The graph awaits each tool call before recording its trace entry.
         results = iter(self._search_results)
         trace_results = [
             {"tool": "search_evidence", "failed": bool(event.get("failed")),

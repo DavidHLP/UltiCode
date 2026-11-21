@@ -127,7 +127,7 @@ shutdown policies and metrics; each owner retains its Bean names and pool settin
 
 #### Auth
 
-Auth 独占 account、credential、external identity、refresh session、role/permission 和 authorization version。`users` 的 account/authz 字段归 Auth；profile 字段归 App 的 `user_profiles`。其他 Owner 通过窄的 Identity/Account contract 获取必要事实，不直接读取 Auth Mapper 或 Entity。管理入口添加账号用已通过凭证校验的账号判断角色，通过后才更新最近登录时间并签发 refresh session。切换账号沿用角色规则，检测重放后检查账号启用及封禁状态，再轮换有效凭证。检测到重放时仍撤销凭证族。
+Auth 独占 account、credential、external identity、refresh session、role/permission 和 authorization version。`users` 的 account/authz 字段归 Auth；profile 字段归 App 的 `user_profiles`。其他 Owner 通过窄的 Identity/Account contract 获取必要事实，不直接读取 Auth Mapper 或 Entity。登录和切换账号时，Auth 在锁定账号记录期间完成准入判断与会话签发，串行化角色和账号状态变更。登录在加锁后确认已验证的密码哈希仍有效，通过准入才更新最近登录时间。切换账号沿用角色规则，检测重放后检查账号启用及封禁状态，再轮换有效凭证。检测到重放时仍撤销凭证族。
 
 #### Admin
 

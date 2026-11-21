@@ -27,6 +27,9 @@ public interface AuthAccountMapper {
     @Select("SELECT " + COLUMNS + " FROM users WHERE id = #{id} AND is_deleted = 0")
     AuthAccountEntity findById(String id);
 
+    @Select("SELECT " + COLUMNS + " FROM users WHERE id = #{id} AND is_deleted = 0 FOR UPDATE")
+    AuthAccountEntity findByIdForUpdate(String id);
+
     @Select("<script>SELECT " + COLUMNS + " FROM users WHERE is_deleted = 0 AND id IN "
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach></script>")
     List<AuthAccountEntity> findByIds(@Param("ids") Set<String> ids);

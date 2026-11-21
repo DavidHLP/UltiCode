@@ -18,6 +18,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +60,16 @@ class MyBatisAuthAccountAdapterTest {
         assertThat(result.get().id()).isEqualTo("user-1");
         assertThat(result.get().username()).isEqualTo("alice");
         assertThat(result.get().authzVersion()).isEqualTo(5L);
+    }
+
+    @Test
+    void missingOrBlankIdSuppliesAnEmptyAccountWithoutLocking() {
+        boolean missing = adapter.withLockedAccount(null, Optional::isEmpty);
+        boolean blank = adapter.withLockedAccount(" ", Optional::isEmpty);
+
+        assertThat(missing).isTrue();
+        assertThat(blank).isTrue();
+        verifyNoInteractions(mapper);
     }
 
     @Test

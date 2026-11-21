@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * In-memory fallback adapter for {@link AuthAccountPort} inside backend-auth shell.
@@ -49,6 +50,11 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    public synchronized <T> T withLockedAccount(String userId, Function<Optional<AuthAccountRecord>, T> action) {
+        return action.apply(findById(userId));
+    }
+
+    @Override
     public List<AuthAccountRecord> findByIds(Set<String> userIds) {
         if (userIds == null || userIds.isEmpty()) {
             return List.of();
@@ -71,7 +77,7 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
-    public AuthAccountRecord create(AuthAccountRecord record) {
+    public synchronized AuthAccountRecord create(AuthAccountRecord record) {
         accountsById.put(record.id(), record);
         accountsByUsername.put(record.username(), record);
         if (record.email() != null && !record.email().isBlank()) {
@@ -86,7 +92,7 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
-    public void updatePassword(String userId, String hashedPassword) {
+    public synchronized void updatePassword(String userId, String hashedPassword) {
         AuthAccountRecord existing = accountsById.get(userId);
         if (existing != null) {
             AuthAccountRecord updated = new AuthAccountRecord(

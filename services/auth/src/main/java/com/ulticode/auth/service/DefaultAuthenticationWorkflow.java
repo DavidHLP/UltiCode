@@ -48,11 +48,14 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
             throw new AuthBusinessException(AuthErrorCode.AUTH_INVALID_CREDENTIALS);
         }
 
-        ensureAccountActive(account);
-        requireAllowedRole(account, adminOnly);
-        accountPort.updateLastLoginAt(account.id());
-
-        return authSessionPort.completeLogin(account);
+        return accountPort.withLockedAccount(account.id(), current -> {
+            AuthAccountRecord admitted = current.filter(candidate -> account.password().equals(candidate.password()))
+                    .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_INVALID_CREDENTIALS));
+            ensureAccountActive(admitted);
+            requireAllowedRole(admitted, adminOnly);
+            accountPort.updateLastLoginAt(admitted.id());
+            return authSessionPort.completeLogin(admitted);
+        });
     }
 
     @Override
@@ -116,17 +119,19 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
         if (!accountId.equals(refreshTokenService.verifiedUserId(refreshToken))) {
             throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED);
         }
-        AuthAccountRecord account = accountPort.findById(accountId)
-                .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
-        requireAllowedRole(account, adminOnly);
+        return accountPort.withLockedAccount(accountId, current -> {
+            AuthAccountRecord account = current
+                    .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
+            requireAllowedRole(account, adminOnly);
 
-        RefreshTokenService.RotationResult rotation;
-        try {
-            rotation = refreshTokenService.validateAndRotate(refreshToken, () -> ensureAccountActive(account));
-        } catch (ExpiredJwtException e) {
-            throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token has expired");
-        }
-        return authSessionPort.completeRefresh(account, rotation.token());
+            RefreshTokenService.RotationResult rotation;
+            try {
+                rotation = refreshTokenService.validateAndRotate(refreshToken, () -> ensureAccountActive(account));
+            } catch (ExpiredJwtException e) {
+                throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token has expired");
+            }
+            return authSessionPort.completeRefresh(account, rotation.token());
+        });
     }
 
     @Override

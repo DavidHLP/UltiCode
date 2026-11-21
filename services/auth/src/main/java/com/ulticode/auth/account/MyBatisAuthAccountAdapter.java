@@ -2,7 +2,7 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.account.entity.AuthAccountEntity;
 import com.ulticode.auth.account.mapper.AuthAccountMapper;
-import com.ulticode.auth.error.AuthBusinessException;
+import com.ulticode.auth.error.RefreshTokenReplayException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -52,7 +52,7 @@ public class MyBatisAuthAccountAdapter implements AuthAccountPort {
 
     @Override
     // A replay rejection must still commit the credential family revocation.
-    @Transactional(noRollbackFor = AuthBusinessException.class)
+    @Transactional(noRollbackFor = RefreshTokenReplayException.class)
     public <T> T withLockedAccount(String userId, Function<Optional<AuthAccountRecord>, T> action) {
         if (userId == null || userId.isBlank()) {
             return action.apply(Optional.empty());

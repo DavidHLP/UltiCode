@@ -115,13 +115,13 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
     }
 
     private AuthSession rotateAndIssueSession(String refreshToken, AuthAccountRecord account) {
-        var rotation = refreshTokenService.validateAndRotate(refreshToken, () -> {
+        String rotatedToken = refreshTokenService.validateAndRotate(refreshToken, () -> {
             if (account == null) {
                 throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
             }
             ensureAccountActive(account);
         });
-        return authSessionPort.completeRefresh(account, rotation.token());
+        return authSessionPort.completeRefresh(account, rotatedToken);
     }
 
     @Override

@@ -64,7 +64,7 @@ class AccountSessionServiceTest {
         lockedAccount(alice);
         when(tokens.validateAndRotate(eq("alice-token"), any(Runnable.class))).thenAnswer(invocation -> {
             invocation.getArgument(1, Runnable.class).run();
-            return new RefreshTokenService.RotationResult("alice", "rotated-token");
+            return "rotated-token";
         });
         when(issuer.completeRefresh(alice, "rotated-token")).thenReturn(session("alice", "SUPER_ADMIN"));
         AuthSession result = service.switchTo("alice",

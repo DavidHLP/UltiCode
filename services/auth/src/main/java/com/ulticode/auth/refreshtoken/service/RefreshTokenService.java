@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ulticode.auth.error.AuthBusinessException;
 import com.ulticode.auth.error.AuthErrorCode;
+import com.ulticode.auth.error.RefreshTokenReplayException;
 import com.ulticode.auth.refreshtoken.entity.RefreshToken;
 import com.ulticode.auth.refreshtoken.mapper.RefreshTokenMapper;
 import com.ulticode.auth.security.jwt.JwtProperties;
@@ -94,18 +95,13 @@ public class RefreshTokenService {
      * If valid, revokes the old token and returns a new one.
      *
      * @param token    the refresh token to validate
-     * @return the user ID and new refresh token
+     * @param admit account admission check to run before consuming a valid credential
+     * @return the new refresh token
      * @throws AuthBusinessException if the token is invalid, expired,
      *         or has already been used.
      */
-    @Transactional(noRollbackFor = AuthBusinessException.class)
-    public RotationResult validateAndRotate(String token) {
-        return validateAndRotate(token, () -> {});
-    }
-
-    /** Runs caller admission after credential and replay checks, before consuming a valid token. */
-    @Transactional(noRollbackFor = AuthBusinessException.class)
-    public RotationResult validateAndRotate(String token, Runnable admit) {
+    @Transactional(noRollbackFor = RefreshTokenReplayException.class)
+    public String validateAndRotate(String token, Runnable admit) {
         String userId = requireVerifiedUserId(token);
         String tokenHash = DigestUtil.sha256Hex(token);
 
@@ -132,8 +128,7 @@ public class RefreshTokenService {
                 log.warn("Revoked {} tokens in family {} due to reuse detection",
                         familyRevoked, storedToken.getFamilyId());
             }
-            throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED,
-                    "Refresh token has been revoked — possible token theft");
+            throw new RefreshTokenReplayException();
         }
 
         if (storedToken.getExpiresAt().isBefore(LocalDateTime.now(clock))) {
@@ -164,7 +159,7 @@ public class RefreshTokenService {
         }
 
         log.info("Rotating refresh token for user: {} (family: {})", storedToken.getUserId(), familyId);
-        return new RotationResult(storedToken.getUserId(), newToken);
+        return newToken;
     }
 
     /** Read-only validation for the browser's saved account catalog. Never rotates or accepts access JWTs. */
@@ -245,6 +240,4 @@ public class RefreshTokenService {
         );
         log.info("Revoked {} refresh tokens for user: {}", count, userId);
     }
-
-    public record RotationResult(String userId, String token) {}
 }

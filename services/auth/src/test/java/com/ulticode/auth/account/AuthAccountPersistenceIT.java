@@ -2,6 +2,8 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.account.entity.AuthAccountEntity;
 import com.ulticode.auth.account.mapper.AuthAccountMapper;
+import com.ulticode.auth.error.AuthBusinessException;
+import com.ulticode.auth.error.AuthErrorCode;
 import com.ulticode.auth.security.jwt.JwtProperties;
 import com.ulticode.auth.security.jwt.JwtTokenProvider;
 import com.ulticode.auth.security.jwt.RsaKeyManager;
@@ -39,7 +41,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -72,8 +76,10 @@ class AuthAccountPersistenceIT {
     private AuthSessionPort sessionIssuer;
     @Autowired
     private PlatformTransactionManager transactionManager;
-    @Autowired
+    @MockitoSpyBean
     private com.ulticode.auth.refreshtoken.service.RefreshTokenService refreshTokens;
+    @MockitoSpyBean
+    private MyBatisAuthAccountAdapter accountAdapter;
     @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     @Autowired
@@ -201,6 +207,10 @@ class AuthAccountPersistenceIT {
         doAnswer(invocation -> {
             assertAccountRowLocked();
             return invocation.callRealMethod();
+        }).when(refreshTokens).validateAndRotate(eq(credential), any(Runnable.class));
+        doAnswer(invocation -> {
+            assertAccountRowLocked();
+            return invocation.callRealMethod();
         }).when(sessionIssuer).completeRefresh(any(AuthAccountRecord.class), anyString());
 
         var response = authMvc().perform(refreshRequest(credential))
@@ -217,8 +227,12 @@ class AuthAccountPersistenceIT {
     }
 
     @Test
-    void loginHoldsAccountRowLockThroughSessionIssuance() {
+    void loginHoldsAccountRowLockBeforeFirstWriteAndThroughSessionIssuance() {
         prepareAccountCredentials();
+        doAnswer(invocation -> {
+            assertAccountRowLocked();
+            return invocation.callRealMethod();
+        }).when(accountAdapter).updateLastLoginAt("user-100");
         doAnswer(invocation -> {
             assertAccountRowLocked();
             return invocation.callRealMethod();
@@ -252,6 +266,21 @@ class AuthAccountPersistenceIT {
         authMvc().perform(refreshRequest(credential))
                 .andExpect(status().is(httpStatus))
                 .andExpect(jsonPath("$.code").value(code))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertThat(refreshRows()).isEqualTo(before);
+    }
+
+    @Test
+    void rejectedSessionIssuanceRollsBackCredentialRotation() throws Exception {
+        String credential = refreshTokens.createToken("user-100");
+        var before = refreshRows();
+        doThrow(new AuthBusinessException(AuthErrorCode.AUTH_INVALID_CREDENTIALS))
+                .when(sessionIssuer).completeRefresh(any(AuthAccountRecord.class), anyString());
+
+        authMvc().perform(refreshRequest(credential))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(10001))
                 .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
 
         assertThat(refreshRows()).isEqualTo(before);
@@ -365,14 +394,15 @@ class AuthAccountPersistenceIT {
         java.util.Map<String, String> jar = new java.util.LinkedHashMap<>();
         accept(jar, authentication.login("cas_user", "test-password"));
         accept(jar, sessions.add("second_user", "test-password", jar, false));
-        String stolen = jar.get("saved_account_dXNlci0xMDA");
-        var attacker = refreshTokens.validateAndRotate(stolen);
+        String savedCredential = jar.get("saved_account_dXNlci0xMDA");
+        java.util.Map<String, String> rotated = new java.util.LinkedHashMap<>();
+        accept(rotated, authentication.refresh(savedCredential));
         if (banned) {
             jdbcTemplate.update("UPDATE users SET is_banned = 1 WHERE id = ?", "user-100");
         }
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> sessions.switchTo("user-100", jar, false))
                 .isInstanceOf(com.ulticode.auth.error.AuthBusinessException.class);
-        assertThat(refreshTokens.findValidUserId(attacker.token())).isNull();
+        assertThat(refreshTokens.findValidUserId(rotated.get("refresh_token"))).isNull();
     }
 
     private void prepareAccountCredentials() {

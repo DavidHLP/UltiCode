@@ -116,11 +116,9 @@ class RefreshTokenServiceTest {
         when(refreshTokenMapper.revokeIfActive("token-1")).thenReturn(1);
         when(jwtTokenProvider.generateRefreshToken("user-1")).thenReturn("new-token");
 
-        RefreshTokenService.RotationResult result =
-                refreshTokenService.validateAndRotate("old-token");
+        String rotatedToken = refreshTokenService.validateAndRotate("old-token", () -> {});
 
-        assertThat(result.userId()).isEqualTo("user-1");
-        assertThat(result.token()).isEqualTo("new-token");
+        assertThat(rotatedToken).isEqualTo("new-token");
     }
 
     @Test
@@ -128,7 +126,7 @@ class RefreshTokenServiceTest {
     void validateAndRotateRejectsAccessToken() {
         when(jwtTokenProvider.getUserIdFromRefreshToken("access-token")).thenReturn(null);
 
-        assertThatThrownBy(() -> refreshTokenService.validateAndRotate("access-token"))
+        assertThatThrownBy(() -> refreshTokenService.validateAndRotate("access-token", () -> {}))
                 .isInstanceOf(AuthBusinessException.class)
                 .hasMessageContaining("Invalid refresh token");
     }
@@ -146,7 +144,7 @@ class RefreshTokenServiceTest {
         when(refreshTokenMapper.selectOne(any(Wrapper.class))).thenReturn(stored);
         when(refreshTokenMapper.revokeIfActive("token-1")).thenReturn(0);
 
-        assertThatThrownBy(() -> refreshTokenService.validateAndRotate("old-token"))
+        assertThatThrownBy(() -> refreshTokenService.validateAndRotate("old-token", () -> {}))
                 .isInstanceOf(AuthBusinessException.class)
                 .hasMessageContaining("already been used");
     }

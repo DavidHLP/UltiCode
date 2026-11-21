@@ -167,13 +167,11 @@ class DefaultAuthenticationWorkflowTest {
         @Test
         @DisplayName("successful refresh validates token and completes refresh")
         void successfulRefresh() {
-            RefreshTokenService.RotationResult rotation =
-                    new RefreshTokenService.RotationResult("user-123", "new-refresh-token");
             when(refreshTokenService.requireVerifiedUserId("old-token")).thenReturn(activeUser.id());
             lockedActiveUser();
             when(refreshTokenService.validateAndRotate(eq("old-token"), any(Runnable.class))).thenAnswer(invocation -> {
                 invocation.getArgument(1, Runnable.class).run();
-                return rotation;
+                return "new-refresh-token";
             });
             when(authSessionPort.completeRefresh(eq(activeUser), eq("new-refresh-token")))
                     .thenReturn(mockSession("csrf-refreshed"));

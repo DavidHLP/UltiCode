@@ -162,6 +162,8 @@ LearningPlan drafts and workflow events live in canonical private Agent SQLite s
 
 Initial save and explicit retry share the dispatch path that revalidates source eligibility and the confirmation fence before writing to Java.
 
+Conversation and LearningPlan analysis share request-local evidence recording, trace alignment and answer verification. Each entry retains its own tool access, source consent and run fences.
+
 Conversation evidence is projected from server-refetched selections into request-local fragments of at most 1,200 characters, scoped and versioned by the current run. Only the catalog enters the initial prompt; retrieved text remains untrusted and comment citations establish attribution only. Live analysis never falls back to synthetic documents; the legacy plan workflow without selected material has an explicit empty corpus. Real conversation stage boundaries are recorded alongside the existing safe model/tool events; current-run stage history is a read projection of canonical events, not another workflow state machine or checkpoint.
 
 ### 依赖规则

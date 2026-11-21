@@ -2142,6 +2142,77 @@ def create_app(
                     return result["action_result"]["response"]
             return _response(await with_session(request, unsafe=True, operation=operation))
 
+        def _save_action_result(row: dict[str, object], owner: str) -> dict[str, object]:
+            return {"status": row["status"], "run_id": row["run_id"],
+                    "draft_version": row["draft_version"], "action_result": {"response": _thread_response(row, owner)}}
+
+        async def _dispatch_learning_plan_save(
+            client: UlticodeClient, owner: str, row: dict[str, object], digest: str, *, retry: bool = False,
+        ) -> dict[str, object]:
+            thread_id, run_id = str(row["thread_id"]), str(row["run_id"])
+            version = int(row["draft_version"])
+            await _verify_source(client, row)
+            if retry:
+                saving = workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
+                    statuses={"saving", "unknown"},
+                    changes={"status": "saving", "save_retry_count": row["save_retry_count"] + 1},
+                    kind="explicit_retry_intent")
+            else:
+                saving = workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
+                    statuses={"confirmed"}, changes={"status": "saving", "save_attempted": 1}, kind="save_intent")
+
+            def mark_unknown_if_saving(reason: str) -> dict[str, object]:
+                latest = _owned(thread_id, owner)
+                if latest["status"] != "saving":
+                    return latest
+                return workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
+                    statuses={"saving"}, changes={"status": "unknown", "failure_reason": reason}, kind="save_unknown")
+
+            try:
+                await _verify_source(client, saving)
+            except Exception:
+                return mark_unknown_if_saving("dispatch_preflight_failed")
+            if not workflow_store.dispatch_allowed(
+                thread_id, owner, run_id, version,
+                confirmation_id=str(row["confirmation"]["id"]), params_digest=digest, clock=clock,
+            ):
+                return mark_unknown_if_saving("confirmation_expired")
+
+            hook_context = {"thread_id": thread_id, "run_id": run_id}
+            try:
+                if fault_hook and thread_id in fault_thread_ids:
+                    fault_hook("before_java_save_dispatch", hook_context)
+                vo = await client.save_learning_plan(
+                    source_submission_id=str(saving["source_submission_id"]), draft_version=version,
+                    title=str(saving["draft"]["title"]), content=str(saving["draft"]["content"]),
+                    idempotency_key=str(saving["business_key"]),
+                )
+            except UlticodeServiceError as exc:
+                if _deterministic_business_error(exc):
+                    workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
+                        statuses={"saving"}, changes={"status": "failed", "failure_reason": "business_rejected",
+                            "retry_blocked": 1}, kind="business_save_failed", detail={"code": exc.code})
+                    raise AgentError(exc.status_code, "business_rejected", exc.code) from None
+                return workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
+                    statuses={"saving", "unknown"}, changes={"status": "unknown",
+                        "failure_reason": "save_result_unknown"}, kind="save_unknown")
+            except Exception:
+                return mark_unknown_if_saving("save_result_unknown")
+
+            plan_id = _receipt_plan_id(vo, saving, version)
+            if plan_id is None:
+                return workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
+                    statuses={"saving", "unknown"}, changes={"status": "unknown", "failure_reason": "receipt_mismatch",
+                        "retry_blocked": 1}, kind="receipt_mismatch")
+            if fault_hook and thread_id in fault_thread_ids:
+                fault_hook("after_java_save_response", {**hook_context, "plan_id": plan_id})
+            changes: dict[str, object] = {"status": "saved", "plan_id": plan_id}
+            # A successful retry resolves the prior save failure.
+            if retry:
+                changes["failure_reason"] = None
+            return workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,
+                statuses={"saving", "unknown"}, changes=changes, kind="plan_saved")
+
         @app.post("/agent/threads/{thread_id}/save")
         async def save(thread_id: str, request: Request):
             _uuid(thread_id)
@@ -2154,9 +2225,7 @@ def create_app(
                         version = int(row["draft_version"])
                         confirmation = row["confirmation"]
                         if row["status"] == "saved":
-                            response = _thread_response(row, owner)
-                            return {"status": row["status"], "run_id": row["run_id"],
-                                    "draft_version": version, "action_result": {"response": response}}
+                            return _save_action_result(row, owner)
                         digest = params_digest(owner, str(row["source_submission_id"]), version,
                                                str(row["draft"]["title"]), str(row["draft"]["content"]))
                         if confirmation.get("invalidatedId") == body["confirmationId"]:
@@ -2171,83 +2240,8 @@ def create_app(
                                 or confirmation.get("draftVersion") != version
                                 or confirmation.get("paramsDigest") != digest):
                             raise AgentError(409, "confirmation_mismatch", 40900)
-                        await _verify_source(client, row)
-                        saving = workflow_store.transition(thread_id, owner, expected_run=str(row["run_id"]),
-                            expected_version=version, statuses={"confirmed"},
-                            changes={"status": "saving", "save_attempted": 1}, kind="save_intent")
-                        try:
-                            await _verify_source(client, saving)
-                        except Exception:
-                            latest = _owned(thread_id, owner)
-                            if latest["status"] == "saving":
-                                latest = workflow_store.transition(thread_id, owner,
-                                    expected_run=str(saving["run_id"]), expected_version=version,
-                                    statuses={"saving"}, changes={"status": "unknown",
-                                    "failure_reason": "dispatch_preflight_failed"}, kind="save_unknown")
-                            response = _thread_response(latest, owner)
-                            return {"status": latest["status"], "run_id": latest["run_id"],
-                                    "draft_version": latest["draft_version"], "action_result": {"response": response}}
-                        allowed = workflow_store.dispatch_allowed(
-                            thread_id, owner, str(saving["run_id"]), version,
-                            confirmation_id=str(confirmation["id"]), params_digest=digest, clock=clock,
-                        )
-                        if not allowed:
-                            latest = _owned(thread_id, owner)
-                            if latest["status"] == "saving":
-                                latest = workflow_store.transition(thread_id, owner,
-                                    expected_run=str(saving["run_id"]), expected_version=version,
-                                    statuses={"saving"}, changes={"status": "unknown",
-                                    "failure_reason": "confirmation_expired"}, kind="save_unknown")
-                            response = _thread_response(latest, owner)
-                            return {"status": latest["status"], "run_id": latest["run_id"],
-                                    "draft_version": latest["draft_version"], "action_result": {"response": response}}
-                        hook_context = {"thread_id": thread_id, "run_id": str(saving["run_id"])}
-                        try:
-                            if fault_hook and thread_id in fault_thread_ids:
-                                fault_hook("before_java_save_dispatch", hook_context)
-                            vo = await client.save_learning_plan(
-                                source_submission_id=str(saving["source_submission_id"]), draft_version=version,
-                                title=str(saving["draft"]["title"]), content=str(saving["draft"]["content"]),
-                                idempotency_key=str(saving["business_key"]),
-                            )
-                        except UlticodeServiceError as exc:
-                            if _deterministic_business_error(exc):
-                                workflow_store.transition(thread_id, owner, expected_run=str(saving["run_id"]),
-                                    expected_version=version, statuses={"saving"},
-                                    changes={"status": "failed", "failure_reason": "business_rejected",
-                                             "retry_blocked": 1}, kind="business_save_failed", detail={"code": exc.code})
-                                raise AgentError(exc.status_code, "business_rejected", exc.code) from None
-                            latest = workflow_store.transition(thread_id, owner, expected_run=str(saving["run_id"]),
-                                expected_version=version, statuses={"saving", "unknown"},
-                                changes={"status": "unknown", "failure_reason": "save_result_unknown"}, kind="save_unknown")
-                            response = _thread_response(latest, owner)
-                            return {"status": latest["status"], "run_id": latest["run_id"],
-                                    "draft_version": latest["draft_version"], "action_result": {"response": response}}
-                        except Exception:
-                            latest = _owned(thread_id, owner)
-                            if latest["status"] == "saving":
-                                latest = workflow_store.transition(thread_id, owner, expected_run=str(saving["run_id"]),
-                                    expected_version=version, statuses={"saving"},
-                                    changes={"status": "unknown", "failure_reason": "save_result_unknown"},
-                                    kind="save_unknown")
-                            response = _thread_response(latest, owner)
-                            return {"status": latest["status"], "run_id": latest["run_id"],
-                                    "draft_version": latest["draft_version"], "action_result": {"response": response}}
-                        plan_id = _receipt_plan_id(vo, saving, version)
-                        if plan_id is None:
-                            latest = workflow_store.transition(thread_id, owner, expected_run=str(saving["run_id"]),
-                                expected_version=version, statuses={"saving", "unknown"},
-                                changes={"status": "unknown", "failure_reason": "receipt_mismatch",
-                                         "retry_blocked": 1}, kind="receipt_mismatch")
-                        else:
-                            if fault_hook and thread_id in fault_thread_ids:
-                                fault_hook("after_java_save_response", {**hook_context, "plan_id": plan_id})
-                            latest = workflow_store.transition(thread_id, owner, expected_run=str(saving["run_id"]),
-                                expected_version=version, statuses={"saving", "unknown"},
-                                changes={"status": "saved", "plan_id": plan_id}, kind="plan_saved")
-                        response = _thread_response(latest, owner)
-                        return {"status": latest["status"], "run_id": latest["run_id"],
-                                "draft_version": latest["draft_version"], "action_result": {"response": response}}
+                        latest = await _dispatch_learning_plan_save(client, owner, row, digest)
+                        return _save_action_result(latest, owner)
 
                     result = await _checkpoint_resume(row, WorkflowAction("save", {
                         "confirmationId": body["confirmationId"],
@@ -2266,11 +2260,6 @@ def create_app(
                     async def execute_action(_, analysis_result):
                         version, run_id = int(row["draft_version"]), str(row["run_id"])
 
-                        def completed(current):
-                            return {"status": current["status"], "run_id": current["run_id"],
-                                    "draft_version": current["draft_version"],
-                                    "action_result": {"response": _thread_response(current, owner)}}
-
                         if not row["save_attempted"] and row["status"] != "saved":
                             raise AgentError(409, "confirmation_mismatch", 40900)
                         await _verify_source(client, row, require_eligible=False)
@@ -2283,7 +2272,7 @@ def create_app(
                                     latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
                                         expected_version=version, statuses={"saved"},
                                         changes={"failure_reason": "readback_unavailable"}, kind="readback_unavailable")
-                                    return completed(latest)
+                                    return _save_action_result(latest, owner)
                                 raise AgentError(502, "upstream_unavailable", 50000) from None
                             vo = None
                         except Exception:
@@ -2291,7 +2280,7 @@ def create_app(
                                 latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
                                     expected_version=version, statuses={"saved"},
                                     changes={"failure_reason": "readback_unavailable"}, kind="readback_unavailable")
-                                return completed(latest)
+                                return _save_action_result(latest, owner)
                             raise AgentError(502, "upstream_unavailable", 50000) from None
                         if vo is not None:
                             plan_id = _receipt_plan_id(vo, row, version)
@@ -2301,7 +2290,7 @@ def create_app(
                                     expected_version=version, statuses={"saving", "unknown", "saved"},
                                     changes={"status": status, "failure_reason": "receipt_mismatch",
                                              "retry_blocked": 1}, kind="receipt_mismatch")
-                                return completed(latest)
+                                return _save_action_result(latest, owner)
                             if row["status"] != "saved":
                                 latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
                                     expected_version=version, statuses={"saving", "unknown"},
@@ -2309,20 +2298,20 @@ def create_app(
                                     kind="plan_readback")
                             else:
                                 latest = row
-                            return completed(latest)
+                            return _save_action_result(latest, owner)
                         if row["status"] == "saved":
                             latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
                                 expected_version=version, statuses={"saved"},
                                 changes={"failure_reason": "readback_unavailable"}, kind="readback_unavailable")
-                            return completed(latest)
+                            return _save_action_result(latest, owner)
                         if body["retry"] is not True:
                             if row["status"] == "saving":
                                 latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
                                     expected_version=version, statuses={"saving"},
                                     changes={"status": "unknown", "failure_reason": "save_result_unknown"},
                                     kind="save_unknown")
-                                return completed(latest)
-                            return completed(row)
+                                return _save_action_result(latest, owner)
+                            return _save_action_result(row, owner)
                         if row["retry_blocked"]:
                             raise AgentError(409, "idempotency_payload_mismatch", 40900)
                         confirmation = row["confirmation"]
@@ -2334,73 +2323,8 @@ def create_app(
                                 or confirmation.get("draftVersion") != version
                                 or confirmation.get("paramsDigest") != digest):
                             raise AgentError(409, "confirmation_mismatch", 40900)
-                        await _verify_source(client, row)
-                        saving = workflow_store.transition(thread_id, owner, expected_run=run_id,
-                            expected_version=version, statuses={"saving", "unknown"},
-                            changes={"status": "saving", "save_retry_count": row["save_retry_count"] + 1},
-                            kind="explicit_retry_intent")
-                        try:
-                            await _verify_source(client, saving)
-                        except Exception:
-                            latest = _owned(thread_id, owner)
-                            if latest["status"] == "saving":
-                                latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
-                                    expected_version=version, statuses={"saving"},
-                                    changes={"status": "unknown", "failure_reason": "dispatch_preflight_failed"},
-                                    kind="save_unknown")
-                            return completed(latest)
-                        if not workflow_store.dispatch_allowed(
-                            thread_id, owner, run_id, version,
-                            confirmation_id=str(confirmation["id"]), params_digest=digest, clock=clock,
-                        ):
-                            latest = _owned(thread_id, owner)
-                            if latest["status"] == "saving":
-                                latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
-                                    expected_version=version, statuses={"saving"},
-                                    changes={"status": "unknown", "failure_reason": "confirmation_expired"},
-                                    kind="save_unknown")
-                            return completed(latest)
-                        hook_context = {"thread_id": thread_id, "run_id": run_id}
-                        try:
-                            if fault_hook and thread_id in fault_thread_ids:
-                                fault_hook("before_java_save_dispatch", hook_context)
-                            vo = await client.save_learning_plan(
-                                source_submission_id=str(saving["source_submission_id"]), draft_version=version,
-                                title=str(saving["draft"]["title"]), content=str(saving["draft"]["content"]),
-                                idempotency_key=str(saving["business_key"]),
-                            )
-                        except UlticodeServiceError as exc:
-                            if _deterministic_business_error(exc):
-                                workflow_store.transition(thread_id, owner, expected_run=run_id,
-                                    expected_version=version, statuses={"saving"},
-                                    changes={"status": "failed", "failure_reason": "business_rejected",
-                                             "retry_blocked": 1}, kind="business_save_failed", detail={"code": exc.code})
-                                raise AgentError(exc.status_code, "business_rejected", exc.code) from None
-                            latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
-                                expected_version=version, statuses={"saving", "unknown"},
-                                changes={"status": "unknown", "failure_reason": "save_result_unknown"}, kind="save_unknown")
-                            return completed(latest)
-                        except Exception:
-                            latest = _owned(thread_id, owner)
-                            if latest["status"] == "saving":
-                                latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
-                                    expected_version=version, statuses={"saving"},
-                                    changes={"status": "unknown", "failure_reason": "save_result_unknown"},
-                                    kind="save_unknown")
-                            return completed(latest)
-                        plan_id = _receipt_plan_id(vo, saving, version)
-                        if plan_id is None:
-                            latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
-                                expected_version=version, statuses={"saving", "unknown"},
-                                changes={"status": "unknown", "failure_reason": "receipt_mismatch",
-                                         "retry_blocked": 1}, kind="receipt_mismatch")
-                            return completed(latest)
-                        if fault_hook and thread_id in fault_thread_ids:
-                            fault_hook("after_java_save_response", {**hook_context, "plan_id": plan_id})
-                        latest = workflow_store.transition(thread_id, owner, expected_run=run_id,
-                            expected_version=version, statuses={"saving", "unknown"},
-                            changes={"status": "saved", "plan_id": plan_id, "failure_reason": None}, kind="plan_saved")
-                        return completed(latest)
+                        latest = await _dispatch_learning_plan_save(client, owner, row, digest, retry=True)
+                        return _save_action_result(latest, owner)
 
                     result = await _checkpoint_resume(row, WorkflowAction("recover", {
                         "retry": body["retry"],

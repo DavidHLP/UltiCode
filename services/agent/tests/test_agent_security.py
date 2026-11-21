@@ -241,24 +241,36 @@ def test_edit_invalidates_confirmation_and_ttl_boundary_never_posts(tmp_path, mo
     asyncio.run(with_client(app, scenario))
 
 
-@pytest.mark.parametrize("readback_error", [(40400, 404), (40400, 500), (50000, 503)])
-def test_unknown_readback_requires_explicit_same_key_retry(tmp_path, monkeypatch, readback_error):
-    posts, keys = {"count": 0}, []
+@pytest.mark.parametrize("readback_status,readback_code", [(200, 0), (404, 40400), (500, 40400), (503, 50000)])
+def test_unknown_save_recovers_by_original_key_before_reposting(tmp_path, readback_status, readback_code):
+    plan_id = str(uuid.uuid4())
+    calls = []
+    receipt = {}
 
-    async def save(payload):
-        posts["count"] += 1
-        keys.append(payload["idempotency_key"])
-        if posts["count"] == 1:
-            raise UlticodeServiceError(50000, 503)
-        source = payload["source_submission_id"]
-        return {"id": str(uuid.uuid4()), "sourceSubmissionId": source,
-                "draftVersion": payload["draft_version"], "title": payload["title"], "content": payload["content"]}
+    async def java(request):
+        path = request.url.path
+        if path == "/auth/me":
+            data = {"user": {"id": "owner", "is_active": True, "is_banned": False}}
+        elif path.startswith("/submissions/"):
+            data = {"id": path.split("/")[-1], "status": "Accepted", "contestSubmission": False}
+        elif request.method == "POST" and path == "/learning-plans":
+            payload = json.loads(request.content)
+            calls.append(("POST", request.headers["idempotency-key"], payload))
+            if len(calls) == 1:
+                if readback_status == 200:
+                    receipt.update(id=plan_id, **payload)
+                raise httpx.ReadTimeout("response lost", request=request)
+            data = {"id": plan_id, **payload}
+        else:
+            assert request.method == "GET" and path.startswith("/learning-plans/by-key/")
+            calls.append(("GET", path.split("/")[-1]))
+            return httpx.Response(readback_status, json={
+                "code": readback_code, "data": receipt if readback_code == 0 else None,
+            })
+        return httpx.Response(200, json={"code": 0, "data": data})
 
-    async def by_key(_key):
-        raise UlticodeServiceError(*readback_error)
-
-    app = create_app(state_path=tmp_path / "retry.sqlite3", client_factory=write_client(posts, save=save, by_key=by_key),
-                     persistence_enabled=True)
+    app = create_app(state_path=tmp_path / "retry.sqlite3", app_base_url="http://app.test",
+                     auth_base_url="http://auth.test", transport=httpx.MockTransport(java), persistence_enabled=True)
 
     async def scenario(client):
         state = await create_thread(client)
@@ -268,21 +280,96 @@ def test_unknown_readback_requires_explicit_same_key_retry(tmp_path, monkeypatch
         })
         cid = confirmed.json()["data"]["confirmation"]["id"]
         first = await client.post(f"/agent/threads/{thread_id}/save", headers=HEADERS, json={"confirmationId": cid})
-        assert first.status_code == 200 and first.json()["data"]["status"] == "unknown"
-        assert posts["count"] == 1
-        no_retry = await client.post(f"/agent/threads/{thread_id}/recover", headers=HEADERS, json={"retry": False})
-        expected_status = 200 if readback_error == (40400, 404) else 502
-        assert no_retry.status_code == expected_status
-        if expected_status == 200:
-            assert no_retry.json()["data"]["status"] == "unknown"
-        assert posts["count"] == 1
-        if readback_error == (40400, 404):
-            retried = await client.post(f"/agent/threads/{thread_id}/recover", headers=HEADERS, json={"retry": True})
-            assert retried.status_code == 200 and retried.json()["data"]["status"] == "saved"
-            assert posts["count"] == 2 and keys[0] == keys[1]
+        assert first.status_code == 200
+        assert first.json()["data"]["status"] == "unknown"
+        assert first.json()["data"]["receipt"]["failureReason"] == "save_result_unknown"
+        post, = calls
+        lookup = ("GET", post[1])
+
+        if readback_status != 200:
+            no_retry = await client.post(f"/agent/threads/{thread_id}/recover", headers=HEADERS, json={"retry": False})
+            assert no_retry.status_code == (200 if readback_status == 404 else 502)
+            if readback_status == 404:
+                assert no_retry.json()["data"]["status"] == "unknown"
+            assert calls == [post, lookup]
+
+        recovered = await client.post(f"/agent/threads/{thread_id}/recover", headers=HEADERS, json={"retry": True})
+        if readback_status in {200, 404}:
+            assert recovered.status_code == 200
+            assert recovered.json()["data"]["status"] == "saved"
+            assert recovered.json()["data"]["receipt"] == {
+                "planId": plan_id, "cancelRequested": False, "failureReason": None,
+            }
+            assert calls == ([post, lookup] if readback_status == 200 else [post, lookup, lookup, post])
         else:
-            assert posts["count"] == 1
+            assert recovered.status_code == 502
+            assert recovered.json()["data"]["reason"] == "upstream_unavailable"
+            assert calls == [post, lookup, lookup]
     asyncio.run(with_client(app, scenario))
+
+
+@pytest.mark.parametrize("retry", [False, True], ids=["first-save", "explicit-retry"])
+@pytest.mark.parametrize("fence", ["source", "expiry", "cancel"])
+def test_save_intent_remains_fenced_after_source_revalidation(tmp_path, retry, fence):
+    posts = {"count": 0}
+    now = 1000.0
+    on_source_read = None
+
+    class Client(write_client(posts)):
+        async def get_my_submission(self, submission_id):
+            submission = await super().get_my_submission(submission_id)
+            if on_source_read is not None:
+                await on_source_read(submission)
+            return submission
+
+    app = create_app(state_path=tmp_path / "late-fence.sqlite3", client_factory=Client,
+                     persistence_enabled=True, clock=lambda: now)
+
+    async def scenario(client):
+        nonlocal on_source_read, now
+        state = await create_thread(client)
+        path = f"/agent/threads/{state['threadId']}"
+        confirmed = await client.post(f"{path}/confirm", headers=HEADERS, json={
+            "draftVersion": 1, "paramsDigest": state["paramsDigest"], "confirm": True,
+        })
+        confirmation = confirmed.json()["data"]["confirmation"]
+        save_body = {"confirmationId": confirmation["id"]}
+        if retry:
+            unknown = await client.post(f"{path}/save", headers=HEADERS, json=save_body)
+            assert unknown.json()["data"]["status"] == "unknown"
+
+        async def change_after_intent(submission):
+            nonlocal now
+            current = await client.get(path, headers=HEADERS)
+            if current.json()["data"]["status"] != "saving":
+                return
+            if fence == "source":
+                submission["contestSubmission"] = True
+            elif fence == "expiry":
+                now = confirmation["expiresAt"]
+            else:
+                cancelled = await client.post(f"{path}/cancel", headers=HEADERS, json={})
+                assert cancelled.json()["data"]["receipt"]["cancelRequested"] is True
+
+        on_source_read = change_after_intent
+        action, body = ("recover", {"retry": True}) if retry else ("save", save_body)
+        result = await client.post(f"{path}/{action}", headers=HEADERS, json=body)
+        assert result.status_code == 200
+        data = result.json()["data"]
+        assert data["status"] == "unknown"
+        assert data["receipt"] == {
+            "planId": None,
+            "cancelRequested": fence == "cancel",
+            "failureReason": {
+                "source": "dispatch_preflight_failed",
+                "expiry": "confirmation_expired",
+                "cancel": "save_result_unknown" if retry else None,
+            }[fence],
+        }
+        assert posts["count"] == int(retry)
+
+    asyncio.run(with_client(app, scenario))
+
 
 def test_save_rejects_ineligible_source_before_java_post(tmp_path, monkeypatch):
     posts = {"count": 0}
@@ -354,13 +441,14 @@ def test_http_error_result_code_does_not_override_http_status(status):
 
 
 
-@pytest.mark.parametrize("readback", ["bad_vo", "not_found"])
-def test_saved_status_survives_bad_or_missing_readback(tmp_path, monkeypatch, readback):
+@pytest.mark.parametrize("readback,reason", [("bad_vo", "receipt_mismatch"), ("not_found", "readback_unavailable")])
+def test_saved_status_survives_bad_or_missing_readback(tmp_path, readback, reason):
     posts = {"count": 0}
+    plan_id = str(uuid.uuid4())
 
     async def save(payload):
         posts["count"] += 1
-        return {"id": str(uuid.uuid4()), "sourceSubmissionId": payload["source_submission_id"],
+        return {"id": plan_id, "sourceSubmissionId": payload["source_submission_id"],
                 "draftVersion": payload["draft_version"], "title": payload["title"], "content": payload["content"]}
 
     async def by_key(_key):
@@ -381,9 +469,15 @@ def test_saved_status_survives_bad_or_missing_readback(tmp_path, monkeypatch, re
         })
         saved = await client.post(f"/agent/threads/{thread_id}/save", headers=HEADERS,
                                   json={"confirmationId": confirmed.json()["data"]["confirmation"]["id"]})
-        assert saved.json()["data"]["status"] == "saved"
+        assert saved.status_code == 200 and saved.json()["data"]["status"] == "saved"
+        assert saved.json()["data"]["receipt"] == {
+            "planId": plan_id, "cancelRequested": False, "failureReason": None,
+        }
         recovered = await client.post(f"/agent/threads/{thread_id}/recover", headers=HEADERS, json={"retry": False})
         assert recovered.status_code == 200 and recovered.json()["data"]["status"] == "saved"
+        assert recovered.json()["data"]["receipt"] == {
+            "planId": plan_id, "cancelRequested": False, "failureReason": reason,
+        }
         assert posts["count"] == 1
 
     asyncio.run(with_client(app, scenario))

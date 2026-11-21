@@ -8,7 +8,6 @@ import com.ulticode.auth.refreshtoken.service.RefreshTokenService;
 import com.ulticode.auth.session.AuthSession;
 import com.ulticode.auth.session.AuthSessionPort;
 import com.ulticode.auth.util.UuidGenerator;
-import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -97,21 +96,9 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
             throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token is missing");
         }
 
-        RefreshTokenService.RotationResult rotation;
-        try {
-            rotation = refreshTokenService.validateAndRotate(refreshToken);
-        } catch (ExpiredJwtException e) {
-            throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token has expired");
-        }
-
-        AuthAccountRecord account = accountPort.findById(rotation.userId()).orElse(null);
-        if (account == null) {
-            throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
-        }
-
-        ensureAccountActive(account);
-
-        return authSessionPort.completeRefresh(account, rotation.token());
+        String accountId = refreshTokenService.requireVerifiedUserId(refreshToken);
+        return accountPort.withLockedAccount(accountId,
+                current -> rotateAndIssueSession(refreshToken, current.orElse(null)));
     }
 
     @Override
@@ -123,15 +110,18 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
             AuthAccountRecord account = current
                     .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
             requireAllowedRole(account, adminOnly);
-
-            RefreshTokenService.RotationResult rotation;
-            try {
-                rotation = refreshTokenService.validateAndRotate(refreshToken, () -> ensureAccountActive(account));
-            } catch (ExpiredJwtException e) {
-                throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token has expired");
-            }
-            return authSessionPort.completeRefresh(account, rotation.token());
+            return rotateAndIssueSession(refreshToken, account);
         });
+    }
+
+    private AuthSession rotateAndIssueSession(String refreshToken, AuthAccountRecord account) {
+        var rotation = refreshTokenService.validateAndRotate(refreshToken, () -> {
+            if (account == null) {
+                throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
+            }
+            ensureAccountActive(account);
+        });
+        return authSessionPort.completeRefresh(account, rotation.token());
     }
 
     @Override

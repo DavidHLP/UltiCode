@@ -5,11 +5,13 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ulticode.auth.error.AuthBusinessException;
+import com.ulticode.auth.error.AuthErrorCode;
 import com.ulticode.auth.refreshtoken.entity.RefreshToken;
 import com.ulticode.auth.refreshtoken.mapper.RefreshTokenMapper;
 import com.ulticode.auth.security.jwt.JwtProperties;
 import com.ulticode.auth.security.jwt.JwtTokenProvider;
 import com.ulticode.common.error.BaseErrorCode;
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -104,10 +106,7 @@ public class RefreshTokenService {
     /** Runs caller admission after credential and replay checks, before consuming a valid token. */
     @Transactional(noRollbackFor = AuthBusinessException.class)
     public RotationResult validateAndRotate(String token, Runnable admit) {
-        String userId = jwtTokenProvider.getUserIdFromRefreshToken(token);
-        if (userId == null) {
-            throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "Invalid refresh token");
-        }
+        String userId = requireVerifiedUserId(token);
         String tokenHash = DigestUtil.sha256Hex(token);
 
         RefreshToken storedToken = refreshTokenMapper.selectOne(
@@ -185,8 +184,21 @@ public class RefreshTokenService {
         if (token == null || token.isBlank()) return null;
         try {
             return jwtTokenProvider.getUserIdFromRefreshToken(token);
-        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+        } catch (ExpiredJwtException e) {
             return null;
+        }
+    }
+
+    /** Verifies the JWT subject for account lookup. Rotation still checks the stored credential. */
+    public String requireVerifiedUserId(String token) {
+        try {
+            String userId = jwtTokenProvider.getUserIdFromRefreshToken(token);
+            if (userId == null) {
+                throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "Invalid refresh token");
+            }
+            return userId;
+        } catch (ExpiredJwtException e) {
+            throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token has expired");
         }
     }
 

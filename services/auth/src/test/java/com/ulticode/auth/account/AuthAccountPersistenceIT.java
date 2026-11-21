@@ -2,6 +2,9 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.account.entity.AuthAccountEntity;
 import com.ulticode.auth.account.mapper.AuthAccountMapper;
+import com.ulticode.auth.security.jwt.JwtProperties;
+import com.ulticode.auth.security.jwt.JwtTokenProvider;
+import com.ulticode.auth.security.jwt.RsaKeyManager;
 import com.ulticode.auth.session.AuthSessionPort;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +21,8 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -26,6 +31,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,6 +76,10 @@ class AuthAccountPersistenceIT {
     private com.ulticode.auth.refreshtoken.service.RefreshTokenService refreshTokens;
     @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private JwtProperties jwtProperties;
 
     @BeforeEach
     void setUpSchema() {
@@ -112,7 +122,7 @@ class AuthAccountPersistenceIT {
     void adminOnlyAddDeniesOrdinaryAccountWithoutWritingSessionState() throws Exception {
         prepareAccountCredentials();
         jdbcTemplate.update("UPDATE users SET role = 'ADMIN' WHERE id = 'user-100'");
-        var mvc = MockMvcBuilders.webAppContextSetup(webContext).apply(springSecurity()).build();
+        var mvc = authMvc();
         var login = mvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -173,13 +183,8 @@ class AuthAccountPersistenceIT {
     @Test
     void holdsAccountRowLockWhileIssuingSessionForSavedAccount() {
         String credential = refreshTokens.createToken("user-100");
-        var otherTransaction = new TransactionTemplate(transactionManager);
-        otherTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         doAnswer(invocation -> {
-            assertThatThrownBy(() -> otherTransaction.execute(status -> jdbcTemplate.queryForObject(
-                    "SELECT id FROM users WHERE id = ? FOR UPDATE NOWAIT", String.class, "user-100")))
-                    .isInstanceOf(QueryTimeoutException.class)
-                    .hasMessageContaining("Timeout trying to lock");
+            assertAccountRowLocked();
             return invocation.callRealMethod();
         }).when(sessionIssuer).completeRefresh(any(AuthAccountRecord.class), anyString());
 
@@ -187,6 +192,141 @@ class AuthAccountPersistenceIT {
 
         assertThat(session.response().getUser().id()).isEqualTo("user-100");
         assertThat(refreshTokens.findValidUserId(credential)).isNull();
+    }
+
+    @Test
+    void refreshHoldsAccountRowLockThroughSessionIssuanceAndSignsCurrentRole() throws Exception {
+        String credential = refreshTokens.createToken("user-100");
+        jdbcTemplate.update("UPDATE users SET role = 'ADMIN' WHERE id = ?", "user-100");
+        doAnswer(invocation -> {
+            assertAccountRowLocked();
+            return invocation.callRealMethod();
+        }).when(sessionIssuer).completeRefresh(any(AuthAccountRecord.class), anyString());
+
+        var response = authMvc().perform(refreshRequest(credential))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.user.role").value("ADMIN"))
+                .andExpect(cookie().httpOnly("access_token", true))
+                .andExpect(cookie().httpOnly("refresh_token", true))
+                .andReturn().getResponse();
+        assertThat(jwtTokenProvider.getRoleFromToken(response.getCookie("access_token").getValue()))
+                .isEqualTo("ADMIN");
+        assertThat(refreshTokens.findValidUserId(credential)).isNull();
+        assertThat(refreshTokens.findValidUserId(response.getCookie("refresh_token").getValue()))
+                .isEqualTo("user-100");
+    }
+
+    @Test
+    void loginHoldsAccountRowLockThroughSessionIssuance() {
+        prepareAccountCredentials();
+        doAnswer(invocation -> {
+            assertAccountRowLocked();
+            return invocation.callRealMethod();
+        }).when(sessionIssuer).completeLogin(any(AuthAccountRecord.class));
+
+        var session = authentication.login("cas_user", "test-password");
+
+        assertThat(session.response().getUser().id()).isEqualTo("user-100");
+        assertThat(lastLoginAt("user-100")).isNotNull();
+    }
+
+    private void assertAccountRowLocked() {
+        var otherTransaction = new TransactionTemplate(transactionManager);
+        otherTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        assertThatThrownBy(() -> otherTransaction.execute(status -> jdbcTemplate.queryForObject(
+                "SELECT id FROM users WHERE id = ? FOR UPDATE NOWAIT", String.class, "user-100")))
+                .isInstanceOf(QueryTimeoutException.class)
+                .hasMessageContaining("Timeout trying to lock");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false, false, false, 401, 10001", "true, true, false, 401, 10001",
+            "true, false, true, 404, 10005"})
+    void deniedRefreshPreservesRefreshRowsAndCookies(
+            boolean active, boolean banned, boolean deleted, int httpStatus, int code) throws Exception {
+        String credential = refreshTokens.createToken("user-100");
+        jdbcTemplate.update("UPDATE users SET is_active = ?, is_banned = ?, is_deleted = ? WHERE id = ?",
+                active, banned, deleted, "user-100");
+        var before = refreshRows();
+
+        authMvc().perform(refreshRequest(credential))
+                .andExpect(status().is(httpStatus))
+                .andExpect(jsonPath("$.code").value(code))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertThat(refreshRows()).isEqualTo(before);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void replayedRefreshCommitsOnlyItsFamilyRevocation(boolean banned) throws Exception {
+        String credential = refreshTokens.createToken("user-100");
+        String family = jdbcTemplate.queryForObject("SELECT family_id FROM refresh_tokens", String.class);
+        String successor = refreshTokens.createToken("user-100", family, family);
+        String separateSession = refreshTokens.createToken("user-100");
+        jdbcTemplate.update("UPDATE refresh_tokens SET is_revoked = 1 WHERE id = ?", family);
+        jdbcTemplate.update("UPDATE users SET is_banned = ? WHERE id = ?", banned, "user-100");
+        assertThat(refreshTokens.findValidUserId(successor)).isEqualTo("user-100");
+
+        authMvc().perform(refreshRequest(credential))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(40100))
+                .andExpect(jsonPath("$.message").value("Refresh token has been revoked — possible token theft"))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertThat(refreshTokens.findValidUserId(successor)).isNull();
+        assertThat(refreshTokens.findValidUserId(separateSession)).isEqualTo("user-100");
+        assertThat(refreshRows()).hasSize(3);
+    }
+
+    @Test
+    void refreshPreservesCredentialAndCsrfErrorsWithoutWritingCookiesOrRows() throws Exception {
+        String credential = refreshTokens.createToken("user-100");
+        var mvc = authMvc();
+        var before = refreshRows();
+        mvc.perform(post("/auth/refresh").cookie(new Cookie("refresh_token", credential)))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+        expectUnauthorizedRefresh(mvc, post("/auth/refresh"), 10006, "Refresh token is missing");
+        expectUnauthorizedRefresh(mvc, refreshRequest("invalid"), 40100, "Invalid refresh token");
+        expectUnauthorizedRefresh(mvc, refreshRequest(jwtTokenProvider.generateRefreshToken("user-100")),
+                40100, "Invalid refresh token");
+
+        var expired = new JwtProperties();
+        expired.setSecret(jwtProperties.getSecret());
+        expired.setIssuer(jwtProperties.getIssuer());
+        expired.getRefreshToken().setExpiration(-60_000L);
+        String expiredCredential = new JwtTokenProvider(expired, new RsaKeyManager()).generateRefreshToken("user-100");
+        expectUnauthorizedRefresh(mvc, refreshRequest(expiredCredential), 10006, "Refresh token has expired");
+        assertThat(refreshRows()).isEqualTo(before);
+
+        jdbcTemplate.update("UPDATE refresh_tokens SET expires_at = ?", LocalDateTime.of(2000, 1, 1, 0, 0));
+        var expiredRows = refreshRows();
+        expectUnauthorizedRefresh(mvc, refreshRequest(credential), 40100, "Refresh token has expired");
+        assertThat(refreshRows()).isEqualTo(expiredRows);
+    }
+
+    private MockMvc authMvc() {
+        return MockMvcBuilders.webAppContextSetup(webContext).apply(springSecurity()).build();
+    }
+
+    private static MockHttpServletRequestBuilder refreshRequest(String credential) {
+        return post("/auth/refresh")
+                .cookie(new Cookie("refresh_token", credential), new Cookie("csrf_token", "test-csrf"))
+                .header("X-CSRF-Token", "test-csrf");
+    }
+
+    private static void expectUnauthorizedRefresh(MockMvc mvc, MockHttpServletRequestBuilder request,
+            int code, String message) throws Exception {
+        mvc.perform(request)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(code))
+                .andExpect(jsonPath("$.message").value(message))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+    }
+
+    private List<Map<String, Object>> refreshRows() {
+        return jdbcTemplate.queryForList("SELECT * FROM refresh_tokens ORDER BY id");
     }
 
     @ParameterizedTest
@@ -197,12 +337,12 @@ class AuthAccountPersistenceIT {
         accept(jar, authentication.login("cas_user", "test-password"));
         accept(jar, sessions.add("second_user", "test-password", jar, false));
         jdbcTemplate.update("UPDATE users SET is_active = ?, is_banned = ? WHERE id = ?", active, banned, "user-100");
-        var before = jdbcTemplate.queryForList("SELECT * FROM refresh_tokens ORDER BY id");
+        var before = refreshRows();
         assertThat(before).hasSize(2);
         String saved = jar.get("saved_account_dXNlci0xMDA");
         assertThat(refreshTokens.findValidUserId(saved)).isEqualTo("user-100");
 
-        var mvc = MockMvcBuilders.webAppContextSetup(webContext).apply(springSecurity()).build();
+        var mvc = authMvc();
         mvc.perform(post("/auth/accounts/switch")
                         .cookie(jar.entrySet().stream().map(entry -> new Cookie(entry.getKey(), entry.getValue()))
                                 .toArray(Cookie[]::new))
@@ -215,7 +355,7 @@ class AuthAccountPersistenceIT {
                 .andExpect(jsonPath("$.code").value(10001))
                 .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
 
-        assertThat(jdbcTemplate.queryForList("SELECT * FROM refresh_tokens ORDER BY id")).isEqualTo(before);
+        assertThat(refreshRows()).isEqualTo(before);
     }
 
     @ParameterizedTest

@@ -1,12 +1,10 @@
 package com.ulticode.modules.queue.outbox.dispatcher;
 
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;
+import com.ulticode.modules.queue.port.JudgeJobEnqueuer;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.submission.api.queue.JudgeJobEnvelope;
-import com.ulticode.submission.api.queue.JudgeQueue;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,15 +35,15 @@ class JudgeOutboxDispatcherTest {
 
     private JudgeOutboxMapper judgeOutboxMapper;
     @SuppressWarnings("unchecked")
-    private final ObjectProvider<JudgeQueue> queueProvider = mock(ObjectProvider.class);
-    private JudgeQueue judgeQueue;
+    private final ObjectProvider<JudgeJobEnqueuer> queueProvider = mock(ObjectProvider.class);
+    private JudgeJobEnqueuer enqueuer;
     private JudgeOutboxDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
         judgeOutboxMapper = mock(JudgeOutboxMapper.class);
-        judgeQueue = mock(JudgeQueue.class);
-        when(queueProvider.getIfAvailable()).thenReturn(judgeQueue);
+        enqueuer = mock(JudgeJobEnqueuer.class);
+        when(queueProvider.getIfAvailable()).thenReturn(enqueuer);
         dispatcher = new JudgeOutboxDispatcher(
                 judgeOutboxMapper,
                 queueProvider,
@@ -79,7 +77,7 @@ class JudgeOutboxDispatcherTest {
 
         verify(judgeOutboxMapper).markDead(eq("row-1"), anyString());
         verify(judgeOutboxMapper, never()).markSent(anyString());
-        verify(judgeQueue, never()).enqueue(any());
+        verify(enqueuer, never()).enqueue(any());
     }
 
     @Test
@@ -106,7 +104,7 @@ class JudgeOutboxDispatcherTest {
 
         dispatcher.dispatch();
 
-        verify(judgeQueue).enqueue(any(JudgeJobEnvelope.class));
+        verify(enqueuer).enqueue(any(JudgeJobEnvelope.class));
         verify(judgeOutboxMapper).markSent("row-1");
         verify(judgeOutboxMapper, never()).markDead(anyString(), anyString());
     }
@@ -130,6 +128,6 @@ class JudgeOutboxDispatcherTest {
                         && "java".equals(envelope.language())
                         && envelope.generation() == 3L
                         && envelope.timeLimitMs() == 1500;
-        verify(judgeQueue).enqueue(org.mockito.ArgumentMatchers.argThat(matches));
+        verify(enqueuer).enqueue(org.mockito.ArgumentMatchers.argThat(matches));
     }
 }

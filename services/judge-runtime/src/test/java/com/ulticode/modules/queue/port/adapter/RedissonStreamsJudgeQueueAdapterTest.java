@@ -11,7 +11,6 @@ import org.redisson.api.RStream;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.stream.PendingEntry;
 import org.redisson.api.stream.PendingResult;
-import org.redisson.api.stream.StreamAddArgs;
 import org.redisson.api.stream.StreamMessageId;
 import org.redisson.client.codec.Codec;
 
@@ -125,9 +124,6 @@ class RedissonStreamsJudgeQueueAdapterTest {
                                 + "\"language\":\"java\",\"code\":\"class Main {}\","
                                 + "\"timeLimitMs\":2000,\"memoryLimitKb\":262144,"
                                 + "\"generation\":2,\"attemptId\":\"attempt-1\"}")));
-        when(source.listGroups()).thenReturn(List.of());
-        when(source.isExists()).thenReturn(true);
-
         RedissonStreamsJudgeQueueAdapter adapter = adapter(redisson, 3);
 
         Optional<JudgeJobHandle> result = adapter.poll(0);

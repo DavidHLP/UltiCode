@@ -735,7 +735,7 @@ class _AnalysisRun:
         self._search_results: list[dict[str, object]] = []
         self.stage = "analysis_setup"
 
-    def record_search(self, handler: ToolHandler) -> ToolHandler:
+    def _record_search(self, handler: ToolHandler) -> ToolHandler:
         async def invoke(arguments):
             try:
                 result = await handler(arguments)
@@ -752,6 +752,9 @@ class _AnalysisRun:
 
     def observe_tools(self, tools: dict[str, ToolHandler]) -> dict[str, ToolHandler]:
         def observe(name: str, handler: ToolHandler) -> ToolHandler:
+            if name == "search_evidence":
+                handler = self._record_search(handler)
+
             async def invoke(arguments):
                 self._record_event("tool_started", {"toolName": name})
                 failed = True
@@ -1374,8 +1377,7 @@ def create_app(
                 model, judge_model = _authorized_analysis_models(specs)
 
             analysis_run.documents = (*selected_documents, *analysis_run.documents)
-            search_handler = tools.get("search_evidence") or search_evidence_tool(analysis_run.documents)
-            tools["search_evidence"] = analysis_run.record_search(search_handler)
+            tools["search_evidence"] = tools.get("search_evidence") or search_evidence_tool(analysis_run.documents)
             tools = analysis_run.observe_tools(tools)
             if source_required:
                 facts["authorized_source"] = await tools["get_submission_source"]({})
@@ -1947,9 +1949,7 @@ def create_app(
                                 }
                             else:
                                 tools = build_tools(client)
-                                tools["search_evidence"] = analysis_run.record_search(
-                                    search_evidence_tool(analysis_run.documents),
-                                )
+                                tools["search_evidence"] = search_evidence_tool(analysis_run.documents)
                         if mcp_tools_enabled and "get_my_submissions" in tools:
                             from agent_mcp_client import MCPSubmissionSession
 

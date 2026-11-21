@@ -60,8 +60,10 @@ class AccountSessionServiceTest {
         when(tokens.findValidUserId("bob-token")).thenReturn("bob");
         AuthAccountRecord alice = account("alice", "SUPER_ADMIN", true, false);
         when(accounts.findById("alice")).thenReturn(Optional.of(alice));
-        when(tokens.validateAndRotate("alice-token"))
-                .thenReturn(new RefreshTokenService.RotationResult("alice", "rotated-token"));
+        when(tokens.validateAndRotate(eq("alice-token"), any(Runnable.class))).thenAnswer(invocation -> {
+            invocation.getArgument(1, Runnable.class).run();
+            return new RefreshTokenService.RotationResult("alice", "rotated-token");
+        });
         when(issuer.completeRefresh(alice, "rotated-token")).thenReturn(session("alice", "SUPER_ADMIN"));
         AuthSession result = service.switchTo("alice",
                 Map.of("refresh_token", "bob-token", "saved_account_YWxpY2U", "alice-token"), true);
@@ -75,23 +77,24 @@ class AccountSessionServiceTest {
         when(tokens.verifiedUserId("forged")).thenReturn("bob");
         assertThatThrownBy(() -> service.switchTo("alice", Map.of("saved_account_YWxpY2U", "forged"), false))
                 .isInstanceOf(AuthBusinessException.class);
-        verify(tokens, never()).validateAndRotate(any());
+        verify(tokens, never()).validateAndRotate(any(), any());
     }
 
     @Test
     void revokedSavedTokenStillReachesTheExistingReplayDetection() {
         when(tokens.verifiedUserId("replayed")).thenReturn("alice");
         when(accounts.findById("alice")).thenReturn(Optional.of(account("alice", "USER", true, false)));
-        when(tokens.validateAndRotate("replayed")).thenThrow(new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
+        when(tokens.validateAndRotate(eq("replayed"), any(Runnable.class)))
+                .thenThrow(new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
         assertThatThrownBy(() -> service.switchTo("alice", Map.of("saved_account_YWxpY2U", "replayed"), false))
                 .isInstanceOf(AuthBusinessException.class);
-        verify(tokens).validateAndRotate("replayed");
+        verify(tokens).validateAndRotate(eq("replayed"), any(Runnable.class));
     }
 
     @Test
     void invalidOrExpiredSavedSessionCannotBeSwitched() {
         assertThatThrownBy(() -> service.switchTo("alice", Map.of(), false)).isInstanceOf(AuthBusinessException.class);
-        verify(tokens, never()).validateAndRotate(any());
+        verify(tokens, never()).validateAndRotate(any(), any());
     }
 
     @Test
@@ -101,7 +104,7 @@ class AccountSessionServiceTest {
         assertThatThrownBy(() -> service.switchTo("alice", Map.of("saved_account_YWxpY2U", "alice-token"), true))
                 .isInstanceOfSatisfying(AuthBusinessException.class,
                         failure -> assertThat(failure.getErrorCode()).isEqualTo(AuthErrorCode.AUTH_INVALID_CREDENTIALS));
-        verify(tokens, never()).validateAndRotate(any());
+        verify(tokens, never()).validateAndRotate(any(), any());
     }
 
     @Test

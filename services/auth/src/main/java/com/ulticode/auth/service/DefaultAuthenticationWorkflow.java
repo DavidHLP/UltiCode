@@ -119,7 +119,14 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
         AuthAccountRecord account = accountPort.findById(accountId)
                 .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
         requireAllowedRole(account, adminOnly);
-        return refresh(refreshToken);
+
+        RefreshTokenService.RotationResult rotation;
+        try {
+            rotation = refreshTokenService.validateAndRotate(refreshToken, () -> ensureAccountActive(account));
+        } catch (ExpiredJwtException e) {
+            throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token has expired");
+        }
+        return authSessionPort.completeRefresh(account, rotation.token());
     }
 
     @Override

@@ -162,8 +162,10 @@
   outbox entry in the same transaction. App records the ContestSubmission
   idempotently from that event. Contest scoring retries a judging event that
   arrives before the association is durable.
-- **D-05 / D-06** — a ContestSubmission is recorded only when the contest is
-  RUNNING and the participant has STARTED.
+- **D-05 / D-06** — real submission admission requires a RUNNING contest whose
+  end time has not passed and a STARTED real participant. Virtual submission
+  admission requires a FINISHED parent contest and a STARTED virtual participant
+  within that participant's replay window.
 - **R6.2 / F-06** — time-from-start uses the contest clock for real
   participants and the participant's own `startedAt` for virtual replays.
 - **R6.3 / F-08** — virtual-replay Accepted submissions do **not** trigger

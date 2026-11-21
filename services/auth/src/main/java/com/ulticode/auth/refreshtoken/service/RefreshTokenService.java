@@ -98,6 +98,12 @@ public class RefreshTokenService {
      */
     @Transactional(noRollbackFor = AuthBusinessException.class)
     public RotationResult validateAndRotate(String token) {
+        return validateAndRotate(token, () -> {});
+    }
+
+    /** Runs caller admission after credential and replay checks, before consuming a valid token. */
+    @Transactional(noRollbackFor = AuthBusinessException.class)
+    public RotationResult validateAndRotate(String token, Runnable admit) {
         String userId = jwtTokenProvider.getUserIdFromRefreshToken(token);
         if (userId == null) {
             throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "Invalid refresh token");
@@ -136,6 +142,7 @@ public class RefreshTokenService {
             throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "Refresh token has expired");
         }
 
+        admit.run();
         int revoked = refreshTokenMapper.revokeIfActive(storedToken.getId());
         if (revoked != 1) {
             throw new AuthBusinessException(BaseErrorCode.UNAUTHORIZED, "Refresh token has already been used");

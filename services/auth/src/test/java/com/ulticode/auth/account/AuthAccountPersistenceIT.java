@@ -2,9 +2,13 @@ package com.ulticode.auth.account;
 
 import com.ulticode.auth.account.entity.AuthAccountEntity;
 import com.ulticode.auth.account.mapper.AuthAccountMapper;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
@@ -154,14 +158,47 @@ class AuthAccountPersistenceIT {
         assertThat(refreshTokens.findValidUserId(jar.get("refresh_token"))).isEqualTo("user-200");
     }
 
-    @Test
-    void replayedSavedCredentialCommitsRevocationOfItsRotationFamily() {
+    @ParameterizedTest
+    @CsvSource({"false, false", "true, true"})
+    void deniedSavedAccountSwitchPreservesRefreshRowsAndCookies(boolean active, boolean banned) throws Exception {
+        prepareAccountCredentials();
+        java.util.Map<String, String> jar = new java.util.LinkedHashMap<>();
+        accept(jar, authentication.login("cas_user", "test-password"));
+        accept(jar, sessions.add("second_user", "test-password", jar, false));
+        jdbcTemplate.update("UPDATE users SET is_active = ?, is_banned = ? WHERE id = ?", active, banned, "user-100");
+        var before = jdbcTemplate.queryForList("SELECT * FROM refresh_tokens ORDER BY id");
+        assertThat(before).hasSize(2);
+        String saved = jar.get("saved_account_dXNlci0xMDA");
+        assertThat(refreshTokens.findValidUserId(saved)).isEqualTo("user-100");
+
+        var mvc = MockMvcBuilders.webAppContextSetup(webContext).apply(springSecurity()).build();
+        mvc.perform(post("/auth/accounts/switch")
+                        .cookie(jar.entrySet().stream().map(entry -> new Cookie(entry.getKey(), entry.getValue()))
+                                .toArray(Cookie[]::new))
+                        .header("X-CSRF-Token", jar.get("csrf_token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"accountId":"user-100","adminOnly":false}
+                            """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(10001))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
+        assertThat(jdbcTemplate.queryForList("SELECT * FROM refresh_tokens ORDER BY id")).isEqualTo(before);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void replayedSavedCredentialCommitsRevocationOfItsRotationFamily(boolean banned) {
         prepareAccountCredentials();
         java.util.Map<String, String> jar = new java.util.LinkedHashMap<>();
         accept(jar, authentication.login("cas_user", "test-password"));
         accept(jar, sessions.add("second_user", "test-password", jar, false));
         String stolen = jar.get("saved_account_dXNlci0xMDA");
         var attacker = refreshTokens.validateAndRotate(stolen);
+        if (banned) {
+            jdbcTemplate.update("UPDATE users SET is_banned = 1 WHERE id = ?", "user-100");
+        }
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> sessions.switchTo("user-100", jar, false))
                 .isInstanceOf(com.ulticode.auth.error.AuthBusinessException.class);
         assertThat(refreshTokens.findValidUserId(attacker.token())).isNull();

@@ -17,9 +17,9 @@ public interface ProblemAdministrationDomainService {
     Problem updateProblem(Long id, UpdateProblemDTO dto, String actorId, Long expectedVersion);
 
     /**
-     * Soft-delete a problem behind its owner-side optimistic-lock fence.
+     * Soft-delete a problem behind its owner-side optimistic-lock fence and return the deleted snapshot.
      */
-    void deleteProblem(Long id, String actorId, Long expectedVersion);
+    Problem deleteProblem(Long id, String actorId, Long expectedVersion);
 
     /**
      * Publish a problem behind its owner-side optimistic-lock fence.

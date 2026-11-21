@@ -1,10 +1,15 @@
 package com.ulticode.modules.queue.port.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.migration.JudgeStreamLegacyMigration;
+import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
+import com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor;
 import com.ulticode.submission.api.queue.JudgeJobEnvelope;
 import com.ulticode.submission.api.queue.JudgeJobHandle;
 import com.ulticode.submission.api.queue.JudgeStreamKeys;
+import com.ulticode.submission.api.service.SubmissionFencePort;
+import com.ulticode.submission.api.service.SubmissionVerdictWritePort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -19,9 +24,16 @@ import org.redisson.Redisson;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Real-Redis smoke test for the Streams adapter (CR P1-1/P1-4/P1-3).
@@ -35,6 +47,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnabledIfEnvironmentVariable(named = "REDIS_HOST", matches = ".+")
 @DisplayName("Redis Streams adapter against a real broker")
 class JudgeStreamRedisIntegrationTest {
+
+    private static final String GROUP = "it-workers";
 
     private static String redisAddress() {
         String host = System.getenv().getOrDefault("REDIS_HOST", "localhost");
@@ -53,20 +67,59 @@ class JudgeStreamRedisIntegrationTest {
         if (password != null && !password.isBlank()) {
             config.useSingleServer().setPassword(password);
         }
-        // Deliberately no setCodec: Redisson 4.3.1 defaults to Kryo5Codec.
+        // Deliberately no setCodec: Redisson defaults to Kryo5Codec.
         return Redisson.create(config);
     }
 
     @Test
-    @DisplayName("enqueue -> poll -> ack round-trips through Lua + Streams with the default client codec")
+    @DisplayName("concurrent Judge startup creates one group on an empty stream without writing entries")
+    void concurrentJudgeStartupCreatesGroupWithoutAddingEntries() throws Exception {
+        String streamKey = "judge:it:" + UUID.randomUUID();
+        RedissonClient client = defaultCodecClient();
+        var workers = Executors.newFixedThreadPool(2);
+        try {
+            var first = adapter(client, streamKey, 5, "it-consumer-1");
+            var second = adapter(client, streamKey, 5, "it-consumer-2");
+            var start = new CyclicBarrier(2);
+            var firstStartup = workers.submit(() -> {
+                start.await(5, TimeUnit.SECONDS);
+                first.ensureGroup();
+                return null;
+            });
+            var secondStartup = workers.submit(() -> {
+                start.await(5, TimeUnit.SECONDS);
+                second.ensureGroup();
+                return null;
+            });
+            firstStartup.get(5, TimeUnit.SECONDS);
+            secondStartup.get(5, TimeUnit.SECONDS);
+
+            var stream = client.<String, String>getStream(streamKey, StringCodec.INSTANCE);
+            assertThat(stream.listGroups()).hasSize(1);
+            assertThat(stream.getInfo().getEntriesAdded()).isZero();
+
+            var job = envelope("sub-" + UUID.randomUUID());
+            first.enqueue(job);
+            assertThat(first.poll(0)).hasValueSatisfying(handle -> assertThat(handle.envelope()).isEqualTo(job));
+            second.ensureGroup();
+            assertThat(second.poll(0)).isEmpty();
+            assertThat(second.pendingDepth()).isEqualTo(1L);
+        } finally {
+            workers.shutdownNow();
+            client.shutdown();
+        }
+    }
+
+    @Test
+    @DisplayName("Judge startup reads and acknowledges a job queued before its consumer group existed")
     void enqueuePollAckRoundTrips() {
         String streamKey = "judge:it:" + UUID.randomUUID();
         RedissonClient client = defaultCodecClient();
         try {
             RedissonStreamsJudgeQueueAdapter adapter = adapter(client, streamKey, 5);
-            adapter.ensureGroup();
             String submissionId = "sub-" + UUID.randomUUID();
             adapter.enqueue(envelope(submissionId));
+            adapter.ensureGroup();
             Optional<JudgeJobHandle> handle = adapter.poll(2_000);
 
             assertThat(handle).as("poll must decode the Lua-XADDed entry").isPresent();
@@ -74,6 +127,45 @@ class JudgeStreamRedisIntegrationTest {
             assertThat(handle.get().envelope().generation()).isEqualTo(2L);
             adapter.ack(handle.get());
             assertThat(adapter.pendingDepth()).isZero();
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    @Test
+    @DisplayName("group loss replays older entries and the Judge fence acknowledges superseded work without a verdict")
+    void groupLossReplaysBacklogThroughGenerationFence() {
+        String streamKey = "judge:it:" + UUID.randomUUID();
+        RedissonClient client = defaultCodecClient();
+        try {
+            var adapter = adapter(client, streamKey, 5);
+            var stale = envelope("sub-" + UUID.randomUUID());
+            var current = envelope(stale.submissionId(), 3L);
+            adapter.ensureGroup();
+            adapter.enqueue(stale);
+            var firstDelivery = adapter.poll(0).orElseThrow();
+            adapter.ack(firstDelivery);
+            adapter.enqueue(current);
+            client.getStream(streamKey, StringCodec.INSTANCE).removeGroup(GROUP);
+
+            var replayed = adapter.poll(0).orElseThrow();
+            assertThat(replayed).isEqualTo(firstDelivery);
+            assertThat(adapter.pendingDepth()).isEqualTo(1L);
+
+            var fence = mock(SubmissionFencePort.class);
+            when(fence.currentGeneration(stale.submissionId())).thenReturn(current.generation());
+            var verdicts = mock(SubmissionVerdictWritePort.class);
+            var pipeline = mock(JudgeExecutionPipeline.class);
+            var executor = new DefaultJudgeAttemptExecutor(verdicts, pipeline, fence, null, null, null);
+            var job = new JudgeJob();
+            job.setSubmissionId(stale.submissionId());
+            executor.runAttempt(job, adapter, replayed);
+
+            verify(fence).currentGeneration(stale.submissionId());
+            verifyNoMoreInteractions(fence);
+            verifyNoInteractions(pipeline, verdicts);
+            assertThat(adapter.pendingDepth()).isZero();
+            assertThat(adapter.poll(0)).hasValueSatisfying(handle -> assertThat(handle.envelope()).isEqualTo(current));
         } finally {
             client.shutdown();
         }
@@ -157,8 +249,8 @@ class JudgeStreamRedisIntegrationTest {
             assertThat(first).isPresent();
             StreamMessageId id = (StreamMessageId) first.get().ackToken();
             RStream<String, String> stream = client.getStream(streamKey, StringCodec.INSTANCE);
-            stream.claim("it-workers", "claimer-1", 0, TimeUnit.MILLISECONDS, id);
-            stream.claim("it-workers", "claimer-2", 0, TimeUnit.MILLISECONDS, id);
+            stream.claim(GROUP, "claimer-1", 0, TimeUnit.MILLISECONDS, id);
+            stream.claim(GROUP, "claimer-2", 0, TimeUnit.MILLISECONDS, id);
 
             Optional<JudgeJobHandle> reclaimed = adapter.claimIdle(0L);
 
@@ -221,7 +313,7 @@ class JudgeStreamRedisIntegrationTest {
                 new ObjectMapper().configure(
                         com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false),
                 streamKey,
-                "it-workers",
+                GROUP,
                 consumerName,
                 1_000L,
                 maxAttempts,
@@ -229,6 +321,10 @@ class JudgeStreamRedisIntegrationTest {
     }
 
     private JudgeJobEnvelope envelope(String submissionId) {
+        return envelope(submissionId, 2L);
+    }
+
+    private JudgeJobEnvelope envelope(String submissionId, long generation) {
         return new JudgeJobEnvelope(
                 JudgeJobEnvelope.VERSION_2,
                 "job-1",
@@ -239,7 +335,7 @@ class JudgeStreamRedisIntegrationTest {
                 "class Main {}",
                 2_000,
                 256 * 1024,
-                2L,
-                "attempt-1");
+                generation,
+                "attempt-" + generation);
     }
 }

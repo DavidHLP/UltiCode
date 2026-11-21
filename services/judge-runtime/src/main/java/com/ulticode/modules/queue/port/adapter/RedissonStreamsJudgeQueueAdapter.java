@@ -20,6 +20,7 @@ import org.redisson.api.stream.StreamCreateGroupArgs;
 import org.redisson.api.stream.StreamGroup;
 import org.redisson.api.stream.StreamMessageId;
 import org.redisson.api.stream.StreamReadGroupArgs;
+import org.redisson.client.RedisException;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
@@ -137,33 +138,15 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
     @PostConstruct
     public void ensureGroup() {
         RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
-        if (!stream.isExists()) {
-            // Redisson 4.3.1's StreamCreateGroupArgs has no MKSTREAM flag and
-            // XGROUP CREATE fails with "no such key" before the first dispatch
-            // created the stream (fresh deploy). Bootstrap the key with a
-            // no-op entry, then delete it — the empty stream key stays alive,
-            // so the group creation below succeeds.
-            StreamMessageId noop = stream.add(
-                    org.redisson.api.stream.StreamAddArgs.entry("__noop", "1"));
-            stream.remove(noop);
-            log.info("Bootstrapped empty stream {} for consumer group creation", streamKey);
-        }
-        List<StreamGroup> groups = stream.listGroups();
-        boolean exists = groups.stream().anyMatch(g -> groupName.equals(g.getName()));
-        if (!exists) {
-            try {
-                stream.createGroup(StreamCreateGroupArgs.name(groupName)
-                        .id(StreamMessageId.ALL));
-                log.info("Created Redis Streams consumer group {} on {}", groupName, streamKey);
-            } catch (Exception e) {
-                // Race: another instance created the group between the
-                // existence check and createGroup. Treat as success.
-                if (stream.listGroups().stream().anyMatch(g -> groupName.equals(g.getName()))) {
-                    log.debug("Consumer group {} already created by another instance", groupName);
-                } else {
-                    throw e;
-                }
+        try {
+            stream.createGroup(StreamCreateGroupArgs.name(groupName)
+                    .id(StreamMessageId.ALL).makeStream());
+            log.info("Created Redis Streams consumer group {} on {}", groupName, streamKey);
+        } catch (RedisException e) {
+            if (e.getMessage() == null || !e.getMessage().startsWith("BUSYGROUP ")) {
+                throw e;
             }
+            log.debug("Consumer group {} already exists on {}", groupName, streamKey);
         }
     }
 
@@ -309,7 +292,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
     public long streamLag() {
         try {
             RStream<String, String> stream = redissonClient.getStream(streamKey, StringCodec.INSTANCE);
-            for (org.redisson.api.stream.StreamGroup group : stream.listGroups()) {
+            for (StreamGroup group : stream.listGroups()) {
                 if (groupName.equals(group.getName())) {
                     return group.getLag();
                 }

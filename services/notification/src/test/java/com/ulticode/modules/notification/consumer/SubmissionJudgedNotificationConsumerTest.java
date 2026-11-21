@@ -64,7 +64,9 @@ class SubmissionJudgedNotificationConsumerTest {
         consumer.consume(Map.of(
                 "submissionId", "submission-1",
                 "userId", "user-1",
-                "verdict", "Judging"));
+                "verdict", "Judging",
+                "runtimeMs", "invalid",
+                "memoryMb", "invalid"));
 
         verifyNoInteractions(notificationDispatcher);
     }
@@ -125,5 +127,25 @@ class SubmissionJudgedNotificationConsumerTest {
                     .hasMessage(testCase[1] + " SubmissionJudged field: generation");
         }
         verifyNoInteractions(notificationDispatcher);
+    }
+
+    @Test
+    void terminalInfrastructureVerdictKeepsZeroGenerationAndLongMetrics() {
+        SubmissionJudgedNotificationConsumer consumer =
+                new SubmissionJudgedNotificationConsumer(notificationDispatcher);
+
+        consumer.consume(Map.of(
+                "submissionId", "submission-1", "userId", "user-1",
+                "verdict", "Sandbox Error", "generation", "0",
+                "problemId", "null", "runtimeMs", 2147483648.75, "memoryMb", "Infinity"));
+
+        ArgumentCaptor<NotificationIntent> captor = ArgumentCaptor.forClass(NotificationIntent.class);
+        verify(notificationDispatcher).dispatchForDurableRetry(captor.capture());
+        SubmissionCompletedIntent intent = (SubmissionCompletedIntent) captor.getValue();
+        assertThat(intent.status()).isEqualTo(SubmissionStatus.SANDBOX_ERROR);
+        assertThat(intent.intentId()).isEqualTo("submission:submission-1:g0");
+        assertThat(intent.problemId()).isEqualTo("null");
+        assertThat(intent.elapsedMs()).isEqualTo(2147483648L);
+        assertThat(intent.memoryBytes()).isEqualTo(Long.MAX_VALUE);
     }
 }

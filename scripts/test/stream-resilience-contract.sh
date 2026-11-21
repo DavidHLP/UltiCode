@@ -3,6 +3,8 @@ set -euo pipefail
 
 # P3-STREAM-001 contract: Redis Streams is at-least-once transport; durable
 # MySQL inboxes own business idempotency, leases, retry/backoff and poison rows.
+# SubmissionOutboxDispatcherIT exercises enqueue with MySQL and Redis in
+# scripts/dev/test.sh integration and dev-local-observation-rehearsal.sh.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -19,6 +21,7 @@ for source in \
   services/platform/integration-inbox/src/main/java/com/ulticode/modules/event/inbox/RedisStreamInboxBridge.java \
   services/notification/src/main/java/com/ulticode/notification/inbox/NotificationIntegrationInboxBridge.java \
   services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java \
+  services/submission/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeJobEnqueuer.java \
   services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeQueueAdapter.java \
   services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java; do
   [[ -f "$ROOT_DIR/$source" ]] || fail "missing stream source: $source"
@@ -37,18 +40,18 @@ contains services/platform/integration-inbox/src/main/java/com/ulticode/modules/
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'ATOMIC_DEAD_LETTER_SCRIPT'
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java "redis.call('XACK'"
 contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'parseVersion'
-contains services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeQueueAdapter.java 'ATOMIC_ENQUEUE_SCRIPT'
+contains services/submission/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeJobEnqueuer.java 'ATOMIC_ENQUEUE_SCRIPT'
 contains services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeQueueAdapter.java 'ATOMIC_DEAD_LETTER_SCRIPT'
 contains services/judge-runtime/src/main/java/com/ulticode/modules/queue/port/adapter/RedissonStreamsJudgeQueueAdapter.java 'StreamMessageId.ALL'
 contains services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java 'CURRENT_SCHEMA_VERSION'
 contains services/platform/common/src/main/java/com/ulticode/common/event/IntegrationEventEnvelopeContract.java 'requireCompatibleEnvelope'
-not_contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'return renewed == null'
-contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'return renewed != null && renewed > 0L'
-not_contains services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java 'Search document lease renewal check failed'
+not_contains services/search/src/main/java/com/ulticode/search/VersionedSearchDocumentWriter.java 'return renewed == null'
+contains services/search/src/main/java/com/ulticode/search/VersionedSearchDocumentWriter.java 'return renewed != null && renewed > 0L'
+not_contains services/search/src/main/java/com/ulticode/search/VersionedSearchDocumentWriter.java 'Search document lease renewal check failed'
 
 printf 'durable inbox claim/lease/retry/backoff/dead-letter contract: PASS\n'
 printf 'stream consumer PEL/replay/poison/schema/version contract: PASS\n'
-printf 'judge atomic enqueue/DLQ and search atomic ACK contract: PASS\n'
+printf 'Submission atomic enqueue, Judge DLQ and Search atomic ACK contract: PASS\n'
 
 if [[ -n "${REDIS_HOST:-}" ]]; then
   (

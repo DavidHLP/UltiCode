@@ -9,36 +9,32 @@ import com.ulticode.app.api.dto.ProblemWriteFields;
 import com.ulticode.modules.problem.dto.LanguageConfigDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ProblemAdministrationService;
+import com.ulticode.app.security.AdminActorAuthorizer;
 import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
-import com.ulticode.modules.problem.service.ProblemIndexRefresher;
-import com.ulticode.app.security.AdminActorAuthorizer;
+import com.ulticode.modules.problem.service.ProblemMutationModule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Dubbo Provider implementation of {@link ProblemAdministrationService} in {@code backend-app}.
  *
- * <p>Delegates to {@link ProblemAdministrationDomainService} for canonical write-side domain logic.
+ * <p>Maps commands and results around the App-owned {@link ProblemMutationModule} transaction.
  */
 @Slf4j
 @DubboService(group = "backend-app", version = "1.0.0")
 @RequiredArgsConstructor
 public class ProblemAdministrationProvider implements ProblemAdministrationService {
 
-    private final ProblemAdministrationDomainService domainService;
-    private final ProblemIndexRefresher indexRefresher;
+    private final ProblemMutationModule mutations;
     private final AdminActorAuthorizer actorAuthorizer;
 
     @Override
-    @Transactional
     public RpcResult<ProblemAdminViewDTO> createProblem(CreateProblemCommand command) {
         String traceId = traceId(command);
         RpcResult<ProblemAdminViewDTO> rejected = rejectIfUntrusted(
@@ -67,22 +63,18 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
                         .map(ProblemWriteFields.Language::language).toList());
             }
             String actorId = command.actor() != null ? command.actor().actorId() : null;
-            Problem entity = domainService.createProblem(dto, actorId);
-            indexRefresher.publish(entity);
+            Problem entity = mutations.createProblem(dto, actorId);
             return RpcResult.success(toAdminView(entity.getId(), entity.getSlug(), entity.getTitle(),
                     entity, entity.getStatus()), command.trace().traceId());
         } catch (BusinessException e) {
-            rollbackWrite();
             return toFailure(e, command.trace().traceId());
         } catch (Exception e) {
-            rollbackWrite();
             log.error("ProblemAdministrationProvider.createProblem unexpected error", e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
         }
     }
 
     @Override
-    @Transactional
     public RpcResult<ProblemAdminViewDTO> updateProblem(UpdateProblemCommand command) {
         String traceId = traceId(command);
         RpcResult<ProblemAdminViewDTO> rejected = rejectIfUntrusted(
@@ -120,29 +112,18 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
                 }).toList());
             }
             String actorId = command.actor() != null ? command.actor().actorId() : null;
-            Problem entity = domainService.updateProblem(id, dto, actorId, command.expectedVersion());
-            indexRefresher.publish(entity);
+            Problem entity = mutations.updateProblem(id, dto, actorId, command.expectedVersion());
             return RpcResult.success(toAdminView(entity.getId(), entity.getSlug(), entity.getTitle(),
                     entity, entity.getStatus()), command.trace().traceId());
         } catch (BusinessException e) {
-            rollbackWrite();
             return toFailure(e, command.trace().traceId());
         } catch (Exception e) {
-            rollbackWrite();
             log.error("ProblemAdministrationProvider.updateProblem unexpected error id={}", id, e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
         }
     }
 
-    // RPC failures are returned as values, so the transaction interceptor cannot infer rollback.
-    private static void rollbackWrite() {
-        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
-            org.springframework.transaction.interceptor.TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-        }
-    }
-
     @Override
-    @Transactional
     public RpcResult<Void> publishProblem(PublishProblemCommand command) {
         String traceId = traceId(command);
         RpcResult<Void> rejected = rejectIfUntrusted(
@@ -158,13 +139,7 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
                 id, command.publish(), command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
             String actorId = command.actor() != null ? command.actor().actorId() : null;
-            Problem entity;
-            if (command.publish()) {
-                entity = domainService.publishProblem(id, actorId, command.expectedVersion());
-            } else {
-                entity = domainService.unpublishProblem(id, actorId, command.expectedVersion());
-            }
-            indexRefresher.publish(entity);
+            mutations.setPublished(id, command.publish(), actorId, command.expectedVersion());
             return RpcResult.success(command.trace().traceId());
         } catch (BusinessException e) {
             return toFailure(e, command.trace().traceId());
@@ -175,7 +150,6 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
     }
 
     @Override
-    @Transactional
     public RpcResult<Void> deleteProblem(DeleteProblemCommand command) {
         String traceId = traceId(command);
         RpcResult<Void> rejected = rejectIfUntrusted(
@@ -191,15 +165,7 @@ public class ProblemAdministrationProvider implements ProblemAdministrationServi
                 id, command.commandId(), command.actor() != null ? command.actor().actorId() : null);
         try {
             String actorId = command.actor() != null ? command.actor().actorId() : null;
-            Problem before = java.util.Optional
-                    .ofNullable(domainService.findById(id))
-                    .flatMap(o -> o)
-                    .orElse(null);
-            domainService.deleteProblem(id, actorId, command.expectedVersion());
-            if (before != null) {
-                before.setIsDeleted(true);
-                indexRefresher.publish(before);
-            }
+            mutations.deleteProblem(id, actorId, command.expectedVersion());
             return RpcResult.success(command.trace().traceId());
         } catch (BusinessException e) {
             return toFailure(e, command.trace().traceId());

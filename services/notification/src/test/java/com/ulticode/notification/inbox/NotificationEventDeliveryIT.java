@@ -296,4 +296,40 @@ class NotificationEventDeliveryIT {
 
         redisTemplate.opsForStream().delete(STREAM_KEY, first, second);
     }
+
+    @Test
+    void judgedDeliveryKeyDeduplicatesBySubmissionAndGenerationAcrossInboxRows() {
+        addJudgedEvent("judged-0", "0");
+        addJudgedEvent("judged-0-republished", "0");
+        addJudgedEvent("judged-1", "1");
+
+        newBridge().consume();
+
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT state FROM consumer_inbox WHERE consumer = ?", String.class, CONSUMER))
+                .containsExactly("PROCESSED", "PROCESSED", "PROCESSED");
+        assertThat(jdbcTemplate.queryForList("""
+                SELECT intent_id FROM notification_delivery_ledger
+                WHERE channel_id = 'in_app' AND delivery_state = 'DELIVERED'
+                """, String.class)).containsExactlyInAnyOrder(
+                "submission:submission-1:g0", "submission:submission-1:g1");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM notifications WHERE user_id = 'user-1'", Integer.class))
+                .isEqualTo(2);
+    }
+
+    private void addJudgedEvent(String eventId, String generation) {
+        Map<String, String> fields = Map.of(
+                "eventId", eventId,
+                "owner", "Submission",
+                "aggregateId", "submission-1",
+                "aggregateVersion", generation,
+                "eventType", "SubmissionJudged",
+                "schemaVersion", "1",
+                "payload", """
+                        {"submissionId":"submission-1","userId":"user-1","problemId":42,
+                         "generation":"%s","verdict":"Sandbox Error","runtimeMs":12,"memoryMb":1.5}
+                        """.formatted(generation));
+        redisTemplate.opsForStream().add(StreamRecords.mapBacked(fields).withStreamKey(STREAM_KEY));
+    }
 }

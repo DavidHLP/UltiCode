@@ -67,7 +67,7 @@ for source in \
   services/platform/storage/src/main/java/com/ulticode/common/storage/S3Storage.java \
   services/app/app-web/src/main/java/com/ulticode/modules/search/projection/DefaultSearchReadProjection.java \
   services/app/app-web/src/main/java/com/ulticode/modules/search/backfill/SearchBackfillRunner.java \
-  services/search/src/main/java/com/ulticode/search/SearchDocumentIndexWorker.java \
+  services/search/src/main/java/com/ulticode/search/VersionedSearchDocumentWriter.java \
   services/search/src/main/java/com/ulticode/search/SearchWorkerReadinessHeartbeat.java; do
   contains "$source" 'DependencyGuard'
 done

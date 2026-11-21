@@ -12,6 +12,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.problem.projection.ProblemProjection;
 import com.ulticode.modules.problem.service.ProblemAdministrationDomainService;
 import com.ulticode.modules.problem.service.ProblemIndexRefresher;
+import com.ulticode.modules.problem.service.ProblemMutationModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,11 +50,10 @@ class ProblemServiceImplTest {
     @BeforeEach
     void setUp() {
         problemService = new ProblemServiceImpl(
-                domainService,
+                new ProblemMutationModule(domainService, indexRefresher),
                 problemMapper,
                 problemProjection,
-                currentUserProvider,
-                indexRefresher
+                currentUserProvider
         );
     }
 
@@ -215,7 +216,7 @@ class ProblemServiceImplTest {
             dto.setTitle("Updated Title");
 
             when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(domainService.findById(1L)).thenReturn(Optional.of(existing));
             when(domainService.updateProblem(1L, dto, ACTOR_ID, 1L)).thenReturn(existing);
             lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
@@ -231,15 +232,17 @@ class ProblemServiceImplTest {
         @DisplayName("deleteProblem: forwards the current version and publishes a tombstone")
         void deleteProblem_delegates() {
             Problem existing = problem(1L, "two-sum");
+            Problem deleted = problem(1L, "two-sum");
+            deleted.setIsDeleted(true);
 
             when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(domainService.findById(1L)).thenReturn(Optional.of(existing));
+            when(domainService.deleteProblem(1L, ACTOR_ID, 1L)).thenReturn(deleted);
 
             problemService.deleteProblem(1L);
 
             verify(domainService).deleteProblem(1L, ACTOR_ID, 1L);
-            assertThat(existing.getIsDeleted()).isTrue();
-            verify(indexRefresher).publish(existing);
+            verify(indexRefresher).publish(deleted);
         }
 
         @Test
@@ -251,7 +254,7 @@ class ProblemServiceImplTest {
             vo.setId(1L);
 
             when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(domainService.findById(1L)).thenReturn(Optional.of(existing));
             when(domainService.publishProblem(1L, ACTOR_ID, 1L)).thenReturn(existing);
             lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
@@ -272,7 +275,7 @@ class ProblemServiceImplTest {
             vo.setId(1L);
 
             when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(domainService.findById(1L)).thenReturn(Optional.of(existing));
             when(domainService.unpublishProblem(1L, ACTOR_ID, 1L)).thenReturn(existing);
             lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 

@@ -5,7 +5,8 @@ import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.submission.api.queue.JudgeJobEnvelope;
+import com.ulticode.modules.queue.config.QueueConfig;
+import com.ulticode.modules.queue.port.JudgeJobEnqueuer;
 import com.ulticode.modules.submission.created.SubmissionCreatedDispatcher;
 import com.ulticode.modules.submission.created.SubmissionCreatedOutboxMapper;
 import com.ulticode.modules.submission.created.SubmissionCreatedOutboxRecord;
@@ -15,7 +16,10 @@ import com.ulticode.modules.submission.result.ResultEventPublisher;
 import com.ulticode.modules.submission.result.SubmissionResultDispatcher;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxMapper;
 import com.ulticode.modules.submission.result.SubmissionResultOutboxRecord;
+import com.ulticode.submission.api.queue.JudgeJobEnvelope;
+import com.ulticode.submission.api.queue.JudgeStreamKeys;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.AfterEach;
@@ -25,8 +29,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.stream.StreamAddArgs;
+import org.redisson.api.stream.StreamMessageId;
+import org.redisson.client.codec.StringCodec;
 import org.redisson.config.Config;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
@@ -48,6 +57,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -205,11 +215,11 @@ class SubmissionOutboxDispatcherIT {
 
     private static JudgeOutboxDispatcher newJudgeDispatcher(
             JudgeOutboxMapper mapper,
-            ObjectProvider<com.ulticode.submission.api.queue.JudgeQueue> provider) {
+            ObjectProvider<JudgeJobEnqueuer> provider) {
         JudgeOutboxDispatcher dispatcher = new JudgeOutboxDispatcher(
                 mapper,
                 provider,
-                new io.micrometer.core.instrument.simple.SimpleMeterRegistry(),
+                new SimpleMeterRegistry(),
                 Clock.systemUTC(),
                 () -> UUID.randomUUID().toString());
         // @Value default 1970-01-01 is not injected when constructed directly.
@@ -221,6 +231,17 @@ class SubmissionOutboxDispatcherIT {
             throw new IllegalStateException(e);
         }
         return dispatcher;
+    }
+
+    private static AnnotationConfigApplicationContext producerContext(boolean enabled) {
+        var context = new AnnotationConfigApplicationContext();
+        context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(
+                "judge-queue-test", Map.of("app.features.judge-queue.use-port", Boolean.toString(enabled))));
+        context.getBeanFactory().registerSingleton("redissonClient", redissonClient);
+        context.getBeanFactory().registerSingleton("objectMapper", new ObjectMapper());
+        context.register(QueueConfig.class);
+        context.refresh();
+        return context;
     }
 
     private UuidGenerator uuid() {
@@ -252,28 +273,54 @@ class SubmissionOutboxDispatcherIT {
     }
 
     @Test
-    @DisplayName("judge outbox dispatcher enqueues real rows to the judge stream and marks SENT")
-    void judgeDispatcherEnqueuesAndMarksSent() {
+    @DisplayName("Submission startup and dispatch leave consumer group creation to Judge")
+    void judgeDispatcherEnqueuesWithoutCreatingConsumerGroup() {
         JudgeOutboxRecord row = newJudgeOutboxRow("sub-1", 1L);
         judgeOutboxMapper.insert(row);
         session.commit();
+        var stream = redissonClient.<String, String>getStream(
+                JudgeStreamKeys.JUDGE_STREAM_KEY, StringCodec.INSTANCE);
+        stream.add(StreamAddArgs.entry("payload", "{\"submissionId\":\"already-queued\"}"));
 
-        com.ulticode.submission.api.queue.JudgeQueue judgeQueue = mock(
-                com.ulticode.submission.api.queue.JudgeQueue.class);
-        @SuppressWarnings("unchecked")
-        ObjectProvider<com.ulticode.submission.api.queue.JudgeQueue> provider =
-                mock(ObjectProvider.class);
-        when(provider.getIfAvailable()).thenReturn(judgeQueue);
+        try (var context = producerContext(true)) {
+            JudgeOutboxDispatcher dispatcher = newJudgeDispatcher(judgeOutboxMapper,
+                    context.getBeanProvider(JudgeJobEnqueuer.class));
+            dispatcher.dispatch();
+            session.commit();
+        }
 
-        JudgeOutboxDispatcher dispatcher = newJudgeDispatcher(judgeOutboxMapper, provider);
-
-        dispatcher.dispatch();
-        session.commit();
-
-        // Row marked SENT.
         JudgeOutboxRecord after = judgeOutboxMapper.selectById(row.getId());
         assertThat(after).isNotNull();
         assertThat(after.getState()).isEqualTo("SENT");
+        assertThat(stream.listGroups()).isEmpty();
+        assertThat(stream.range(StreamMessageId.MIN, StreamMessageId.MAX).values())
+                .extracting(fields -> fields.get("payload"))
+                .satisfiesExactly(
+                        prior -> assertThat(prior).contains("already-queued"),
+                        dispatched -> assertThat(dispatched).contains("\"submissionId\":\"sub-1\"", "\"generation\":1"));
+    }
+
+    @Test
+    @DisplayName("a failed stream append permits retry and repeated dispatch still writes only once")
+    void judgeEnqueueRetriesFailedAppendAndDeduplicates() {
+        var envelope = new JudgeJobEnvelope(JudgeJobEnvelope.VERSION_2, "job-1", "sub-1", "101", "u-1",
+                "java", "class X {}", 2000, 262144, 1L, "attempt-1");
+        var occupiedStreamKey = redissonClient.getBucket(JudgeStreamKeys.JUDGE_STREAM_KEY, StringCodec.INSTANCE);
+        occupiedStreamKey.set("wrong Redis type");
+
+        try (var context = producerContext(true)) {
+            JudgeJobEnqueuer enqueuer = context.getBean(JudgeJobEnqueuer.class);
+            assertThatThrownBy(() -> enqueuer.enqueue(envelope))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Failed to atomically enqueue JudgeJobEnvelope");
+
+            occupiedStreamKey.delete();
+            enqueuer.enqueue(envelope);
+            enqueuer.enqueue(envelope);
+        }
+
+        assertThat(redissonClient.getStream(JudgeStreamKeys.JUDGE_STREAM_KEY, StringCodec.INSTANCE).size())
+                .isEqualTo(1);
     }
 
     @Test
@@ -283,15 +330,12 @@ class SubmissionOutboxDispatcherIT {
         judgeOutboxMapper.insert(row);
         session.commit();
 
-        @SuppressWarnings("unchecked")
-        ObjectProvider<com.ulticode.submission.api.queue.JudgeQueue> provider =
-                mock(ObjectProvider.class);
-        when(provider.getIfAvailable()).thenReturn(null);
-
-        JudgeOutboxDispatcher dispatcher = newJudgeDispatcher(judgeOutboxMapper, provider);
-
-        dispatcher.dispatch();
-        session.commit();
+        try (var context = producerContext(false)) {
+            JudgeOutboxDispatcher dispatcher = newJudgeDispatcher(judgeOutboxMapper,
+                    context.getBeanProvider(JudgeJobEnqueuer.class));
+            dispatcher.dispatch();
+            session.commit();
+        }
 
         JudgeOutboxRecord after = judgeOutboxMapper.selectById(row.getId());
         assertThat(after).isNotNull();

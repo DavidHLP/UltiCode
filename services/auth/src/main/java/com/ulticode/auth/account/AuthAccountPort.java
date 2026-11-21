@@ -3,12 +3,15 @@ package com.ulticode.auth.account;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 /** Authentication-side authoritative account persistence seam. */
 public interface AuthAccountPort {
     Optional<AuthAccountRecord> findByUsername(String username);
     Optional<AuthAccountRecord> findByEmail(String email);
     Optional<AuthAccountRecord> findById(String userId);
+    /** Reads the account while serializing the action with updates to its authorization state. */
+    <T> T withLockedAccount(String userId, Function<Optional<AuthAccountRecord>, T> action);
     List<AuthAccountRecord> findByIds(Set<String> userIds);
     /** Returns active, non-banned, non-deleted account ids for internal fan-out. */
     List<String> findActiveAccountIds();

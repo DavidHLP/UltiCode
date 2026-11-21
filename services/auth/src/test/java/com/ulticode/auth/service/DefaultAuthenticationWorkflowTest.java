@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -84,6 +85,7 @@ class DefaultAuthenticationWorkflowTest {
         void successfulLogin() {
             when(accountPort.findByUsername("alice")).thenReturn(Optional.of(activeUser));
             when(passwordEncoder.matches("secret123", "encoded-pass")).thenReturn(true);
+            lockedActiveUser();
             when(authSessionPort.completeLogin(eq(activeUser))).thenReturn(mockSession("csrf-token-123"));
 
             AuthSession session = authenticationWorkflow.login("alice", "secret123");
@@ -165,10 +167,12 @@ class DefaultAuthenticationWorkflowTest {
         @Test
         @DisplayName("successful refresh validates token and completes refresh")
         void successfulRefresh() {
-            RefreshTokenService.RotationResult rotation =
-                    new RefreshTokenService.RotationResult("user-123", "new-refresh-token");
-            when(refreshTokenService.validateAndRotate("old-token")).thenReturn(rotation);
-            when(accountPort.findById("user-123")).thenReturn(Optional.of(activeUser));
+            when(refreshTokenService.requireVerifiedUserId("old-token")).thenReturn(activeUser.id());
+            lockedActiveUser();
+            when(refreshTokenService.validateAndRotate(eq("old-token"), any(Runnable.class))).thenAnswer(invocation -> {
+                invocation.getArgument(1, Runnable.class).run();
+                return "new-refresh-token";
+            });
             when(authSessionPort.completeRefresh(eq(activeUser), eq("new-refresh-token")))
                     .thenReturn(mockSession("csrf-refreshed"));
 
@@ -194,6 +198,13 @@ class DefaultAuthenticationWorkflowTest {
             verify(refreshTokenService, times(1)).revokePresentedToken("token-xyz");
             verify(authSessionPort, times(1)).clearSession();
         }
+    }
+
+    private void lockedActiveUser() {
+        when(accountPort.withLockedAccount(eq(activeUser.id()), any())).thenAnswer(invocation -> {
+            Function<Optional<AuthAccountRecord>, AuthSession> action = invocation.getArgument(1);
+            return action.apply(Optional.of(activeUser));
+        });
     }
 
     private static AuthSession mockSession(String csrfToken) {

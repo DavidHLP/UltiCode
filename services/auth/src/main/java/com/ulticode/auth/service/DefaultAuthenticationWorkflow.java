@@ -8,7 +8,6 @@ import com.ulticode.auth.refreshtoken.service.RefreshTokenService;
 import com.ulticode.auth.session.AuthSession;
 import com.ulticode.auth.session.AuthSessionPort;
 import com.ulticode.auth.util.UuidGenerator;
-import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +32,11 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
 
     @Override
     public AuthSession login(String username, String password) {
+        return login(username, password, false);
+    }
+
+    @Override
+    public AuthSession login(String username, String password, boolean adminOnly) {
         AuthAccountRecord account = accountPort.findByUsername(username).orElse(null);
 
         if (account == null) {
@@ -43,10 +47,14 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
             throw new AuthBusinessException(AuthErrorCode.AUTH_INVALID_CREDENTIALS);
         }
 
-        ensureAccountActive(account);
-        accountPort.updateLastLoginAt(account.id());
-
-        return authSessionPort.completeLogin(account);
+        return accountPort.withLockedAccount(account.id(), current -> {
+            AuthAccountRecord admitted = current.filter(candidate -> account.password().equals(candidate.password()))
+                    .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_INVALID_CREDENTIALS));
+            ensureAccountActive(admitted);
+            requireAllowedRole(admitted, adminOnly);
+            accountPort.updateLastLoginAt(admitted.id());
+            return authSessionPort.completeLogin(admitted);
+        });
     }
 
     @Override
@@ -88,21 +96,32 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
             throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token is missing");
         }
 
-        RefreshTokenService.RotationResult rotation;
-        try {
-            rotation = refreshTokenService.validateAndRotate(refreshToken);
-        } catch (ExpiredJwtException e) {
-            throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token has expired");
+        String accountId = refreshTokenService.requireVerifiedUserId(refreshToken);
+        return accountPort.withLockedAccount(accountId,
+                current -> rotateAndIssueSession(refreshToken, current.orElse(null)));
+    }
+
+    @Override
+    public AuthSession switchAccount(String accountId, String refreshToken, boolean adminOnly) {
+        if (!accountId.equals(refreshTokenService.verifiedUserId(refreshToken))) {
+            throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED);
         }
+        return accountPort.withLockedAccount(accountId, current -> {
+            AuthAccountRecord account = current
+                    .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
+            requireAllowedRole(account, adminOnly);
+            return rotateAndIssueSession(refreshToken, account);
+        });
+    }
 
-        AuthAccountRecord account = accountPort.findById(rotation.userId()).orElse(null);
-        if (account == null) {
-            throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
-        }
-
-        ensureAccountActive(account);
-
-        return authSessionPort.completeRefresh(account, rotation.token());
+    private AuthSession rotateAndIssueSession(String refreshToken, AuthAccountRecord account) {
+        String rotatedToken = refreshTokenService.validateAndRotate(refreshToken, () -> {
+            if (account == null) {
+                throw new AuthBusinessException(AuthErrorCode.AUTH_USER_NOT_FOUND);
+            }
+            ensureAccountActive(account);
+        });
+        return authSessionPort.completeRefresh(account, rotatedToken);
     }
 
     @Override
@@ -111,6 +130,12 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
             refreshTokenService.revokePresentedToken(refreshToken);
         }
         return authSessionPort.clearSession();
+    }
+
+    private static void requireAllowedRole(AuthAccountRecord account, boolean adminOnly) {
+        if (adminOnly && !"ADMIN".equals(account.role()) && !"SUPER_ADMIN".equals(account.role())) {
+            throw new AuthBusinessException(AuthErrorCode.AUTH_INVALID_CREDENTIALS);
+        }
     }
 
     private void ensureAccountActive(AuthAccountRecord account) {

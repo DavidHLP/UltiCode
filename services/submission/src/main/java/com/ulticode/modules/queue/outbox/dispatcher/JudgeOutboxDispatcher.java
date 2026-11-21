@@ -3,10 +3,10 @@ package com.ulticode.modules.queue.outbox.dispatcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.common.lifecycle.DrainGate;
+import com.ulticode.modules.queue.port.JudgeJobEnqueuer;
 import com.ulticode.modules.submission.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.submission.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.submission.api.queue.JudgeJobEnvelope;
-import com.ulticode.submission.api.queue.JudgeQueue;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -29,12 +29,12 @@ import java.util.List;
  * producer, so the shadow/replay path from the App dispatcher is removed
  * (DEC-014). The dispatcher claims {@code is_shadow = 0} rows newer than the
  * cutover watermark ({@link JudgeOutboxMapper#claimRealDispatch}), hands each
- * to the {@link JudgeQueue} port (Redisson Streams adapter) and marks SENT;
+ * to the {@link JudgeJobEnqueuer} port (Redisson Streams adapter) and marks SENT;
  * on enqueue failure the row is rolled back to PENDING with a backoff via
  * {@link JudgeOutboxMapper#markRetry}.
  *
  * <p>Only active when {@code app.features.use-judge-outbox=true} and the
- * {@link JudgeQueue} bean is registered (the Streams adapter is
+ * {@link JudgeJobEnqueuer} bean is registered (the Streams adapter is
  * {@code @ConditionalOnProperty} on {@code app.features.judge-queue.use-port});
  * when the port flag is off the {@link ObjectProvider} returns null and the
  * dispatcher keeps real rows retryable instead of dropping them.
@@ -51,11 +51,9 @@ public class JudgeOutboxDispatcher {
 
     private final JudgeOutboxMapper judgeOutboxMapper;
     /**
-     * Provider (not direct injection) so the dispatcher compiles even when
-     * no {@link JudgeQueue} bean is registered. Resolves to null when the
-     * port flag is off; resolves to the Streams adapter once it is on.
+     * Resolves to null when Streams dispatch is disabled, keeping outbox rows retryable.
      */
-    private final ObjectProvider<JudgeQueue> judgeQueueProvider;
+    private final ObjectProvider<JudgeJobEnqueuer> enqueuerProvider;
     /** Nullable so unit tests without a registry still work. */
     private final MeterRegistry meterRegistry;
     private final Clock clock;
@@ -64,22 +62,22 @@ public class JudgeOutboxDispatcher {
 
     @Autowired
     public JudgeOutboxDispatcher(JudgeOutboxMapper judgeOutboxMapper,
-                                 ObjectProvider<JudgeQueue> judgeQueueProvider,
+                                 ObjectProvider<JudgeJobEnqueuer> enqueuerProvider,
                                  MeterRegistry meterRegistry,
                                  Clock clock,
                                  UuidGenerator uuidGenerator) {
-        this(judgeOutboxMapper, judgeQueueProvider, meterRegistry, clock,
+        this(judgeOutboxMapper, enqueuerProvider, meterRegistry, clock,
                 new JudgeJobEnvelopeTranslator(
                         new ObjectMapper(), uuidGenerator));
     }
 
     JudgeOutboxDispatcher(JudgeOutboxMapper judgeOutboxMapper,
-                          ObjectProvider<JudgeQueue> judgeQueueProvider,
+                          ObjectProvider<JudgeJobEnqueuer> enqueuerProvider,
                           MeterRegistry meterRegistry,
                           Clock clock,
                           JudgeJobEnvelopeTranslator envelopeTranslator) {
         this.judgeOutboxMapper = judgeOutboxMapper;
-        this.judgeQueueProvider = judgeQueueProvider;
+        this.enqueuerProvider = enqueuerProvider;
         this.meterRegistry = meterRegistry;
         this.clock = clock;
         this.envelopeTranslator = envelopeTranslator;
@@ -103,11 +101,11 @@ public class JudgeOutboxDispatcher {
             return;
         }
         try {
-            JudgeQueue judgeQueue = judgeQueueProvider.getIfAvailable();
-            if (judgeQueue == null) {
+            JudgeJobEnqueuer enqueuer = enqueuerProvider.getIfAvailable();
+            if (enqueuer == null) {
                 dispatchUnavailable();
             } else {
-                dispatchReal(judgeQueue);
+                dispatchReal(enqueuer);
             }
         } finally {
             drainGate.leave();
@@ -135,13 +133,13 @@ public class JudgeOutboxDispatcher {
     /**
      * M3c-2 real-dispatch path: claim only {@code is_shadow = 0} rows newer
      * than the cutover watermark (F13), hand each to the
-     * {@link JudgeQueue} port (envelope payload → JSON via
+     * {@link JudgeJobEnqueuer} port (envelope payload → JSON via
      * {@link JudgeJobEnvelope}), then mark SENT. Rows with unusable payloads
      * are dead-lettered instead of being marked SENT; on enqueue failure the
      * row is rolled back to PENDING with a backoff via
      * {@link JudgeOutboxMapper#markRetry} so the next sweep retries.
      */
-    private void dispatchReal(JudgeQueue judgeQueue) {
+    private void dispatchReal(JudgeJobEnqueuer enqueuer) {
         List<JudgeOutboxRecord> claimed =
                 judgeOutboxMapper.claimRealDispatch(CLAIM_BATCH_SIZE, cutoverAt);
         if (claimed.isEmpty()) {
@@ -162,7 +160,7 @@ public class JudgeOutboxDispatcher {
                 continue;
             }
             try {
-                judgeQueue.enqueue(envelope);
+                enqueuer.enqueue(envelope);
                 judgeOutboxMapper.markSent(row.getId());
                 incrementRealDispatched();
                 log.debug("Outbox real-dispatched submission={} gen={} (cutover)",

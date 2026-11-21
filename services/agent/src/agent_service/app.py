@@ -23,6 +23,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from agent_loop import ToolHandler
 from agent_service.graph import ainvoke_untraced, build_workflow_graph
 from agent_service.state import WorkflowAction, make_draft, params_digest
 from agent_service.store import Conflict, NotFound, WorkflowStore
@@ -724,6 +725,80 @@ async def _verify_answer_with_review(
                                 question=question, source_required=False, diagnosis_reviewed=True)
 
 
+class _AnalysisRun:
+    """Request-local evidence and answer verification for both read-only analysis paths."""
+
+    def __init__(self, record_event: Callable[[str, dict[str, object]], None]):
+        self._record_event = record_event
+        self.documents = ()
+        self.retrieved: list[dict[str, object]] = []
+        self._search_results: list[dict[str, object]] = []
+        self.stage = "analysis_setup"
+
+    def record_search(self, handler: ToolHandler) -> ToolHandler:
+        async def invoke(arguments):
+            try:
+                result = await handler(arguments)
+                hits = result.get("hits") if isinstance(result, dict) else None
+                if not isinstance(hits, list):
+                    raise ValueError("invalid evidence tool result")
+                self.retrieved.extend(hit for hit in hits if isinstance(hit, dict))
+                self._search_results.append(result)
+                return result
+            except Exception:
+                self._search_results.append({"error": "tool_failed"})
+                raise
+        return invoke
+
+    def observe_tools(self, tools: dict[str, ToolHandler]) -> dict[str, ToolHandler]:
+        def observe(name: str, handler: ToolHandler) -> ToolHandler:
+            async def invoke(arguments):
+                self._record_event("tool_started", {"toolName": name})
+                failed = True
+                try:
+                    result = await handler(arguments)
+                    failed = isinstance(result, dict) and "error" in result
+                    return result
+                finally:
+                    self._record_event("tool_completed", {"toolName": name, "failed": failed})
+            return invoke
+        return {name: observe(name, handler) for name, handler in tools.items()}
+
+    def observe_model(self, model) -> ObservedModel:
+        return ObservedModel(model, self._record_event, node="model")
+
+    async def verify_answer(
+        self, answer: str, trace: list[dict[str, object]], judge_model, *,
+        facts: tuple[dict[str, object], ...], question: str,
+        source_required: bool = False, reject_source_lines: bool = False,
+    ):
+        self.stage = "answer_parsing"
+        parsed = parse_model_answer(answer)
+        results = iter(self._search_results)
+        trace_results = [
+            {"tool": "search_evidence", "failed": bool(event.get("failed")),
+             "result": next(results, {"error": "tool_failed"})}
+            for event in trace if event.get("tool_name") == "search_evidence"
+        ]
+        judge = ObservedModel(judge_model, self._record_event, node="citation_judge")
+        self.stage = "answer_boundary"
+        await _verify_answer_with_review(
+            parsed, facts, self.documents, trace, trace_results, judge,
+            question=question, source_required=source_required,
+        )
+        if reject_source_lines and _contains_source_line(
+            parsed["text"] + " " + " ".join(item["claim"] for item in parsed["citations"]),
+            self.documents,
+        ):
+            raise ValueError("answer_source_reference_unverified")
+        self.stage = "citation_verification"
+        citation_checks = await _verify_citations(
+            parsed, self.retrieved, self.documents, facts, judge,
+            include_cited_excerpt_in_facts=source_required,
+        )
+        return parsed, citation_checks
+
+
 def _deterministic_business_error(exc: UlticodeServiceError) -> bool:
     return exc.status_code in {400, 409} or (
         exc.status_code == 200 and exc.code in {40000, 40900}
@@ -869,6 +944,33 @@ def create_app(
                 and getattr(expected_period, "policy_id", None) != "manual-agent-live-test-v1")
         ):
             raise AgentError(503, "model_budget_blocked", 50000)
+
+    def _authorized_analysis_models(tool_specs: dict[str, str]):
+        _require_analysis_authorization()
+        return (
+            _authorized_model_for_purpose(
+                expected_period, "u03_analysis", budget_guard, tool_specs,
+                unbudgeted_development_mode=unbudgeted_development_mode,
+            ),
+            _authorized_model_for_purpose(
+                expected_period, "u03_citation_judge", budget_guard, {},
+                unbudgeted_development_mode=unbudgeted_development_mode,
+            ),
+        )
+
+    async def _offline_analysis_runtime(analysis_run: _AnalysisRun):
+        runtime_value = offline_model_factory()
+        if hasattr(runtime_value, "__await__"):
+            runtime_value = await runtime_value
+        if not isinstance(runtime_value, tuple) or len(runtime_value) not in {2, 4}:
+            raise ValueError("invalid offline runtime")
+        model, tools = runtime_value[:2]
+        if len(runtime_value) == 4:
+            analysis_run.documents = tuple(runtime_value[2])
+            if not isinstance(runtime_value[3], list):
+                raise ValueError("invalid offline evidence recorder")
+            analysis_run.retrieved = runtime_value[3]
+        return model, tools
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -1227,6 +1329,7 @@ def create_app(
     ) -> tuple[str, list[dict[str, object]], list[dict[str, object]]]:
         if source_consent and not analysis_only_test_mode:
             raise AgentError(400, "validation_error")
+        analysis_run = _AnalysisRun(record_event)
         with observed_stage(record_event, "evidence"):
             submission, source_id, status = await _source_submission(
                 client, str(conversation["source_submission_id"]),
@@ -1247,92 +1350,37 @@ def create_app(
             ]
             source_required = analysis_only_test_mode and source_consent
             source_document = _manual_source_document(submission) if source_required else None
-            retrieved: list[dict[str, object]] = []
-            documents = ()
-            search_results: list[dict[str, object]] = []
+
+            from boundary_evaluation import SEARCH_EVIDENCE_SPEC, search_evidence_tool
 
             if offline_model_factory is not None:
-                runtime_value = offline_model_factory()
-                if hasattr(runtime_value, "__await__"):
-                    runtime_value = await runtime_value
-                if not isinstance(runtime_value, tuple) or len(runtime_value) not in {2, 4}:
-                    raise ValueError("invalid offline runtime")
-                model, tools = runtime_value[:2]
-                if len(runtime_value) == 4:
-                    documents = tuple(runtime_value[2])
-                    retrieved = runtime_value[3]
-                    if not isinstance(retrieved, list):
-                        raise ValueError("invalid offline evidence recorder")
-                else:
-                    tools = dict(tools)
+                model, tools = await _offline_analysis_runtime(analysis_run)
+                tools = dict(tools)
                 judge_model = model
                 if analysis_only_test_mode:
-                    tools = dict(tools)
                     if source_required:
-                        documents = (*documents, source_document)
-                        tools["get_submission_source"] = _manual_source_tool(source_document, retrieved)
+                        analysis_run.documents = (*analysis_run.documents, source_document)
+                        tools["get_submission_source"] = _manual_source_tool(source_document, analysis_run.retrieved)
                     else:
                         tools.pop("get_submission_source", None)
             else:
-                _require_analysis_authorization()
-                if analysis_only_test_mode:
-                    documents = (source_document,) if source_required else ()
-                    tools = ({
-                        "get_submission_source": _manual_source_tool(source_document, retrieved),
-                    } if source_required else {})
-                    specs = {"get_submission_source": OWNER_SOURCE_TOOL_SPEC} if source_required else {}
-                else:
-                    tools, specs = {}, {}
-                from boundary_evaluation import SEARCH_EVIDENCE_SPEC
-                specs = {**specs, "search_evidence": SEARCH_EVIDENCE_SPEC}
-                model = _authorized_model_for_purpose(
-                    expected_period, "u03_analysis", budget_guard, specs,
-                    unbudgeted_development_mode=unbudgeted_development_mode,
-                )
-                judge_model = _authorized_model_for_purpose(
-                    expected_period, "u03_citation_judge", budget_guard, {},
-                    unbudgeted_development_mode=unbudgeted_development_mode,
-                )
+                tools: dict[str, ToolHandler] = {}
+                specs: dict[str, str] = {}
+                if source_required:
+                    analysis_run.documents = (source_document,)
+                    tools["get_submission_source"] = _manual_source_tool(source_document, analysis_run.retrieved)
+                    specs["get_submission_source"] = OWNER_SOURCE_TOOL_SPEC
+                specs["search_evidence"] = SEARCH_EVIDENCE_SPEC
+                model, judge_model = _authorized_analysis_models(specs)
 
-            from boundary_evaluation import search_evidence_tool
-
-            documents = (*selected_documents, *documents)
-            tools = dict(tools)
-            search_handler = tools.get("search_evidence") or search_evidence_tool(documents)
-
-            async def recorded_search(arguments):
-                try:
-                    result = await search_handler(arguments)
-                    hits = result.get("hits") if isinstance(result, dict) else None
-                    if not isinstance(hits, list):
-                        raise ValueError("invalid evidence tool result")
-                    retrieved.extend(hit for hit in hits if isinstance(hit, dict))
-                    search_results.append(result)
-                    return result
-                except Exception:
-                    search_results.append({"error": "tool_failed"})
-                    raise
-
-            tools["search_evidence"] = recorded_search
-
-            def observed_tool(name, handler):
-                async def invoke(arguments):
-                    record_event("tool_started", {"toolName": name})
-                    failed = True
-                    try:
-                        result = await handler(arguments)
-                        failed = isinstance(result, dict) and "error" in result
-                        return result
-                    finally:
-                        record_event("tool_completed", {"toolName": name, "failed": failed})
-                return invoke
-
-            tools = {name: observed_tool(name, handler) for name, handler in tools.items()}
+            analysis_run.documents = (*selected_documents, *analysis_run.documents)
+            search_handler = tools.get("search_evidence") or search_evidence_tool(analysis_run.documents)
+            tools["search_evidence"] = analysis_run.record_search(search_handler)
+            tools = analysis_run.observe_tools(tools)
             if source_required:
                 facts["authorized_source"] = await tools["get_submission_source"]({})
         resources = {id(value): value for value in (model, judge_model) if value is not None}
         entered: list[object] = []
-        failure_stage = "analysis_setup"
         try:
             for resource in resources.values():
                 if hasattr(resource, "__aenter__"):
@@ -1345,45 +1393,18 @@ def create_app(
                     model, str(turn["question"]), facts, history, source_required,
                 )
                 prompt = conversation_model.prompt([])
-                failure_stage = "analysis_model"
+                analysis_run.stage = "analysis_model"
                 loop = await run_readonly_graph(
-                    ObservedModel(conversation_model, record_event, node="model"), tools, prompt,
+                    analysis_run.observe_model(conversation_model), tools, prompt,
                     max_rounds=4, total_timeout=30.0,
                 )
             with observed_stage(record_event, "verification"):
-                failure_stage = "answer_parsing"
-                parsed = parse_model_answer(loop.answer)
                 trace = list(loop.trace)
                 if source_required and not any(event.get("tool_name") == "get_submission_source" for event in trace):
                     trace.insert(0, {"tool_name": "get_submission_source", "failed": False})
-                trace_results = []
-                search_index = 0
-                for event in trace:
-                    if event.get("tool_name") == "search_evidence":
-                        observed = (search_results[search_index]
-                                    if search_index < len(search_results)
-                                    else {"error": "tool_failed"})
-                        trace_results.append({
-                            "tool": "search_evidence", "failed": bool(event.get("failed")),
-                            "result": observed,
-                        })
-                        search_index += 1
-                failure_stage = "answer_boundary"
-                await _verify_answer_with_review(
-                    parsed, (facts,), documents, trace, trace_results,
-                    ObservedModel(judge_model, record_event, node="citation_judge"),
-                    question=str(turn["question"]), source_required=source_required,
-                )
-                if source_required and _contains_source_line(
-                    parsed["text"] + " " + " ".join(item["claim"] for item in parsed["citations"]),
-                    documents,
-                ):
-                    raise ValueError("answer_source_reference_unverified")
-                failure_stage = "citation_verification"
-                citation_checks = await _verify_citations(
-                    parsed, retrieved, documents, (facts,),
-                    ObservedModel(judge_model, record_event, node="citation_judge"),
-                    include_cited_excerpt_in_facts=source_required,
+                parsed, _ = await analysis_run.verify_answer(
+                    loop.answer, trace, judge_model, facts=(facts,), question=str(turn["question"]),
+                    source_required=source_required, reject_source_lines=source_required,
                 )
                 safe_citations = [
                     {key: value for key, value in citation.items() if key != "text"}
@@ -1393,7 +1414,7 @@ def create_app(
         except Exception as exc:
             _LOGGER.warning(
                 "Agent conversation turn failed stage=%s code=%s",
-                failure_stage, _safe_analysis_failure_code(exc),
+                analysis_run.stage, _safe_analysis_failure_code(exc),
             )
             raise
         finally:
@@ -1891,66 +1912,44 @@ def create_app(
                 model_entered = judge_entered = False
                 mcp_session = None
                 mcp_entered = False
-                failure_context = {"stage": "analysis_setup"}
-                retrieved: list[dict[str, object]] = []
-                documents = ()
-                search_results: list[dict[str, object]] = []
+
+                def record_event(kind, detail):
+                    if kind == "tool_started":
+                        detail = {**detail, "failed": False}
+                    try:
+                        workflow_store.transition(thread_id, owner, expected_run=run_id,
+                            expected_version=version, statuses={"analyzing"}, changes={},
+                            kind=kind, detail=detail)
+                    except Conflict:
+                        raise asyncio.CancelledError from None
+
+                analysis_run = _AnalysisRun(record_event)
                 try:
                     async with asyncio.timeout(30.0):
                         if offline_model_factory is not None:
-                            runtime_value = offline_model_factory()
-                            if hasattr(runtime_value, "__await__"):
-                                runtime_value = await runtime_value
-                            if not isinstance(runtime_value, tuple) or len(runtime_value) not in {2, 4}:
-                                raise ValueError("invalid offline runtime")
-                            model, tools = runtime_value[:2]
-                            if len(runtime_value) == 4:
-                                documents = tuple(runtime_value[2])
-                                retrieved = runtime_value[3]
-                                if not isinstance(retrieved, list):
-                                    raise ValueError("invalid offline evidence recorder")
+                            model, tools = await _offline_analysis_runtime(analysis_run)
                             judge_model = model
                         else:
-                            _require_analysis_authorization()
                             from boundary_evaluation import SEARCH_EVIDENCE_SPEC, search_evidence_tool
                             from ulticode_tools import TOOL_SPECS, build_tools
+
                             if analysis_only_test_mode:
-                                documents = (manual_source_document,)
+                                analysis_run.documents = (manual_source_document,)
                                 specs = {"get_submission_source": MANUAL_SOURCE_TOOL_SPEC}
                             else:
                                 specs = {**TOOL_SPECS, "search_evidence": SEARCH_EVIDENCE_SPEC}
-                            model = _authorized_model_for_purpose(
-                                expected_period, "u03_analysis", budget_guard, specs,
-                                unbudgeted_development_mode=unbudgeted_development_mode,
-                            )
-                            judge_model = _authorized_model_for_purpose(
-                                expected_period, "u03_citation_judge", budget_guard, {},
-                                unbudgeted_development_mode=unbudgeted_development_mode,
-                            )
+                            model, judge_model = _authorized_analysis_models(specs)
                             if analysis_only_test_mode:
                                 tools = {
                                     "get_submission_source": _manual_source_tool(
-                                        manual_source_document, retrieved,
+                                        manual_source_document, analysis_run.retrieved,
                                     )
                                 }
                             else:
                                 tools = build_tools(client)
-                                search = search_evidence_tool(documents)
-
-                                async def recorded_search(arguments):
-                                    try:
-                                        result = await search(arguments)
-                                        hits = result.get("hits") if isinstance(result, dict) else None
-                                        if not isinstance(hits, list):
-                                            raise ValueError("invalid evidence tool result")
-                                        retrieved.extend(hit for hit in hits if isinstance(hit, dict))
-                                        search_results.append(result)
-                                        return result
-                                    except Exception:
-                                        search_results.append({"error": "tool_failed"})
-                                        raise
-
-                                tools["search_evidence"] = recorded_search
+                                tools["search_evidence"] = analysis_run.record_search(
+                                    search_evidence_tool(analysis_run.documents),
+                                )
                         if mcp_tools_enabled and "get_my_submissions" in tools:
                             from agent_mcp_client import MCPSubmissionSession
 
@@ -1958,28 +1957,7 @@ def create_app(
                             mcp_session = MCPSubmissionSession(client)
                             tools.update(await mcp_session.__aenter__())
                             mcp_entered = True
-                        def record_event(kind, detail):
-                            try:
-                                workflow_store.transition(thread_id, owner, expected_run=run_id,
-                                    expected_version=version, statuses={"analyzing"}, changes={},
-                                    kind=kind, detail=detail)
-                            except Conflict:
-                                raise asyncio.CancelledError from None
-
-                        def observed_tool(name, handler):
-                            async def invoke(arguments):
-                                def record(kind, failed=False):
-                                    record_event(kind, {"toolName": name, "failed": failed})
-                                record("tool_started")
-                                failed = True
-                                try:
-                                    result = await handler(arguments)
-                                    failed = isinstance(result, dict) and "error" in result
-                                    return result
-                                finally:
-                                    record("tool_completed", failed)
-                            return invoke
-                        tools = {name: observed_tool(name, handler) for name, handler in tools.items()}
+                        tools = analysis_run.observe_tools(tools)
                         resources = {id(value): value for value in (model, judge_model) if value is not None}
                         for resource in resources.values():
                             if hasattr(resource, "__aenter__"):
@@ -1989,39 +1967,15 @@ def create_app(
                                 if resource is judge_model:
                                     judge_entered = True
                         async def execute_action(_, analysis_result):
-                            failure_context["stage"] = "answer_parsing"
-                            parsed = parse_model_answer(analysis_result["answer"])
-                            trace = analysis_result["trace"]
-                            trace_results = []
-                            search_index = 0
-                            for event in trace:
-                                if event.get("tool_name") == "search_evidence":
-                                    observed = (search_results[search_index]
-                                                if search_index < len(search_results)
-                                                else {"error": "tool_failed"})
-                                    trace_results.append({
-                                        "tool": "search_evidence",
-                                        "failed": bool(event.get("failed")),
-                                        "result": observed,
-                                    })
-                                    search_index += 1
-                            failure_context["stage"] = "answer_boundary"
-                            await _verify_answer_with_review(
-                                parsed, (facts,), documents, trace, trace_results,
-                                ObservedModel(judge_model, record_event, node="citation_judge"),
-                                question=str(row["question"]),
+                            parsed, citation_checks = await analysis_run.verify_answer(
+                                analysis_result["answer"], analysis_result["trace"], judge_model,
+                                facts=(facts,), question=str(row["question"]),
                                 source_required=analysis_only_test_mode,
-                            )
-                            failure_context["stage"] = "citation_verification"
-                            citation_checks = await _verify_citations(
-                                parsed, retrieved, documents, (facts,),
-                                ObservedModel(judge_model, record_event, node="citation_judge"),
-                                include_cited_excerpt_in_facts=analysis_only_test_mode,
                             )
                             draft = dict(row["draft"])
                             answer = parsed["text"]
                             content = str(draft["content"]) + "\n\n模型建议（待验证）：" + answer
-                            failure_context["stage"] = "draft_validation"
+                            analysis_run.stage = "draft_validation"
                             _validate_draft(draft["title"], content)
                             citations = parsed["citations"]
                             if analysis_only_test_mode:
@@ -2037,7 +1991,7 @@ def create_app(
                                           "citations": citations, "citation_checks": citation_checks})
                             analysis = {"answer": answer, "trace": analysis_result["trace"],
                                         "citation_checks": citation_checks}
-                            failure_context["stage"] = "workflow_persist"
+                            analysis_run.stage = "workflow_persist"
                             changed = workflow_store.transition(thread_id, owner, expected_run=run_id,
                                 expected_version=version, statuses={"analyzing"},
                                 changes={"status": "awaiting_confirmation", "draft": draft,
@@ -2049,7 +2003,7 @@ def create_app(
                                     "action_result": {"response": _thread_response(changed, owner)}}
 
                         action = WorkflowAction("analyze", {}, run_id, version)
-                        observed_model = ObservedModel(model, record_event, node="model")
+                        observed_model = analysis_run.observe_model(model)
                         if analysis_only_test_mode:
                             from agent_service.graph import run_readonly_graph
                             from boundary_evaluation import BOUNDARY_ANSWER_CONTRACT
@@ -2058,7 +2012,7 @@ def create_app(
                                 {"question": row["question"], "facts": facts},
                                 ensure_ascii=False, separators=(",", ":"),
                             )
-                            failure_context["stage"] = "analysis_model"
+                            analysis_run.stage = "analysis_model"
                             loop = await run_readonly_graph(
                                 observed_model, tools, prompt, max_rounds=4, total_timeout=30.0,
                             )
@@ -2087,7 +2041,7 @@ def create_app(
                         return _thread_response(current, owner)
                     _LOGGER.warning(
                         "Agent analysis failed stage=%s code=%s",
-                        failure_context["stage"], _safe_analysis_failure_code(exc),
+                        analysis_run.stage, _safe_analysis_failure_code(exc),
                     )
                     if current["status"] == "analyzing" and current["run_id"] == run_id:
                         workflow_store.transition(thread_id, owner, expected_run=run_id, expected_version=version,

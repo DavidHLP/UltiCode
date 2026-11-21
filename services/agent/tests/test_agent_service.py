@@ -183,6 +183,79 @@ def test_uncited_diagnosis_review_is_bounded_and_keeps_other_guards(case):
     assert len(calls) == (0 if case == "diagnosis" else 1)
 
 
+@pytest.mark.parametrize("entry", ["conversation", "learning_plan"])
+@pytest.mark.parametrize("case, failure, review_usage", [
+    ("explanation", None, "known"),
+    ("diagnosis", "answer_source_diagnosis_unverified", None),
+    ("reference", "answer_source_reference_unverified", "known"),
+    ("unknown_usage", "citation_judge_usage_unknown", "unavailable"),
+])
+def test_analysis_entries_keep_uncited_review_bounded(tmp_path, entry, case, failure, review_usage):
+    answer = "The status is Accepted. If a future verdict is Wrong Answer, compare your output with the expected result."
+    if case == "diagnosis":
+        answer = "This code returns the wrong answer for duplicate values."
+    if case == "reference":
+        answer += " [1]"
+
+    class Model:
+        def __init__(self):
+            self.usage = []
+
+        async def decide(self, messages):
+            payload = json.loads(messages[0]["content"].rsplit("INPUT_JSON ", 1)[1])
+            if "ANSWER" in payload:
+                assert payload["ANSWER"] == answer
+                assert payload["SUBMISSION_FACTS"] == [{"status": "Accepted"}]
+                if case != "unknown_usage":
+                    self.usage.append({"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5})
+                return ModelDecision(text='{"supports":true,"derivable":true}')
+            return ModelDecision(text=json.dumps({"text": answer, "citations": []}))
+
+    app = create_app(state_path=tmp_path / "analysis.sqlite3", client_factory=SessionClient,
+                     offline_model_factory=lambda: (Model(), {}))
+
+    async def scenario(client):
+        body = {"sourceSubmissionId": str(uuid.uuid4()), "question": "Explain the result"}
+        if entry == "conversation":
+            conversation_id = str(uuid.uuid4())
+            owner_path = f"/agent/conversations/{conversation_id}"
+            created = await client.post("/agent/conversations", headers=HEADERS, json={
+                **body, "conversationId": conversation_id, "clientTurnId": str(uuid.uuid4()),
+            })
+            turn = created.json()["data"]["turn"]
+            run_path = f"{owner_path}/turns/{turn['turnId']}"
+            response = await client.post(run_path + "/run", headers=HEADERS, json={
+                "sourceConsent": False, "expectedRunId": turn["runId"],
+            })
+        else:
+            created = await client.post("/agent/threads", headers=HEADERS, json=body)
+            run_path = owner_path = f"/agent/threads/{created.json()['data']['threadId']}"
+            response = await client.post(run_path + "/analyze", headers=HEADERS, json={})
+        assert response.status_code == (502 if failure else 200)
+
+        saved = (await client.get(owner_path, headers=HEADERS)).json()["data"]
+        if entry == "conversation":
+            saved = saved["turns"][0]
+            assert saved["answer"] == (None if failure else answer)
+            assert saved["failureReason"] == failure
+        elif failure:
+            assert saved["analysis"] == {}
+            assert saved["draft"]["draftVersion"] == 1
+            assert saved["receipt"]["failureReason"] == "analysis_failed"
+        else:
+            assert saved["analysis"]["answer"] == answer
+            assert saved["draft"]["draftVersion"] == 2
+
+        stream = await client.get(run_path + "/events/stream", headers=HEADERS)
+        calls = [frame["detail"] for line in stream.text.splitlines() if line.startswith("data: ")
+                 if (frame := json.loads(line[6:])).get("kind") == "model_completed"]
+        assert [call["node"] for call in calls] == (["model", "citation_judge"] if review_usage else ["model"])
+        if review_usage:
+            assert calls[-1]["usageStatus"] == review_usage
+
+    asyncio.run(with_client(app, scenario))
+
+
 @pytest.mark.parametrize("conditional", [
     "If a future verdict is Pending, wait for judging to finish.",
     "If the hypothetical status is Pending, wait for judging to finish.",
@@ -1809,23 +1882,33 @@ def test_model_answer_rejects_nonfinite_constant():
             raise AssertionError("non-finite JSON constant was accepted")
 
 
-def test_missing_budget_blocks_analysis_before_model_invocation(tmp_path):
-    async def scenario():
-        model = ScriptedModel()
-        app = create_app(state_path=tmp_path / "blocked.sqlite3", client_factory=SessionClient,
-                         model_factory=lambda: (model, {}))
-        headers = {"cookie": "access_token=access; csrf_token=csrf", "x-csrf-token": "csrf"}
-        async with app.router.lifespan_context(app):
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-                created = await client.post("/agent/threads", headers=headers,
-                    json={"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"})
-                response = await client.post(f"/agent/threads/{created.json()['data']['threadId']}/analyze",
-                                             headers=headers, json={})
-                assert response.status_code == 503
-                assert response.json()["data"]["reason"] == "model_budget_blocked"
-                assert model.calls == 0
+@pytest.mark.parametrize("entry", ["conversation", "learning_plan"])
+def test_missing_budget_blocks_analysis_before_model_invocation(tmp_path, entry):
+    model = ScriptedModel()
+    app = create_app(state_path=tmp_path / "blocked.sqlite3", client_factory=SessionClient,
+                     model_factory=lambda: (model, {}))
 
-    asyncio.run(scenario())
+    async def scenario(client):
+        body = {"sourceSubmissionId": str(uuid.uuid4()), "question": "如何复盘？"}
+        if entry == "conversation":
+            conversation_id = str(uuid.uuid4())
+            created = await client.post("/agent/conversations", headers=HEADERS, json={
+                **body, "conversationId": conversation_id, "clientTurnId": str(uuid.uuid4()),
+            })
+            turn = created.json()["data"]["turn"]
+            response = await client.post(
+                f"/agent/conversations/{conversation_id}/turns/{turn['turnId']}/run",
+                headers=HEADERS, json={"sourceConsent": False, "expectedRunId": turn["runId"]},
+            )
+        else:
+            created = await client.post("/agent/threads", headers=HEADERS, json=body)
+            response = await client.post(f"/agent/threads/{created.json()['data']['threadId']}/analyze",
+                                         headers=HEADERS, json={})
+        assert response.status_code == 503
+        assert response.json()["data"]["reason"] == "model_budget_blocked"
+        assert model.calls == 0
+
+    asyncio.run(with_client(app, scenario))
 
 
 def test_confirm_save_recover_dispatch_through_checkpointed_graph(tmp_path, monkeypatch):

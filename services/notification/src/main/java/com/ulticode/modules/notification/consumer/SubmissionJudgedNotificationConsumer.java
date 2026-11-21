@@ -9,7 +9,16 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.GENERATION;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.PROBLEM_ID;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.SUBMISSION_ID;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.USER_ID;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.legacyJudgedMemoryMb;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.legacyJudgedRuntimeMs;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.optionalJudgedString;
 import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedLong;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedStatus;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedString;
 
 /**
  * Handles the durable {@code SubmissionJudged} event for Notification.
@@ -31,19 +40,18 @@ public class SubmissionJudgedNotificationConsumer {
      * or move the row to its dead-letter state instead of acknowledging it.
      */
     public void consume(Map<String, Object> payload) {
-        String submissionId = requiredString(payload, "submissionId");
-        String userId = requiredString(payload, "userId");
-        SubmissionStatus status = SubmissionStatus.fromWire(
-                requiredString(payload, "verdict"));
+        String submissionId = requiredJudgedString(payload, SUBMISSION_ID);
+        String userId = requiredJudgedString(payload, USER_ID);
+        SubmissionStatus status = requiredJudgedStatus(payload);
 
         if (!status.isTerminal()) {
             return;
         }
 
-        long generation = requiredJudgedLong(payload, "generation");
-        long elapsedMs = nonNegativeLong(payload.get("runtimeMs"));
-        long memoryBytes = memoryBytes(payload.get("memoryMb"));
-        String problemId = optionalString(payload.get("problemId"));
+        long generation = requiredJudgedLong(payload, GENERATION);
+        long elapsedMs = legacyJudgedRuntimeMs(payload);
+        long memoryBytes = Math.max(0L, (long) (legacyJudgedMemoryMb(payload) * 1024L * 1024L));
+        String problemId = optionalJudgedString(payload, PROBLEM_ID);
 
         SubmissionCompletedIntent intent = new SubmissionCompletedIntent(
                 userId,
@@ -58,37 +66,5 @@ public class SubmissionJudgedNotificationConsumer {
                 null,
                 NotificationCategory.SYSTEM);
         notificationDispatcher.dispatchForDurableRetry(intent);
-    }
-
-    private static String requiredString(Map<String, Object> payload, String key) {
-        String value = optionalString(payload.get(key));
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
-        }
-        return value;
-    }
-
-    private static String optionalString(Object value) {
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private static long nonNegativeLong(Object value) {
-        if (value instanceof Number number) {
-            return Math.max(0L, number.longValue());
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            return Math.max(0L, Long.parseLong(text));
-        }
-        return 0L;
-    }
-
-    private static long memoryBytes(Object value) {
-        if (value instanceof Number number) {
-            return Math.max(0L, (long) (number.doubleValue() * 1024L * 1024L));
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            return Math.max(0L, (long) (Double.parseDouble(text) * 1024L * 1024L));
-        }
-        return 0L;
     }
 }

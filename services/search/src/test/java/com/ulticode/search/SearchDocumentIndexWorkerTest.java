@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
@@ -28,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.PendingMessage;
@@ -42,6 +45,7 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -413,6 +417,35 @@ class SearchDocumentIndexWorkerTest {
         // Lease was lost (renewal answered 0): the ledger must not be clobbered.
         verify(hashOps, never()).put(anyString(), any(), any());
         verify(streamOps).acknowledge("stream:integration", "search-worker", RecordId.of("evt-8"));
+    }
+
+    @Test
+    @DisplayName("failed lease renewal leaves the event pending until a successful reclaim")
+    void failedLeaseRenewalRetriesFromPel() {
+        stubBusyGroup();
+        stubEmptyReads();
+        var event = record("1", SearchDocumentChangedEventContract.EVENT_TYPE,
+                upsertPayload("problems"), "100");
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of(event)).thenReturn(List.of());
+        when(redisTemplate.execute(any(RedisScript.class), anyList(), anyString(), eq("30")))
+                .thenThrow(new IllegalStateException("Redis unavailable")).thenReturn(1L);
+
+        assertThat(worker.consume()).isZero();
+        verify(meiliIndex).upsert(anyString());
+        verify(hashOps, never()).put(anyString(), any(), any());
+        verify(streamOps, never()).acknowledge(anyString(), anyString(), any(RecordId.class));
+
+        var pending = new PendingMessage(event.getId(), Consumer.from("search-worker", "previous-consumer"),
+                Duration.ofSeconds(60), 1);
+        when(streamOps.pending(eq("stream:integration"), eq("search-worker"), any(Range.class), anyLong()))
+                .thenReturn(new PendingMessages("search-worker", List.of(pending)));
+        doReturn(List.of(event)).when(streamOps).claim(eq("stream:integration"), eq("search-worker"),
+                anyString(), any(Duration.class), eq(event.getId()));
+
+        assertThat(worker.consume()).isEqualTo(1);
+        verify(hashOps).put("search:doc-version:problems", "doc-1", "100");
+        verify(streamOps).acknowledge("stream:integration", "search-worker", event.getId());
     }
 
     @Test

@@ -337,9 +337,11 @@ class ProblemAdministrationDomainServiceTest {
             when(writePort.selectById(5L)).thenReturn(existing);
             when(writePort.deleteById(5L, 6L)).thenReturn(1);
 
-            service.deleteProblem(5L, ACTOR_ID, 6L);
+            Problem deleted = service.deleteProblem(5L, ACTOR_ID, 6L);
 
             verify(writePort).deleteById(5L, 6L);
+            assertThat(deleted.getIsDeleted()).isTrue();
+            assertThat(deleted.getVersion()).isEqualTo(7);
         }
 
         @Test

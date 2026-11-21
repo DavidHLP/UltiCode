@@ -5,13 +5,17 @@ import com.ulticode.submission.api.service.SubmissionUserStatsPort;
 import com.ulticode.domain.submission.enums.SubmissionStatus;
 import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
-import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.GENERATION;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.SUBMISSION_ID;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.USER_ID;
 import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedLong;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedStatus;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedString;
 
 /**
  * Handles accepted {@code SubmissionJudged} events for Achievement.
@@ -32,14 +36,10 @@ public class SubmissionJudgedAchievementConsumer {
      * Evaluate accepted-submission achievement families once for this inbox row.
      */
     public void consume(Map<String, Object> payload) {
-        String submissionId = requiredString(payload, "submissionId");
-        String userId = requiredString(payload, "userId");
-        SubmissionStatus status = SubmissionStatusCodec.fromWire(
-                requiredString(payload, "verdict"));
-        long generation = requiredJudgedLong(payload, "generation");
-        if (generation < 0) {
-            throw new IllegalArgumentException("Negative SubmissionJudged generation");
-        }
+        String submissionId = requiredJudgedString(payload, SUBMISSION_ID);
+        String userId = requiredJudgedString(payload, USER_ID);
+        SubmissionStatus status = requiredJudgedStatus(payload);
+        requiredJudgedLong(payload, GENERATION);
 
         if (status != SubmissionStatus.ACCEPTED
                 || contestSubmissionPort.isVirtualParticipation(submissionId)) {
@@ -54,14 +54,6 @@ public class SubmissionJudgedAchievementConsumer {
                 userId,
                 AchievementType.SUBMISSIONS_MADE,
                 toInt(submissionUserStats.countByUserId(userId)));
-    }
-
-    private static String requiredString(Map<String, Object> payload, String key) {
-        Object value = payload.get(key);
-        if (value == null || String.valueOf(value).isBlank()) {
-            throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
-        }
-        return String.valueOf(value);
     }
 
     private static int toInt(Long value) {

@@ -55,26 +55,12 @@ public class AccountSessionService {
         if (accounts.size() >= MAX_ACCOUNTS && accounts.stream().noneMatch(a -> a.name().equals(username))) {
             throw new AuthBusinessException(AuthErrorCode.AUTH_INVALID_REQUEST, "At most five accounts can be signed in");
         }
-        AuthSession session = authenticationWorkflow.login(username, password);
-        requireAllowedRole(session.response().getUser().role(), adminOnly);
-        return transfer(session, cookies);
+        return transfer(authenticationWorkflow.login(username, password, adminOnly), cookies);
     }
 
     public AuthSession switchTo(String accountId, Map<String, String> cookies, boolean adminOnly) {
         String token = cookies.get(cookieName(accountId));
-        if (!accountId.equals(refreshTokenService.verifiedUserId(token))) {
-            throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED);
-        }
-        requireAllowedRole(accountPort.findById(accountId).orElseThrow(
-                () -> new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED)).role(), adminOnly);
-        // Rotation and the active/banned account checks remain in the existing workflow.
-        return transfer(authenticationWorkflow.refresh(token), cookies);
-    }
-
-    private static void requireAllowedRole(String role, boolean adminOnly) {
-        if (adminOnly && !"ADMIN".equals(role) && !"SUPER_ADMIN".equals(role)) {
-            throw new AuthBusinessException(AuthErrorCode.AUTH_INVALID_CREDENTIALS);
-        }
+        return transfer(authenticationWorkflow.switchAccount(accountId, token, adminOnly), cookies);
     }
 
     private AuthSession transfer(AuthSession session, Map<String, String> cookies) {

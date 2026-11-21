@@ -7,10 +7,20 @@ import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.CONTEST_ID;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.GENERATION;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.MEMORY_MB;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.PROBLEM_ID;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.RUNTIME_MS;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.SUBMISSION_ID;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.USER_ID;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.optionalJudgedString;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.parseExactJudgedLong;
 import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedLong;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedStatus;
+import static com.ulticode.submission.api.event.SubmissionLifecycleEventContract.requiredJudgedString;
 
 /**
  * Handles durable {@code SubmissionJudged} inbox payloads for contest scoring.
@@ -29,18 +39,17 @@ public class SubmissionJudgedContestConsumer {
      * Convert one persisted payload into the existing adjudication event seam.
      */
     public void consume(Map<String, Object> payload) {
-        String submissionId = requiredString(payload, "submissionId");
-        String userId = requiredString(payload, "userId");
-        Long problemId = optionalLong(payload.get("problemId"));
-        long generation = requiredJudgedLong(payload, "generation");
-        String verdict = requiredString(payload, "verdict");
-        SubmissionStatus status = SubmissionStatus.fromWire(verdict);
+        String submissionId = requiredJudgedString(payload, SUBMISSION_ID);
+        String userId = requiredJudgedString(payload, USER_ID);
+        Long problemId = optionalLong(payload.get(PROBLEM_ID));
+        long generation = requiredJudgedLong(payload, GENERATION);
+        SubmissionStatus status = requiredJudgedStatus(payload);
 
         if (!status.isTerminal() || status.getKind() == SubmissionStatus.Kind.TERMINAL_INFRA) {
             return;
         }
 
-        String contestId = optionalString(payload.get("contestId"));
+        String contestId = optionalJudgedString(payload, CONTEST_ID);
         if (contestId != null && contestSubmissionMapper.findBySubmissionId(submissionId).isEmpty()) {
             // SubmissionCreated and SubmissionJudged share an at-least-once
             // stream but are dispatched independently. Keep the judged inbox
@@ -54,26 +63,14 @@ public class SubmissionJudgedContestConsumer {
                 submissionId,
                 userId,
                 problemId,
-                verdict,
+                status.wireValue(),
                 status == SubmissionStatus.ACCEPTED,
                 null,
                 null,
                 generation > 0 ? generation : 1,
-                nonNegativeInt(payload.get("runtimeMs")),
-                nonNegativeDouble(payload.get("memoryMb")),
+                nonNegativeInt(payload.get(RUNTIME_MS)),
+                nonNegativeDouble(payload.get(MEMORY_MB)),
                 contestId));
-    }
-
-    private static String requiredString(Map<String, Object> payload, String key) {
-        String value = optionalString(payload.get(key));
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Missing SubmissionJudged field: " + key);
-        }
-        return value;
-    }
-
-    private static String optionalString(Object value) {
-        return value == null ? null : String.valueOf(value);
     }
 
     private static Long optionalLong(Object value) {
@@ -82,20 +79,10 @@ public class SubmissionJudgedContestConsumer {
             return null;
         }
         try {
-            return value instanceof Number number
-                    ? exactLong(number)
-                    : Long.parseLong(String.valueOf(value));
+            return parseExactJudgedLong(value);
         } catch (NumberFormatException | ArithmeticException e) {
             throw new IllegalArgumentException("Invalid SubmissionJudged problemId", e);
         }
-    }
-
-    private static long exactLong(Number number) {
-        if (number instanceof Byte || number instanceof Short
-                || number instanceof Integer || number instanceof Long) {
-            return number.longValue();
-        }
-        return new BigDecimal(String.valueOf(number)).longValueExact();
     }
 
     private static int nonNegativeInt(Object value) {
@@ -103,9 +90,7 @@ public class SubmissionJudgedContestConsumer {
             return 0;
         }
         try {
-            long parsed = value instanceof Number number
-                    ? exactLong(number)
-                    : Long.parseLong(String.valueOf(value));
+            long parsed = parseExactJudgedLong(value);
             if (parsed < 0 || parsed > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Invalid non-negative integer SubmissionJudged field");
             }

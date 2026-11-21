@@ -146,13 +146,16 @@ public class ProblemAdministrationDomainServiceImpl implements ProblemAdministra
     }
 
     @Override
-    public void deleteProblem(Long id, String actorId, Long expectedVersion) {
+    public Problem deleteProblem(Long id, String actorId, Long expectedVersion) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Problem not found"));
         requireExpectedVersion(problem, expectedVersion);
 
         requireAffected(writePort.deleteById(id, expectedVersion));
+        problem.setIsDeleted(true);
+        problem.setVersion(nextVersion(expectedVersion));
         log.info("Problem deleted: {} by user {}", id, actorId);
+        return problem;
     }
 
     @Override

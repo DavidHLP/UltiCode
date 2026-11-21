@@ -36,7 +36,12 @@ class SubmissionJudgedAchievementConsumerTest {
         when(submissionUserStats.countByUserId("user-1")).thenReturn(9L);
         SubmissionJudgedAchievementConsumer consumer = consumer();
 
-        consumer.consume(payload("Accepted"));
+        consumer.consume(Map.of(
+                "submissionId", "submission-1",
+                "userId", "user-1",
+                "verdict", "Accepted",
+                "generation", "0",
+                "runtimeMs", "invalid"));
 
         verify(achievementTriggerService).checkAndAwardAchievements(
                 "user-1", AchievementType.PROBLEMS_SOLVED, 4);
@@ -99,6 +104,15 @@ class SubmissionJudgedAchievementConsumerTest {
                         .hasMessage(testCase[1] + " SubmissionJudged field: generation");
             }
         }
+        verifyNoInteractions(contestSubmissionPort, submissionUserStats, achievementTriggerService);
+    }
+
+    @Test
+    void missingVerdictIsRejectedBeforeMissingGeneration() {
+        assertThatThrownBy(() -> consumer().consume(Map.of(
+                "submissionId", "submission-1", "userId", "user-1", "verdict", "  ")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Missing SubmissionJudged field: verdict");
         verifyNoInteractions(contestSubmissionPort, submissionUserStats, achievementTriggerService);
     }
 

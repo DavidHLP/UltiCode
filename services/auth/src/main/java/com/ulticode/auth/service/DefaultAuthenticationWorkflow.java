@@ -33,6 +33,11 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
 
     @Override
     public AuthSession login(String username, String password) {
+        return login(username, password, false);
+    }
+
+    @Override
+    public AuthSession login(String username, String password, boolean adminOnly) {
         AuthAccountRecord account = accountPort.findByUsername(username).orElse(null);
 
         if (account == null) {
@@ -44,6 +49,7 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
         }
 
         ensureAccountActive(account);
+        requireAllowedRole(account, adminOnly);
         accountPort.updateLastLoginAt(account.id());
 
         return authSessionPort.completeLogin(account);
@@ -106,11 +112,28 @@ public class DefaultAuthenticationWorkflow implements AuthenticationWorkflow {
     }
 
     @Override
+    public AuthSession switchAccount(String accountId, String refreshToken, boolean adminOnly) {
+        if (!accountId.equals(refreshTokenService.verifiedUserId(refreshToken))) {
+            throw new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED);
+        }
+        AuthAccountRecord account = accountPort.findById(accountId)
+                .orElseThrow(() -> new AuthBusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
+        requireAllowedRole(account, adminOnly);
+        return refresh(refreshToken);
+    }
+
+    @Override
     public AuthSession logout(String refreshToken) {
         if (refreshToken != null && !refreshToken.isBlank()) {
             refreshTokenService.revokePresentedToken(refreshToken);
         }
         return authSessionPort.clearSession();
+    }
+
+    private static void requireAllowedRole(AuthAccountRecord account, boolean adminOnly) {
+        if (adminOnly && !"ADMIN".equals(account.role()) && !"SUPER_ADMIN".equals(account.role())) {
+            throw new AuthBusinessException(AuthErrorCode.AUTH_INVALID_CREDENTIALS);
+        }
     }
 
     private void ensureAccountActive(AuthAccountRecord account) {

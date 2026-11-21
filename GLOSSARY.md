@@ -27,7 +27,7 @@
 
 ## Module concepts (architecture)
 
-- **Submission intake** — the owner-only write path that creates a Submission in `backend-submission` via `SubmissionIntakePort`/`RemoteSubmissionWritePort`, writes the judge outbox row, and asks the contest module to record a `ContestSubmission`.
+- **Submission intake** — the Submission Owner's write path for accepting a Submission and enqueueing it for judging. Contest intake also records a durable `SubmissionCreated` event for the App Owner.
 - **Projection** — a deep module owning entity→VO projection and read-side
   aggregation for one domain, behind a small interface. Pattern:
   `SearchReadProjection`, `SolutionProjection`, `AchievementProjection`,
@@ -158,9 +158,10 @@
 
 ## Design invariants
 
-- **D-04** — Submission + ContestSubmission are recorded in the **same
-  transaction** (synchronous). Post-commit scoring is event-driven; recording
-  is not.
+- **D-04** — Contest intake records the Submission and its `SubmissionCreated`
+  outbox entry in the same transaction. App records the ContestSubmission
+  idempotently from that event. Contest scoring retries a judging event that
+  arrives before the association is durable.
 - **D-05 / D-06** — a ContestSubmission is recorded only when the contest is
   RUNNING and the participant has STARTED.
 - **R6.2 / F-06** — time-from-start uses the contest clock for real
